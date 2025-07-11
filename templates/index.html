@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>ديوان الإبداع</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>ديوان الإبداع</h1>
+
+    <section>
+      <h2>🌟 أفضل ٣ أبيات اليوم</h2>
+      {% for poem in top_poems %}
+        <div class="poem">
+          <p>{{ poem[1] }}</p>
+          <span>❤️ {{ poem[2] }}</span>
+        </div>
+      {% else %}
+        <p>لا يوجد مشاركات اليوم.</p>
+      {% endfor %}
+    </section>
+
+    <section>
+      <h2>✍️ انشر بيتك</h2>
+      <form action="/submit" method="POST">
+        <textarea name="poem" placeholder="اكتب بيتك الشعري هنا..."></textarea>
+        <button type="submit">نشر</button>
+      </form>
+    </section>
+
+    <section>
+      <h2>📚 كل الأبيات</h2>
+      {% for poem in all_poems %}
+        <div class="poem">
+          <p>{{ poem[1] }}</p>
+          <a href="/like/{{ poem[0] }}">❤️ {{ poem[2] }}</a>
+        </div>
+      {% endfor %}
+    </section>
+  </div>
+</body>
+</html>
