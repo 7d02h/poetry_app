@@ -9,6 +9,12 @@
   <div class="container">
     <h1>ديوان الإبداع</h1>
 
+    <!-- روابط تسجيل الدخول وإنشاء حساب -->
+    <div style="text-align: right; margin-bottom: 20px;">
+      <a href="/login">تسجيل الدخول</a> |
+      <a href="/signup">إنشاء حساب</a>
+    </div>
+
     <section>
       <h2>🌟 أفضل ٣ أبيات اليوم</h2>
       {% for poem in top_poems %}
@@ -32,12 +38,10 @@
     <section>
       <h2>📚 كل الأبيات</h2>
       {% for poem in all_poems %}
-        <form action="{{ url_for('like', poem_id=poem[0]) }}" method="post" style="all: unset;">
-          <div class="poem" onclick="this.parentElement.submit()" style="cursor: pointer;">
-            <p>{{ poem[1] }}</p>
-            <span>❤️ {{ poem[2] }}</span>
-          </div>
-        </form>
+        <div class="poem">
+          <p>{{ poem[1] }}</p>
+          <a href="/like/{{ poem[0] }}">❤️ {{ poem[2] }}</a>
+        </div>
       {% endfor %}
     </section>
   </div>
