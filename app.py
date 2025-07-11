@@ -7,12 +7,22 @@ app = Flask(__name__)
 # إنشاء قاعدة البيانات إن لم تكن موجودة
 def init_db():
     with sqlite3.connect("poetry.db") as conn:
+        # جدول الأبيات الشعرية
         conn.execute('''
             CREATE TABLE IF NOT EXISTS poems (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 text TEXT NOT NULL,
                 likes INTEGER DEFAULT 0,
                 created DATE DEFAULT CURRENT_DATE
+            )
+        ''')
+
+        # جدول المستخدمين لتسجيل الدخول
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
             )
         ''')
 
