@@ -35,7 +35,7 @@ def submit():
             conn.execute("INSERT INTO poems (text) VALUES (?)", (text.strip(),))
     return redirect(url_for("index"))
 
-@app.route("/like/<int:poem_id>")
+@app.route("/like/<int:poem_id>", methods=["POST"])
 def like(poem_id):
     with sqlite3.connect("poetry.db") as conn:
         conn.execute("UPDATE poems SET likes = likes + 1 WHERE id = ?", (poem_id,))
@@ -43,4 +43,4 @@ def like(poem_id):
 
 if __name__ == "__main__":
     init_db()
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)

@@ -32,10 +32,12 @@
     <section>
       <h2>📚 كل الأبيات</h2>
       {% for poem in all_poems %}
-        <div class="poem">
-          <p>{{ poem[1] }}</p>
-          <a href="/like/{{ poem[0] }}">❤️ {{ poem[2] }}</a>
-        </div>
+        <form action="{{ url_for('like', poem_id=poem[0]) }}" method="post" style="all: unset;">
+          <div class="poem" onclick="this.parentElement.submit()" style="cursor: pointer;">
+            <p>{{ poem[1] }}</p>
+            <span>❤️ {{ poem[2] }}</span>
+          </div>
+        </form>
       {% endfor %}
     </section>
   </div>
