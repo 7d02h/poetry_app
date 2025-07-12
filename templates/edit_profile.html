@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تعديل الملف الشخصي</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h2 style="text-align: center;">تعديل الملف الشخصي</h2>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul style="color: green; text-align: center;">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" style="max-width: 400px; margin: auto;">
+        <div style="text-align: center; margin-bottom: 10px;">
+            <label>الصورة الحالية:</label><br>
+            <img src="{{ url_for('static', filename='profile_pics/' + (user[6] or 'default.jpg')) }}" 
+                 alt="Profile Image" width="100" height="100" style="border-radius: 50%;">
+        </div>
+
+        <label>الاسم الأول:</label>
+        <input type="text" name="first_name" value="{{ user[3] or '' }}" required><br>
+
+        <label>الاسم الأخير:</label>
+        <input type="text" name="last_name" value="{{ user[4] or '' }}" required><br>
+
+        <label>البريد الإلكتروني:</label>
+        <input type="email" name="email" value="{{ user[5] or '' }}" required><br>
+
+        <label>اسم المستخدم:</label>
+        <input type="text" name="username" value="{{ user[1] or '' }}" required minlength="4"><br>
+
+        <label>كلمة المرور:</label>
+        <input type="password" name="password" placeholder="أدخل كلمة مرور جديدة" minlength="8"><br>
+
+        <label>صورة الملف الشخصي:</label>
+        <input type="file" name="profile_image"><br><br>
+
+        <button type="submit">💾 حفظ التغييرات</button>
+    </form>
+
+    <!-- القائمة السفلية -->
+    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #eee; padding: 10px; display: flex; justify-content: space-around;">
+        <a href="{{ url_for('profile') }}">🏠 الرئيسية</a>
+        <a href="{{ url_for('profile') }}">👤 الملف الشخصي</a>
+        <a href="#">🔍 الاكسبلور</a>
+    </div>
+</body>
+</html>

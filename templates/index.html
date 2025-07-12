@@ -4,46 +4,73 @@
   <meta charset="UTF-8" />
   <title>ديوان الإبداع</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .poem p {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      font-size: 18px;
+      color: #222;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>ديوان الإبداع</h1>
+    <h1>📖 ديوان الإبداع</h1>
 
-    <!-- روابط تسجيل الدخول وإنشاء حساب -->
     <div style="text-align: right; margin-bottom: 20px;">
-      <a href="/login">تسجيل الدخول</a> |
-      <a href="/signup">إنشاء حساب</a>
+      مرحبًا، {{ username }} |
+      <a href="/logout">تسجيل الخروج</a>
     </div>
 
     <section>
       <h2>🌟 أفضل ٣ أبيات اليوم</h2>
-      {% for poem in top_poems %}
-        <div class="poem">
-          <p>{{ poem[1] }}</p>
-          <span>❤️ {{ poem[2] }}</span>
-        </div>
+      {% if top_poems %}
+        {% for poem in top_poems %}
+          <div class="poem">
+            <p>{{ poem[1] }}</p>
+            <small>✍️ {{ poem[4] }}</small><br>
+            <span>❤️ {{ poem[2] }}</span>
+            {% if poem[4] == username %}
+              | <a href="/delete/{{ poem[0] }}">🗑️ حذف</a>
+            {% endif %}
+          </div>
+        {% endfor %}
       {% else %}
         <p>لا يوجد مشاركات اليوم.</p>
-      {% endfor %}
+      {% endif %}
     </section>
 
     <section>
       <h2>✍️ انشر بيتك</h2>
       <form action="/submit" method="POST">
-        <textarea name="poem" placeholder="اكتب بيتك الشعري هنا..."></textarea>
+        <textarea name="poem" placeholder="اكتب بيتك الشعري هنا..." required></textarea>
         <button type="submit">نشر</button>
       </form>
     </section>
 
     <section>
       <h2>📚 كل الأبيات</h2>
-      {% for poem in all_poems %}
-        <div class="poem">
-          <p>{{ poem[1] }}</p>
-          <a href="/like/{{ poem[0] }}">❤️ {{ poem[2] }}</a>
-        </div>
-      {% endfor %}
+      {% if all_poems %}
+        {% for poem in all_poems %}
+          <div class="poem">
+            <p>{{ poem[1] }}</p>
+            <small>✍️ {{ poem[4] }}</small><br>
+            <a href="/like/{{ poem[0] }}">❤️ {{ poem[2] }}</a>
+            {% if poem[4] == username %}
+              | <a href="/delete/{{ poem[0] }}">🗑️ حذف</a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <p>لا توجد أبيات منشورة بعد.</p>
+      {% endif %}
     </section>
   </div>
+
+  <footer class="navbar">
+    <a href="/"><span>🏠</span>الرئيسية</a>
+    <a href="/profile"><span>👤</span>الملف الشخصي</a>
+    <a href="/explore"><span>🔍</span>استكشاف</a>
+  </footer>
 </body>
 </html>

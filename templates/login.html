@@ -8,12 +8,23 @@
 <body>
   <div class="container">
     <h1>تسجيل الدخول</h1>
-    <form method="POST" action="/login">
-      <input type="text" name="username" placeholder="اسم المستخدم" required>
-      <input type="password" name="password" placeholder="كلمة المرور" required>
+    <form method="POST">
+      <label for="username">اسم المستخدم:</label>
+      <input type="text" name="username" id="username" required><br><br>
+
+      <label for="password">كلمة المرور:</label>
+      <input type="password" name="password" id="password" required><br><br>
+
       <button type="submit">دخول</button>
     </form>
-    <p><a href="/signup">إنشاء حساب جديد</a></p>
+
+    <p style="text-align:center;">لا تملك حسابًا؟ <a href="/signup">إنشاء حساب</a></p>
   </div>
+
+  <footer class="navbar">
+    <a href="/"><span>🏠</span>الرئيسية</a>
+    <a href="/profile"><span>👤</span>الملف الشخصي</a>
+    <a href="/explore"><span>🔍</span>استكشاف</a>
+  </footer>
 </body>
 </html>

@@ -3,6 +3,7 @@ body {
   direction: rtl;
   background: #f2f2f2;
   padding: 20px;
+  padding-bottom: 80px;
 }
 
 .container {
@@ -26,6 +27,8 @@ textarea {
   font-size: 16px;
   resize: none;
   margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
 }
 
 button {
@@ -39,19 +42,60 @@ button {
   cursor: pointer;
 }
 
+button:hover {
+  background-color: #005f62;
+}
+
 .poem {
   background: #f9f9f9;
   padding: 12px;
   margin-bottom: 10px;
   border-radius: 8px;
   position: relative;
+  border: 1px solid #ddd;
 }
 
 .poem span, .poem a {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
   color: #e91e63;
   text-decoration: none;
   font-weight: bold;
+  margin-left: 10px;
+}
+
+.poem small {
+  display: block;
+  margin-top: 5px;
+  color: #555;
+}
+
+footer.navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #f9f9f9;
+  border-top: 1px solid #ccc;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  font-family: 'Arial', sans-serif;
+  z-index: 1000;
+}
+
+footer.navbar a {
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  text-align: center;
+  flex: 1;
+}
+
+footer.navbar a:hover {
+  color: #007BFF;
+}
+
+footer.navbar a span {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 3px;
 }
