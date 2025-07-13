@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>بحث عن مستخدم</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .search-box {
+            max-width: 500px;
+            margin: 30px auto;
+            text-align: center;
+        }
+        .search-results {
+            max-width: 600px;
+            margin: auto;
+        }
+        .user-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .user-card img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .user-card a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+        .user-card form {
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+
+<div class="search-box">
+    <h2>🔍 البحث عن المستخدمين</h2>
+    <form method="POST">
+        <input type="text" name="keyword" placeholder="اكتب اسم المستخدم أو الاسم" required>
+        <button type="submit">بحث</button>
+    </form>
+</div>
+
+<div class="search-results">
+    {% if results %}
+        <h3>نتائج البحث:</h3>
+        {% for user in results %}
+            <div class="user-card">
+                <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" alt="الصورة">
+                <div>
+                    <a href="{{ url_for('public_profile', username=user['username']) }}">{{ user['username'] }}</a><br>
+                    {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
+                </div>
+                {% if session.username != user['username'] %}
+                    <form action="{{ url_for('follow', username=user['username']) }}" method="get">
+                        <button type="submit">➕ متابعة</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% elif results is not none %}
+        <p style="text-align:center;">🚫 لا توجد نتائج مطابقة.</p>
+    {% endif %}
+</div>
+
+<!-- القائمة السفلية -->
+{% include 'footer.html' %}
+
+</body>
+</html>

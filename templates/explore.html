@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>إكسبلور</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .user-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            background: #f9f9f9;
+        }
+        .user-card img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .user-card a {
+            font-weight: bold;
+        }
+        .user-card form {
+            margin-left: auto;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 استكشاف مستخدمين جدد</h1>
+
+        {% if suggested_users %}
+            {% for user in suggested_users %}
+                <div class="user-card">
+                    <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" alt="صورة المستخدم">
+                    <div>
+                        <a href="{{ url_for('public_profile', username=user['username']) }}">{{ user['username'] }}</a><br>
+                        {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
+                    </div>
+                    <form action="{{ url_for('follow', username=user['username']) }}" method="get">
+                        <button type="submit">➕ متابعة</button>
+                    </form>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>😅 لا يوجد مستخدمون جدد لاقتراحهم الآن.</p>
+        {% endif %}
+    </div>
+
+    <!-- القائمة السفلية -->
+    {% include 'footer.html' %}
+</body>
+</html>
