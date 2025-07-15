@@ -62,7 +62,9 @@
             <a href="{{ url_for('follow', username=user[1]) }}" class="btn">➕ متابعة</a>
         {% endif %}
     {% endif %}
-
+<!-- داخل أي صفحة HTML -->
+<a href="{{ url_for('set_language', lang_code='ar') }}">🇸🇦 عربي</a> |
+<a href="{{ url_for('set_language', lang_code='en') }}">🇺🇸 English</a>
     <hr>
 
     <h3>📝 أبياتي</h3>

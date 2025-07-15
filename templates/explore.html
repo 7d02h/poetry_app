@@ -5,39 +5,75 @@
     <title>إكسبلور</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .user-card {
+        .user-card, .poem-card {
             border: 1px solid #ccc;
             padding: 10px;
             margin-bottom: 15px;
             border-radius: 10px;
+            background: #f9f9f9;
+        }
+        .user-card, .poem-card-header {
             display: flex;
             align-items: center;
             gap: 15px;
-            background: #f9f9f9;
         }
-        .user-card img {
+        .user-card img, .poem-card img {
             width: 50px;
             height: 50px;
             border-radius: 50%;
             object-fit: cover;
         }
-        .user-card a {
+        .user-card a, .poem-card a {
             font-weight: bold;
         }
         .user-card form {
             margin-left: auto;
         }
         .container {
-            max-width: 600px;
+            max-width: 700px;
             margin: auto;
             padding: 20px;
+        }
+        .poem-card p {
+            margin: 10px 0;
+        }
+        .like-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .like-section form {
+            display: inline;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 استكشاف مستخدمين جدد</h1>
 
+        <h1>📝 الأبيات الأكثر إعجابًا</h1>
+        {% if top_poems %}
+            {% for poem in top_poems %}
+                <div class="poem-card">
+                    <div class="poem-card-header">
+                        <img src="{{ url_for('static', filename='profile_pics/' + poem['profile_image']) }}" alt="صورة المستخدم">
+                        <a href="{{ url_for('public_profile', username=poem['username']) }}">{{ poem['username'] }}</a>
+                    </div>
+                    <p>{{ poem['text'] }}</p>
+                    <p>{{ poem['created_at'] | format_ar_date }}</p>
+                    <div class="like-section">
+                        <form action="{{ url_for('like', poem_id=poem['id']) }}" method="get">
+                            <button type="submit">❤️ {{ poem['like'] }}</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>😔 لا توجد أبيات بعد.</p>
+        {% endif %}
+
+        <hr>
+
+        <h1>🔍 استكشاف مستخدمين جدد</h1>
         {% if suggested_users %}
             {% for user in suggested_users %}
                 <div class="user-card">
@@ -56,7 +92,6 @@
         {% endif %}
     </div>
 
-    <!-- القائمة السفلية -->
     {% include 'footer.html' %}
 </body>
 </html>

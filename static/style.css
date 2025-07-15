@@ -7,7 +7,7 @@ body {
 }
 
 .container {
-  max-width: 600px;
+  max-width: 110%;
   margin: auto;
   background: white;
   padding: 20px;
@@ -46,26 +46,58 @@ button:hover {
   background-color: #005f62;
 }
 
+/* كرت القصيدة */
 .poem {
-  background: #f9f9f9;
-  padding: 12px;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.poem p {
+  font-size: 20px;
+  line-height: 1.8;
+  color: #333;
   margin-bottom: 10px;
-  border-radius: 8px;
-  position: relative;
-  border: 1px solid #ddd;
 }
 
-.poem span, .poem a {
-  color: #e91e63;
+.poem .timestamp {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 5px;
+}
+
+/* معلومات المستخدم */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.user-info img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+
+/* الإعجاب والحذف */
+.poem-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  font-size: 20px;
+}
+
+.poem-footer a {
   text-decoration: none;
-  font-weight: bold;
+  color: #e91e63;
   margin-left: 10px;
-}
-
-.poem small {
-  display: block;
-  margin-top: 5px;
-  color: #555;
 }
 
 footer.navbar {
@@ -85,7 +117,7 @@ footer.navbar {
 footer.navbar a {
   color: #333;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 28px;
   text-align: center;
   flex: 1;
 }
@@ -98,4 +130,56 @@ footer.navbar a span {
   display: block;
   font-size: 20px;
   margin-bottom: 3px;
+}
+
+/* القائمة الجانبية */
+#menuToggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 22px;
+  cursor: pointer;
+}
+
+#menuToggle span {
+  display: block;
+  height: 4px;
+  background: #333;
+  border-radius: 3px;
+}
+
+#sideMenu {
+  position: fixed;
+  top: 0;
+  right: -250px;
+  width: 250px;
+  height: 100%;
+  background: #fff;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+  transition: right 0.3s ease;
+  z-index: 10000;
+  padding-top: 60px;
+  direction: rtl;
+}
+
+#sideMenu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#sideMenu li {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+#sideMenu a {
+  color: #333;
+  text-decoration: none;
+  font-size: 16px;
 }
