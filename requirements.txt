@@ -1,4 +1,4 @@
 flask
 gunicorn
-flask_babel
+Flask-Babel==2.0.0
 humanize
