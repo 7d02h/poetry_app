@@ -4,73 +4,149 @@
   <meta charset="UTF-8" />
   <title>الصفحة الرئيسية - جزيرة العرب</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .poem {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      background: #f9f9f9;
+    }
+    .poem p {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      font-size: 18px;
+      color: #222;
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .user-info img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    #menuToggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 10001;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 30px;
+      height: 22px;
+      cursor: pointer;
+    }
+    #menuToggle span {
+      display: block;
+      height: 4px;
+      background: #333;
+      border-radius: 3px;
+    }
+    #sideMenu {
+      position: fixed;
+      top: 0;
+      right: -250px;
+      width: 250px;
+      height: 100%;
+      background: #fff;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.2);
+      transition: right 0.3s ease;
+      z-index: 10000;
+      padding-top: 60px;
+      direction: rtl;
+    }
+    #sideMenu ul {
+      list-style: none;
+      padding: 0;
+    }
+    #sideMenu li {
+      padding: 15px 20px;
+      border-bottom: 1px solid #eee;
+    }
+    #sideMenu a {
+      color: #333;
+      text-decoration: none;
+      font-size: 16px;
+    }
+    .poem-footer {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: 18px;
+    }
+    .action-btn,
+    .like-button {
+      font-size: 28px;
+      padding: 8px 14px;
+      background: #f0f0f0;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #bd003f;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+    .action-btn:hover,
+    .like-button:hover {
+      background: #e91e63;
+      color: white;
+    }
+    .like-button.liked {
+      color: #e91e63;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-  <!-- زر القائمة الجانبية -->
   <div id="menuToggle" onclick="toggleMenu()">
     <span></span>
     <span></span>
     <span></span>
   </div>
-
-  <!-- القائمة الجانبية -->
   <nav id="sideMenu">
     <ul>
       <li><a href="{{ url_for('my_profile') }}">👤 صفحتي</a></li>
       <li><a href="#">💬 تواصل معنا</a></li>
       <li><a href="#">⚙️ الإعدادات</a></li>
-      <li><a href="{{ url_for('set_language', lang_code='ar') }}">🇸🇦 العربية</a></li>
-      <li><a href="{{ url_for('set_language', lang_code='en') }}">🇬🇧 English</a></li>
       <li><a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a></li>
     </ul>
   </nav>
-
   <div class="container">
     <h1>جزيرة العرب</h1>
 
-    <div style="text-align: right; margin-bottom: 20px;">
-      مرحبًا، <a href="{{ url_for('my_profile') }}">{{ username }}</a> |
-      <a href="{{ url_for('logout') }}">تسجيل الخروج</a>
-    </div>
-
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-
-    <!-- أفضل ٣ أبيات -->
     <section>
       <h2>🌟 أفضل ٣ أبيات اليوم</h2>
       {% if top_poems %}
         {% for poem in top_poems %}
-          <div class="poem">
-            <p>{{ poem[1] }}</p>
-            <p class="timestamp">{{ poem[5] }}</p>
-            <div class="user-info">
-              <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
-              <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
-            </div>
-            <div class="poem-footer">
-              ❤️ {{ poem[2] }}
-              {% if poem[3] == username %}
-              <a href="{{ url_for('like', poem_id=poem[0], like_count=1) }}">❤️ Like</a>
-                | <a href="{{ url_for('delete', poem_id=poem[0]) }}">🗑️ حذف</a>
-              {% endif %}
-              | <a href="#" onclick="sharePoem({{ poem[1]|escape }})">🏌🏻 مشاركة</a>
-            </div>
+        <div class="poem" id="poem-{{ poem[0] }}">
+          <p>{{ poem[1] }}</p>
+          <p class="timestamp">{{ poem[5] }}</p>
+          <div class="user-info">
+            <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
+            <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
           </div>
+          <div class="poem-footer">
+            <a class="like-button {% if user_liked(poem[0]) %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
+            {% if poem[3] == username %}
+<div style="color: #888; font-size: 16px; margin-top: 8px;">
+  👁️ {{ poem[6] }} مشاهدة
+</div>
+              <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑️ حذف</a>
+            {% endif %}
+           <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
+          </div>
+        </div>
         {% endfor %}
       {% else %}
         <p>لا يوجد مشاركات اليوم.</p>
       {% endif %}
     </section>
-
-    <!-- نشر بيت -->
     <section>
       <h2>✍️ انشر بيتك</h2>
       <form action="{{ url_for('submit') }}" method="POST">
@@ -79,26 +155,28 @@
       </form>
     </section>
 
-    <!-- جميع الأبيات -->
     <section>
       <h2>📚 كل الأبيات</h2>
       {% if all_poems %}
         {% for poem in all_poems %}
-          <div class="poem">
-            <p>{{ poem[1] }}</p>
-            <p class="timestamp">{{ poem[5] }}</p>
-            <div class="user-info">
-              <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
-              <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
-            </div>
-            <div class="poem-footer">
-              <a href="{{ url_for('like', poem_id=poem[0], like_count=1) }}">❤️ Like</a>
-              {% if poem[3] == username %}
-                | <a href="{{ url_for('delete', poem_id=poem[0]) }}">🗑️ حذف</a>
-              {% endif %}
-              | <a href="#" onclick="sharePoem({{ poem[1]|escape }})">🏌🏻 مشاركة</a>
-            </div>
+        <div class="poem" id="poem-{{ poem[0] }}">
+          <p>{{ poem[1] }}</p>
+          <p class="timestamp">{{ poem[5] }}</p>
+          <div class="user-info">
+            <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
+            <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
           </div>
+          <div class="poem-footer">
+            <a class="like-button {% if user_liked(poem[0]) %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
+            {% if poem[3] == username %}
+<div style="color: #888; font-size: 16px; margin-top: 8px;">
+  👁️ {{ poem[6] }} مشاهدة
+</div>
+              <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
+            {% endif %}
+            <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
+          </div>
+        </div>
         {% endfor %}
       {% else %}
         <p>لا توجد أبيات منشورة بعد.</p>
@@ -108,41 +186,42 @@
 
   {% include 'footer.html' %}
 
-  <!-- JS: القائمة الجانبية -->
   <script>
     function toggleMenu() {
       const menu = document.getElementById('sideMenu');
       menu.style.right = (menu.style.right === '0px') ? '-250px' : '0px';
     }
-  </script>
 
-  <!-- JS: زر المشاركة -->
-  <script>
-    function sharePoem(text) {
-      const encodedText = encodeURIComponent("📜 بيت أعجبني:\n\n" + text + "\n\nمن جزيرة العرب");
-      const shareUrl = window.location.href;const modal = document.createElement('div');
-      modal.id = "shareModal";
-      modal.style = 
-        position: fixed;
-        top: 30%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 0 10px #aaa;
-        z-index: 9999;
-        text-align: center;
-      ;
-      modal.innerHTML = 
-        <p style="margin-bottom: 10px;">🔗 شارك هذا البيت:</p>
-        <a href="https://wa.me/?text=${encodedText}" target="_blank" style="display:inline-block;margin:5px;color:white;background:#25D366;padding:10px 20px;border-radius:6px;">واتساب</a>
-        <a href="https://www.facebook.com/sharer/sharer.php?u=${shareUrl}" target="_blank" style="display:inline-block;margin:5px;color:white;background:#4267B2;padding:10px 20px;border-radius:6px;">فيسبوك</a>
-        <a href="https://twitter.com/intent/tweet?text=${encodedText}" target="_blank" style="display:inline-block;margin:5px;color:white;background:#1DA1F2;padding:10px 20px;border-radius:6px;">تويتر</a>
-        <br><br>
-        <button onclick="document.body.removeChild(document.getElementById('shareModal'))" style="margin-top:10px;">إغلاق</button>
-      ;
-      document.body.appendChild(modal);
+    function sharePoem(poemText) {
+      if (navigator.share) {
+        navigator.share({
+          title: '📜 بيت من جزيرة العرب',
+          text: poemText,
+          url: window.location.href
+        }).catch((error) => console.log('خطأ في المشاركة:', error));
+      } else {
+        alert("المشاركة غير مدعومة في هذا المتصفح.");
+      }
+    }
+
+    function likePoem(poemId, element) {
+      const isLiked = element.classList.contains("liked");
+
+      fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            element.innerHTML = '❤️ ' + data.likes;
+            element.classList.toggle("liked");
+          } else if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            alert("حدث خطأ أثناء الإعجاب.");
+          }
+        })
+        .catch(error => {
+          console.error("خطأ في الاتصال بالسيرفر:", error);
+        });
     }
   </script>
 </body>

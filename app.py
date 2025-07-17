@@ -1,9 +1,12 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session,flash
 import sqlite3
 from flask import redirect, url_for
 from flask_babel import Babel
 import humanize
+from flask import jsonify, request
+from flask import session
 from datetime import datetime
+created_at = datetime.now()
 from datetime import date
 import os
 from werkzeug.utils import secure_filename
@@ -77,6 +80,11 @@ def init_db():
     )
 ''')
 
+
+
+
+
+
 # التحقق من صلاحية اسم المستخدم وكلمة المرور
 def valid_username(username):
     return username and len(username) >= 4
@@ -87,6 +95,20 @@ def valid_password(password):
 def get_user_image(username):
     # ترجع المسار الصحيح للصورة، مثال:
     return f"/static/images/{username}.png"
+
+def user_liked(poem_id):
+    username = session.get('username')
+    if not username:
+        return False
+
+    conn = sqlite3.connect('poetry.db')
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM likes WHERE username = ? AND poem_id = ?", (username, poem_id))
+    result = c.fetchone()
+    conn.close()
+
+    return result is not None
+
 @app.route('/')  
 def home():  
     if 'username' not in session:  
@@ -141,10 +163,11 @@ def home():
   
     conn.close()  
   
-    return render_template('index.html',   
-                           username=current_user,   
-                           top_poems=top_poems,   
-                           all_poems=all_poems)
+    return render_template('index.html',
+                       username=current_user,
+                       top_poems=top_poems,
+                       all_poems=all_poems,
+                       user_liked=user_liked)
 # تسجيل مستخدم جديد
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
@@ -173,11 +196,13 @@ def signup():
     return render_template("signup.html")
 
 
-@app.route('/set_lang/<lang_code>')
-def set_language(lang_code):
-    session['lang'] = lang_code
-    return redirect(request.referrer or url_for('index'))
 
+
+@app.route('/set_language/<lang_code>')
+def set_language(lang_code):
+    if lang_code in ['ar', 'en']:
+        session['lang'] = lang_code
+    return redirect(request.referrer or url_for('index'))
 # تسجيل الدخول
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -391,20 +416,27 @@ def admin_set_likes(poem_id, like_count):
         conn.commit()
 
     return f"✅ تم تعديل عدد اللايكات للمنشور رقم {poem_id} إلى {like_count}"
+
+
 @app.route('/explore')
 def explore():
-    conn = sqlite3.connect('poetry.db')
-    conn.row_factory = sqlite3.Row
+    today = datetime.now().date()
+
+    conn = sqlite3.connect('poems.db')
     c = conn.cursor()
 
-    # ترتيب حسب عدد اللايكات + جلب صورة المستخدم مع كل بيت
-    c.execute("""
-        SELECT poems.id, poems.content, poems.likes,pomes.created_at, poems.author as username, users.profile_image
+    c.execute('''
+        SELECT poems.id, poems.text, poems.likes, users.username, users.profile_pic, poems.created_at
         FROM poems
-        JOIN users ON poems.author = users.username
+        JOIN users ON poems.user_id = users.id
+        WHERE DATE(poems.created_at) = ?
         ORDER BY poems.likes DESC
-    """)
+    ''', (today,))
+    
     poems = c.fetchall()
+    conn.close()
+
+    return render_template('explore.html', poems=poems)
 
     # جلب المستخدمين المقترحين
     current_user = session.get("username")
@@ -414,7 +446,6 @@ def explore():
     conn.close()
 
     return render_template('explore.html', poems=poems, suggested_users=suggested_users)
-
 @app.route('/delete/<int:poem_id>')
 def delete(poem_id):
     import sqlite3
@@ -440,42 +471,41 @@ def submit():
 
     return redirect(url_for('explore_page'))  # أو أي صفحة بدك ترجع لها
 
+from flask import jsonify, request, session, redirect, url_for
+import sqlite3
+
 @app.route('/like/<int:poem_id>')
 def like(poem_id):
     if 'username' not in session:
-        return redirect(url_for('login'))
+        # إذا مش مسجّل دخول نرجع رابط تسجيل الدخول
+        return jsonify({'success': False, 'redirect': url_for('login')})
 
     username = session['username']
 
     conn = sqlite3.connect('poetry.db')
     c = conn.cursor()
 
-    # تحقق إذا المستخدم أعجب بهذا البيت مسبقاً
+    # تحقق إذا المستخدم أعجب مسبقًا
     c.execute('SELECT 1 FROM likes WHERE username = ? AND poem_id = ?', (username, poem_id))
     already_liked = c.fetchone()
 
-    if not already_liked:
-        # إضافة إعجاب
+    if already_liked:
+        # إذا معجب، نشيله
+        c.execute('DELETE FROM likes WHERE username = ? AND poem_id = ?', (username, poem_id))
+        c.execute('UPDATE poems SET likes = likes - 1 WHERE id = ?', (poem_id,))
+    else:
+        # إذا مش معجب، نضيفه
         c.execute('INSERT INTO likes (username, poem_id) VALUES (?, ?)', (username, poem_id))
         c.execute('UPDATE poems SET likes = likes + 1 WHERE id = ?', (poem_id,))
-        conn.commit()
 
-        # تحقق إذا محفوظ مسبقاً
-        c.execute('SELECT 1 FROM saved_poems WHERE username = ? AND poem_id = ?', (username, poem_id))
-        already_saved = c.fetchone()
+    # نجيب عدد الإعجابات الجديد
+    c.execute('SELECT likes FROM poems WHERE id = ?', (poem_id,))
+    likes = c.fetchone()[0]
 
-        # إذا مش محفوظ، خزّنه تلقائيًا
-        if not already_saved:
-            c.execute('INSERT INTO saved_poems (username, poem_id) VALUES (?, ?)', (username, poem_id))
-            conn.commit()
-
+    conn.commit()
     conn.close()
-    return redirect(url_for('home'))
 
-import sqlite3
-
-with sqlite3.connect("poetry.db") as conn:
-  
-  if __name__ == "__main__":
+    return jsonify({'success': True, 'likes': likes})
+if __name__ == "__main__":
     init_db()
     app.run(debug=True)

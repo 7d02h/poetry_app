@@ -7,7 +7,7 @@ body {
 }
 
 .container {
-  max-width: 110%;
+  max-width: 100%;
   margin: auto;
   background: white;
   padding: 20px;
@@ -85,21 +85,50 @@ button:hover {
   border: 1px solid #ccc;
 }
 
-/* الإعجاب والحذف */
+/* تذييل القصيدة */
 .poem-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-top: 10px;
-  font-size: 20px;
+  gap: 12px;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #eee;
+  font-size: 16px;
+  flex-wrap: wrap;
 }
 
-.poem-footer a {
+.poem-footer .action-btn,
+.poem-footer .like-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  border-radius: 8px;
   text-decoration: none;
-  color: #e91e63;
-  margin-left: 10px;
+  color: #555;
+  font-size: 16px;
+  transition: 0.3s ease;
+  cursor: pointer;
 }
 
+.poem-footer .action-btn:hover,
+.poem-footer .like-button:hover {
+  background-color: #e91e63;
+  color: white;
+}
+
+/* شكل زر اللايك */
+.like-button.liked {
+  color: #e91e63;
+  font-weight: bold;
+  text-shadow: 0 0 5px rgba(233, 30, 99, 0.3);
+  transform: scale(1.1);
+}
+
+/* القائمة السفلية */
 footer.navbar {
   position: fixed;
   bottom: 0;
@@ -182,4 +211,40 @@ footer.navbar a span {
   color: #333;
   text-decoration: none;
   font-size: 16px;
+}
+
+/* الملف الشخصي */
+.profile-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.profile-box h2 {
+  margin-bottom: 10px;
+  font-size: 24px;
+  color: #222;
+}
+
+.profile-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 15px;
+}
+
+.profile-stats .stat {
+  text-align: center;
+  font-size: 18px;
+  color: #444;
+}
+
+.profile-stats .stat span {
+  display: block;
+  font-weight: bold;
+  font-size: 20px;
+  color: #007b83;
 }

@@ -20,11 +20,16 @@
 
     <p style="text-align:center;">لديك حساب؟ <a href="/login">تسجيل الدخول</a></p>
   </div>
+     </div>{% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    {% endwith %}
 
-  <footer class="navbar">
-    <a href="/"><span>🏠</span>الرئيسية</a>
-    <a href="/profile"><span>👤</span>الملف الشخصي</a>
-    <a href="/explore"><span>🔍</span>استكشاف</a>
-  </footer>
+{% include 'footer.html' %}
 </body>
 </html>
