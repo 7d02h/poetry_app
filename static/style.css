@@ -4,6 +4,7 @@ body {
   background: #f2f2f2;
   padding: 20px;
   padding-bottom: 80px;
+  margin: 0;
 }
 
 .container {
@@ -247,4 +248,63 @@ footer.navbar a span {
   font-weight: bold;
   font-size: 20px;
   color: #007b83;
+}
+
+/* تحسين العرض على الهواتف */
+@media (max-width: 600px) {
+  .poem p {
+    font-size: 16px;
+  }.poem-footer {
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .poem-footer .action-btn,
+  .poem-footer .like-button {
+    font-size: 14px;
+    padding: 5px 8px;
+  }
+
+  footer.navbar a {
+    font-size: 20px;
+  }
+
+  footer.navbar a span {
+    font-size: 14px;
+  }
+
+  .profile-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-box h2 {
+    font-size: 20px;
+  }
+
+  .profile-stats .stat {
+    font-size: 16px;
+  }
+
+  .profile-stats .stat span {
+    font-size: 18px;
+  }
+
+  .container {
+    padding: 10px;
+  }
+
+  textarea {
+    height: 50px;
+    font-size: 14px;
+  }
+
+  button {
+    font-size: 14px;
+    padding: 8px;
+  }
+
+  h1, h2 {
+    font-size: 22px;
+  }
 }
