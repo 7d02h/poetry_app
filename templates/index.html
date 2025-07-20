@@ -4,32 +4,116 @@
   <meta charset="UTF-8" />
   <title>الصفحة الرئيسية - جزيرة العرب</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    body {
+      background: #f4f4f8;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding-bottom: 80px;
+    }
+    h1, h2 {
+      color: #333;
+      text-align: center;
+    }
     .poem {
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 8px;
-      background: #f9f9f9;
+      background: #ffffff;
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin: 20px 10px;
+      border-radius: 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
     .poem p {
       white-space: pre-wrap;
-      line-height: 1.7;
-      font-size: 18px;
-      color: #222;
+      font-size: 17px;
+      color: #444;
+      line-height: 1.8;
+    }
+    .timestamp {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 8px;
     }
     .user-info {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-top: 5px;
+      margin-top: 10px;
     }
     .user-info img {
-      width: 30px;
-      height: 30px;
+      width: 35px;
+      height: 35px;
       border-radius: 50%;
+      border: 2px solid #eee;
       object-fit: cover;
     }
+    .user-info a {
+      font-weight: bold;
+      color: #007b83;
+      text-decoration: none;
+    }
+    .poem-footer {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+      font-size: 16px;
+    }
+    .views-count {
+      color: #555;
+      background: #eee;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .action-btn, .like-button {
+      font-size: 18px;
+      padding: 6px 12px;
+      background: #fafafa;
+      border-radius: 10px;
+      text-decoration: none;
+      color: #bd003f;
+      border: 1px solid #ddd;
+      transition: 0.3s;
+      cursor: pointer;
+    }
+    .action-btn:hover, .like-button:hover {
+      background: #e91e63;
+      color: white;
+    }
+    .like-button.liked {
+      background: #ffe6ed;
+      color: #e91e63;
+      font-weight: bold;
+    }
+    form textarea {
+      width: 95%;
+      margin: 10px auto;
+      display: block;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      resize: vertical;
+      height: 100px;
+    }
+    form button {
+      display: block;
+      width: 95%;
+      margin: 0 auto;
+      padding: 10px;
+      background: #28a745;
+      color: white;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    form button:hover {
+      background: #218838;
+    }
+
     #menuToggle {
       position: fixed;
       top: 20px;
@@ -74,36 +158,11 @@
       text-decoration: none;
       font-size: 16px;
     }
-    .poem-footer {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-      font-size: 18px;
-    }
-    .action-btn,
-    .like-button {
-      font-size: 28px;
-      padding: 8px 14px;
-      background: #f0f0f0;
-      border-radius: 8px;
-      text-decoration: none;
-      color: #bd003f;
-      transition: 0.3s;
-      cursor: pointer;
-    }
-    .action-btn:hover,
-    .like-button:hover {
-      background: #e91e63;
-      color: white;
-    }
-    .like-button.liked {
-      color: #e91e63;
-      font-weight: bold;
+
+    textarea::placeholder {
+      color: #999;
     }
   </style>
-
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
   <div id="menuToggle" onclick="toggleMenu()">
@@ -111,14 +170,32 @@
     <span></span>
     <span></span>
   </div>
+
   <nav id="sideMenu">
     <ul>
       <li><a href="{{ url_for('my_profile') }}">👤 صفحتي</a></li>
       <li><a href="#">💬 تواصل معنا</a></li>
-      <li><a href="#">⚙️ الإعدادات</a></li>
+      <li><a href="#">⚙️ الإعدادات</a></li><li>
+        <details>
+          <summary>🚫 قائمة المحظورين</summary>
+          <ul style="list-style: none; padding-right: 1rem;">
+            {% if blocked_users_sidebar %}
+              {% for u in blocked_users_sidebar %}
+                <li style="display: flex; justify-content: space-between; align-items: center;">
+                  <span>{{ u["username"] }}</span>
+                  <a href="{{ url_for('unblock_user', username=u.username) }}" style="color: red; font-size: small;">إلغاء</a>
+                </li>
+              {% endfor %}
+            {% else %}
+              <li><em style="color: gray;">لا يوجد</em></li>
+            {% endif %}
+          </ul>
+        </details>
+      </li>
       <li><a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a></li>
     </ul>
   </nav>
+
   <div class="container">
     <h1>جزيرة العرب</h1>
 
@@ -126,29 +203,32 @@
       <h2>🌟 أفضل ٣ أبيات اليوم</h2>
       {% if top_poems %}
         {% for poem in top_poems %}
-        <div class="poem" id="poem-{{ poem[0] }}">
-          <p>{{ poem[1] }}</p>
-          <p class="timestamp">{{ poem[5] }}</p>
-          <div class="user-info">
-            <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
-            <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
+          <div class="poem" id="poem-{{ poem[0] }}">
+            <p>{{ poem[1] }}</p>
+            <p class="timestamp">{{ poem[6] }}</p>
+            <div class="user-info">
+              <img src="{{ url_for('static', filename='profile_pics/' + poem[5]) }}" alt="صورة المستخدم">
+              <a href="{{ url_for('public_profile', username=poem[4]) }}">{{ poem[4] }}</a>
+            </div>
+            <div class="poem-footer">
+              <div class="views-count">{{ poem[3] or 0 }} مشاهدة</div>
+              <a class="like-button {% if poem[0] in user_liked %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
+              {% if poem[4] == username %}
+                <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
+              {% endif %}
+              <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
+              <a class="action-btn" href="{{ url_for('report_poem', poem_id=poem[0]) }}">🚨 إبلاغ</a>
+              {% if poem[4] != username %}
+                <a class="action-btn" href="{{ url_for('block_user', username=poem[4]) }}">🚫 حظر</a>
+              {% endif %}
+            </div>
           </div>
-          <div class="poem-footer">
-            <a class="like-button {% if user_liked(poem[0]) %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
-            {% if poem[3] == username %}
-<div style="color: #888; font-size: 16px; margin-top: 8px;">
-  👁️ {{ poem[6] }} مشاهدة
-</div>
-              <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑️ حذف</a>
-            {% endif %}
-           <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
-          </div>
-        </div>
         {% endfor %}
       {% else %}
         <p>لا يوجد مشاركات اليوم.</p>
       {% endif %}
     </section>
+
     <section>
       <h2>✍️ انشر بيتك</h2>
       <form action="{{ url_for('submit') }}" method="POST">
@@ -161,24 +241,22 @@
       <h2>📚 كل الأبيات</h2>
       {% if all_poems %}
         {% for poem in all_poems %}
-        <div class="poem" id="poem-{{ poem[0] }}">
-          <p>{{ poem[1] }}</p>
-          <p class="timestamp">{{ poem[5] }}</p>
-          <div class="user-info">
-            <img src="{{ url_for('static', filename='profile_pics/' + poem[4]) }}" alt="صورة المستخدم">
-            <a href="{{ url_for('public_profile', username=poem[3]) }}">{{ poem[3] }}</a>
+          <div class="poem" id="poem-{{ poem[0] }}">
+            <p>{{ poem[1] }}</p>
+            <p class="timestamp">{{ poem[6] }}</p>
+            <div class="user-info">
+              <img src="{{ url_for('static', filename='profile_pics/' + poem[5]) }}" alt="صورة المستخدم">
+              <a href="{{ url_for('public_profile', username=poem[4]) }}">{{ poem[4] }}</a>
+            </div>
+            <div class="poem-footer">
+              <div class="views-count">{{ poem[3] or 0 }} مشاهدة</div>
+              <a class="like-button {% if poem[0] in user_liked %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
+              {% if poem[4] == username %}
+                <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
+              {% endif %}
+              <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
+            </div>
           </div>
-          <div class="poem-footer">
-            <a class="like-button {% if user_liked(poem[0]) %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
-            {% if poem[3] == username %}
-<div style="color: #888; font-size: 16px; margin-top: 8px;">
-  👁️ {{ poem[6] }} مشاهدة
-</div>
-              <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
-            {% endif %}
-            <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
-          </div>
-        </div>
         {% endfor %}
       {% else %}
         <p>لا توجد أبيات منشورة بعد.</p>
@@ -192,9 +270,7 @@
     function toggleMenu() {
       const menu = document.getElementById('sideMenu');
       menu.style.right = (menu.style.right === '0px') ? '-250px' : '0px';
-    }
-
-    function sharePoem(poemText) {
+    }function sharePoem(poemText) {
       if (navigator.share) {
         navigator.share({
           title: '📜 بيت من جزيرة العرب',
@@ -208,7 +284,6 @@
 
     function likePoem(poemId, element) {
       const isLiked = element.classList.contains("liked");
-
       fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))
         .then(response => response.json())
         .then(data => {

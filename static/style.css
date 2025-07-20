@@ -1,46 +1,61 @@
 body {
-  font-family: 'Arial', sans-serif;
+  font-family: 'Tajawal', sans-serif;
   direction: rtl;
-  background: #f2f2f2;
+  background: #f0f4f8;
   padding: 20px;
-  padding-bottom: 80px;
+  padding-bottom: 100px;
   margin: 0;
+  color: #333;
 }
 
 .container {
   max-width: 100%;
   margin: auto;
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 0 10px #ccc;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 h1, h2 {
   text-align: center;
-  color: #333;
+  color: #222;
+  font-weight: bold;
 }
 
+/* حقول الإدخال */
+input[type="text"],
+input[type="email"],
+input[type="password"],
 textarea {
   width: 100%;
-  height: 60px;
-  padding: 10px;
+  padding: 12px 16px;
+  margin-bottom: 15px;
   font-size: 16px;
-  resize: none;
-  margin-bottom: 10px;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid #ccc;
+  background: #fafafa;
+  transition: 0.3s ease;
 }
 
+input:focus,
+textarea:focus {
+  border-color: #007b83;
+  background: #fff;
+  outline: none;
+}
+
+/* الزر */
 button {
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   background-color: #007b83;
   color: white;
   border: none;
   font-size: 16px;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: 0.3s ease;
 }
 
 button:hover {
@@ -51,10 +66,10 @@ button:hover {
 .poem {
   background: #fff;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
-  padding: 15px 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
 }
 
 .poem p {
@@ -79,8 +94,8 @@ button:hover {
 }
 
 .user-info img {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid #ccc;
@@ -106,8 +121,8 @@ button:hover {
   gap: 6px;
   background-color: #f8f8f8;
   border: 1px solid #ddd;
-  padding: 6px 10px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
   text-decoration: none;
   color: #555;
   font-size: 16px;
@@ -121,7 +136,6 @@ button:hover {
   color: white;
 }
 
-/* شكل زر اللايك */
 .like-button.liked {
   color: #e91e63;
   font-weight: bold;
@@ -135,30 +149,31 @@ footer.navbar {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #f9f9f9;
+  background: #ffffff;
   border-top: 1px solid #ccc;
   display: flex;
   justify-content: space-around;
   padding: 10px 0;
-  font-family: 'Arial', sans-serif;
   z-index: 1000;
+  box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
 }
 
 footer.navbar a {
-  color: #333;
+  color: #007b83;
   text-decoration: none;
-  font-size: 28px;
+  font-size: 26px;
   text-align: center;
   flex: 1;
+  transition: 0.2s ease;
 }
 
 footer.navbar a:hover {
-  color: #007BFF;
+  color: #e91e63;
 }
 
 footer.navbar a span {
   display: block;
-  font-size: 20px;
+  font-size: 18px;
   margin-bottom: 3px;
 }
 
@@ -209,24 +224,24 @@ footer.navbar a span {
 }
 
 #sideMenu a {
-  color: #333;
+  color: #007b83;
   text-decoration: none;
-  font-size: 16px;
+  font-size: 17px;
 }
 
 /* الملف الشخصي */
 .profile-box {
   background: #fff;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
   text-align: center;
-  margin-top: 20px;
+  margin-top: 30px;
 }
 
 .profile-box h2 {
-  margin-bottom: 10px;
-  font-size: 24px;
+  margin-bottom: 12px;
+  font-size: 26px;
   color: #222;
 }
 
@@ -235,9 +250,7 @@ footer.navbar a span {
   justify-content: center;
   gap: 40px;
   margin-top: 15px;
-}
-
-.profile-stats .stat {
+}.profile-stats .stat {
   text-align: center;
   font-size: 18px;
   color: #444;
@@ -246,15 +259,17 @@ footer.navbar a span {
 .profile-stats .stat span {
   display: block;
   font-weight: bold;
-  font-size: 20px;
+  font-size: 22px;
   color: #007b83;
 }
 
-/* تحسين العرض على الهواتف */
+/* الهواتف */
 @media (max-width: 600px) {
   .poem p {
     font-size: 16px;
-  }.poem-footer {
+  }
+
+  .poem-footer {
     justify-content: center;
     font-size: 14px;
   }
@@ -262,7 +277,7 @@ footer.navbar a span {
   .poem-footer .action-btn,
   .poem-footer .like-button {
     font-size: 14px;
-    padding: 5px 8px;
+    padding: 6px 10px;
   }
 
   footer.navbar a {
@@ -279,7 +294,7 @@ footer.navbar a span {
   }
 
   .profile-box h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .profile-stats .stat {
@@ -291,7 +306,7 @@ footer.navbar a span {
   }
 
   .container {
-    padding: 10px;
+    padding: 12px;
   }
 
   textarea {
@@ -301,7 +316,7 @@ footer.navbar a span {
 
   button {
     font-size: 14px;
-    padding: 8px;
+    padding: 10px;
   }
 
   h1, h2 {

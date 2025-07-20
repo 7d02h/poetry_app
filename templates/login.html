@@ -5,25 +5,92 @@
   <meta charset="UTF-8" />
   <title>تسجيل الدخول</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      margin-top: 60px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 25px;
+      color: #333;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #f9f9f9;
+      transition: 0.3s;
+    }
+
+    input:focus {
+      border-color: #007b83;
+      outline: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007b83;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005f62;
+    }
+
+    p {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    a {
+      color: #007b83;
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>تسجيل الدخول</h1>
     <form method="POST">
       <label for="username">اسم المستخدم:</label>
-      <input type="text" name="username" id="username" required><br><br>
+      <input type="text" name="username" id="username" required>
 
       <label for="password">كلمة المرور:</label>
-      <input type="password" name="password" id="password" required><br><br>
+      <input type="password" name="password" id="password" required>
 
       <button type="submit">دخول</button>
     </form>
 
-    <p style="text-align:center;">لا تملك حسابًا؟ <a href="/signup">إنشاء حساب</a></p>
+    <p>لا تملك حسابًا؟ <a href="/signup">إنشاء حساب</a></p>
   </div>
 
-{% include 'footer.html' %}
-
- 
-  </body>
-  </html>
+  {% include 'footer.html' %}
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>صندوق الرسائل</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .chat-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+
+        h2 {
+            color: #bd003f;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            transition: 0.3s ease;
+        }
+
+        li:hover {
+            background-color: #ffe6ee;
+        }
+
+        a {
+            display: block;
+            text-decoration: none;
+            color: #333;
+            padding: 14px 18px;
+            font-size: 18px;
+            transition: 0.3s ease;
+        }
+
+        a:hover {
+            color: #bd003f;
+        }
+
+        p {
+            color: #777;
+            text-align: center;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>صندوق الرسائل</h2>
+        {% if users %}
+            <ul>
+                {% for user in users %}
+                    <li>
+                        <a href="{{ url_for('view_messages', username=user) }}">
+                            💬 محادثتك مع <strong>{{ user }}</strong>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>لا توجد محادثات بعد.</p>
+        {% endif %}
+    </div>
+
+    {% include 'footer.html' %}
+</body>
+</html>

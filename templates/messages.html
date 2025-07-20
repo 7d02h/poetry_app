@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>المحادثة</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* [نفس التنسيقات الأصلية بدون أي تغيير] */
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        .chat-container {
+            max-width: 700px;
+            margin: 30px auto;
+            background-color: #fff;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .message {
+            padding: 12px 16px;
+            margin: 10px 0;
+            border-radius: 16px;
+            max-width: 80%;
+            font-size: 15px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .sent {
+            background-color: #e0f7e9;
+            text-align: right;
+            margin-left: auto;
+            border-top-left-radius: 16px;
+            border-bottom-left-radius: 16px;
+        }
+
+        .received {
+            background-color: #ffe4e6;
+            text-align: left;
+            margin-right: auto;
+            border-top-right-radius: 16px;
+            border-bottom-right-radius: 16px;
+        }
+
+        .message small {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        input[type="text"] {
+            padding: 10px 14px;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            font-size: 15px;
+            width: 100%;
+        }
+
+        input[type="file"] {
+            font-size: 14px;
+        }
+
+        button[type="submit"] {
+            padding: 10px;
+            background-color: #007b83;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #005f62;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .actions a {
+            text-decoration: none;
+            color: #007b83;
+            font-weight: bold;
+            font-size: 15px;
+            transition: 0.2s;
+        }
+
+        .actions a:hover {
+            color: #bd003f;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h2>محادثتك مع {{ other_user }}</h2>
+
+        {% for msg in messages %}
+        <div class="message {% if msg.sender == current_user %}sent{% else %}received{% endif %}">
+            {% if msg.content %}
+                <p>{{ msg.content }}</p>
+            {% endif %}
+            {% if msg.file_path %}
+                <p><a href="{{ url_for('static', filename=msg.file_path) }}" target="_blank">📎 تحميل المرفق</a></p>
+            {% endif %}
+            <small>{{ msg.timestamp }}</small>
+        </div>
+        {% endfor %}
+
+        {% if not is_blocked %}
+        <form action="{{ url_for('send_message', username=real_username) }}" method="post" enctype="multipart/form-data">
+            <input type="text" name="content" placeholder="اكتب رسالتك">
+            <input type="file" name="file">
+            <button type="submit">إرسال</button>
+        </form>
+
+        <div class="actions">
+            <a href="{{ url_for('block_user', username=real_username) }}">🚫 حظر</a><a href="{{ url_for('report_conversation', username=real_username) }}">🚨 بلاغ</a>
+            <a href="{{ url_for('public_profile', username=real_username) }}">👤 الملف الشخصي</a>
+        </div>
+        {% else %}
+        <p style="text-align:center; color:gray; margin-top:20px;">لا يمكنك التحدث مع هذا المستخدم.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

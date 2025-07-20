@@ -1,98 +1,217 @@
 <!DOCTYPE html>
 <html lang="ar">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
-    <title>إكسبلور</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .user-card, .poem-card {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            background: #f9f9f9;
-        }
-        .user-card, .poem-card-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .user-card img, .poem-card img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .user-card a, .poem-card a {
-            font-weight: bold;
-        }
-        .user-card form {
-            margin-left: auto;
-        }
-        .container {
-            max-width: 700px;
-            margin: auto;
-            padding: 20px;
-        }
-        .poem-card p {
-            margin: 10px 0;
-        }
-        .like-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .like-section form {
-            display: inline;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>إكسبلور - جزيرة العرب</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #f2f2f2;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1, h2 {
+      color: #bd003f;
+      margin-bottom: 10px;
+    }
+
+    .poem {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .poem p {
+      white-space: pre-wrap;
+      line-height: 1.8;
+      font-size: 18px;
+      color: #333;
+      margin: 0;
+    }
+
+    .timestamp {
+      font-size: 13px;
+      color: #777;
+      margin-top: 6px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .user-info img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #eee;
+    }
+
+    .user-info a {
+      font-weight: bold;
+      color: #007b83;
+      text-decoration: none;
+    }
+
+    .poem-footer {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      font-size: 18px;
+    }
+
+    .like-button {
+      font-size: 20px;
+      padding: 6px 12px;
+      background: #f0f0f0;
+      border-radius: 10px;
+      color: #bd003f;
+      cursor: pointer;
+      transition: 0.3s ease;
+      border: none;
+    }
+
+    .like-button:hover {
+      background: #e91e63;
+      color: white;
+    }
+
+    .like-button.liked {
+      color: #e91e63;
+      font-weight: bold;
+      background: #ffe6ee;
+    }
+
+    .action-btn {
+      font-size: 20px;
+      background: #f5f5f5;
+      border-radius: 10px;
+      padding: 6px 12px;
+      color: #333;
+      text-decoration: none;
+      transition: 0.2s;
+      display: inline-block;
+    }
+
+    .action-btn:hover {
+      background: #ddd;
+    }
+
+    form button.action-btn {
+      border: none;
+      background: #d1f0e3;
+      cursor: pointer;
+      font-size: 16px;
+      transition: 0.3s;
+    }
+
+    form button.action-btn:hover {
+      background: #9ddbc3;
+    }
+
+    .empty-message {
+      color: #777;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
 
-        <h1>📝 الأبيات الأكثر إعجابًا</h1>
-        {% if top_poems %}
-            {% for poem in top_poems %}
-                <div class="poem-card">
-                    <div class="poem-card-header">
-                        <img src="{{ url_for('static', filename='profile_pics/' + poem['profile_image']) }}" alt="صورة المستخدم">
-                        <a href="{{ url_for('public_profile', username=poem['username']) }}">{{ poem['username'] }}</a>
-                    </div>
-                    <p>{{ poem['text'] }}</p>
-                    <p>{{ poem['created_at'] | format_ar_date }}</p>
-                    <div class="like-section">
-                        <form action="{{ url_for('like', poem_id=poem['id']) }}" method="get">
-                            <button type="submit">❤️ {{ poem['like'] }}</button>
-                        </form>
-                    </div>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p>😔 لا توجد أبيات بعد.</p>
-        {% endif %}
+  <h1>🧭 إكسبلور</h1>
+  <h2>📝 الأبيات الأكثر إعجابًا</h2>
 
-        <hr>
+  {% if top_poems %}
+    {% for poem in top_poems %}
+      <div class="poem" id="poem-{{ poem['id'] }}">
+        <p>{{ poem['text'] }}</p>
+        <p class="timestamp">{{ poem['created_at'] }}</p>
 
-        <h1>🔍 استكشاف مستخدمين جدد</h1>
-        {% if suggested_users %}
-            {% for user in suggested_users %}
-                <div class="user-card">
-                    <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" alt="صورة المستخدم">
-                    <div>
-                        <a href="{{ url_for('public_profile', username=user['username']) }}">{{ user['username'] }}</a><br>
-                        {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
-                    </div>
-                    <form action="{{ url_for('follow', username=user['username']) }}" method="get">
-                        <button type="submit">➕ متابعة</button>
-                    </form>
-                </div>
-            {% endfor %}
-        {% else %}
-            <p>😅 لا يوجد مستخدمون جدد لاقتراحهم الآن.</p>
-        {% endif %}
-    </div>
+        <div class="user-info">
+          <img src="{{ url_for('static', filename='profile_pics/' + poem['profile_image']) }}" alt="صورة المستخدم">
+          <a href="{{ url_for('public_profile', username=poem['username']) }}">{{ poem['username'] }}</a>
+        </div>
 
-    {% include 'footer.html' %}
+        <div class="poem-footer">
+          <a class="like-button {% if poem['id'] in user_liked %}liked{% endif %}" onclick="likePoem(`{{ poem['id'] }}, this`)">
+            ❤️ {{ poem['likes'] }}
+          </a>
+
+          {% if poem['username'] == session['username'] %}
+            <a href="{{ url_for('delete', poem_id=poem['id']) }}" class="action-btn">🗑 حذف</a>
+          {% endif %}
+
+          <a class="action-btn" href="#" onclick="sharePoem(`{{ poem['text'] | e }}`); return false;">📤 مشاركة</a>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-message">😔 لا توجد أبيات بعد.</p>
+  {% endif %}
+
+  <h2>👥 مستخدمون مقترحون</h2>
+
+  {% if suggested_users %}
+    {% for user in suggested_users %}
+      <div class="poem">
+        <div class="user-info">
+          <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" alt="صورة المستخدم"><div>
+            <a href="{{ url_for('public_profile', username=user['username']) }}">{{ user['username'] }}</a><br>
+            {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
+          </div>
+        </div>
+        <form action="{{ url_for('follow', username=user['username']) }}" method="get">
+          <button type="submit" class="action-btn">➕ متابعة</button>
+        </form>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="empty-message">🙃 لا يوجد مستخدمون مقترحون حالياً.</p>
+  {% endif %}
+
+  {% include 'footer.html' %}
+
+  <script>
+    function likePoem(poemId, element) {
+      const isLiked = element.classList.contains("liked");
+      fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like')).then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            element.innerHTML = '❤️ ' + data.likes;
+            element.classList.toggle("liked");
+          } else if (data.redirect) {
+            window.location.href = data.redirect;
+          } else {
+            alert("حدث خطأ أثناء الإعجاب.");
+          }
+        })
+        .catch(error => {
+          console.error("خطأ:", error);
+        });
+    }
+
+    function sharePoem(poemText) {
+      if (navigator.share) {
+        navigator.share({
+          title: '📜 بيت شعري',
+          text: poemText,
+          url: window.location.href
+        });
+      } else {
+        alert("المشاركة غير مدعومة في هذا المتصفح.");
+      }
+    }
+  </script>
+
 </body>
 </html>

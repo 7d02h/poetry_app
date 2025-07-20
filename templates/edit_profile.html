@@ -7,46 +7,108 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         body {
-            font-family: Arial;
-            background-color: #f9f9f9;
-        }
-        form {
-            max-width: 400px;
-            margin: auto;
-            background: white;
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
+
+        form {
+            max-width: 450px;
+            margin: auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
         label {
-            font-weight: bold;
+            font-weight: 600;
             margin-top: 10px;
             display: block;
+            color: #444;
+            font-size: 15px;
         }
-        input[type="text"], input[type="email"], input[type="password"], input[type="file"] {
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="file"] {
             width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            margin-bottom: 15px;
+            padding: 12px 16px;
+            margin-top: 6px;
+            margin-bottom: 16px;
             border: 1px solid #ccc;
-            border-radius: 6px;
+            border-radius: 10px;
+            font-size: 15px;
+            background: #f9f9f9;
+            transition: 0.3s ease;
         }
+
+        input:focus {
+            border-color: #007b83;
+            background: #fff;
+            outline: none;
+        }
+
         button {
-            background-color: #28a745;
+            background-color: #007b83;
             color: white;
             border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 10px;
             font-size: 16px;
             width: 100%;
+            cursor: pointer;
+            transition: 0.3s ease;
         }
+
+        button:hover {
+            background-color: #005f62;
+        }
+
         .flash-message {
             text-align: center;
             color: green;
             margin: 15px 0;
+            font-weight: bold;
         }
+
         .center {
             text-align: center;
+            margin-bottom: 20px;
+        }
+
+        img {
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+
+        /* القائمة السفلية */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+            box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
+        }
+
+        .bottom-nav a {
+            color: #007b83;
+            text-decoration: none;
+            font-size: 24px;
+            text-align: center;
+            transition: 0.2s ease;
+        }
+
+        .bottom-nav a:hover {
+            color: #e91e63;
         }
     </style>
 </head>
@@ -67,7 +129,7 @@
         <div class="center">
             <label>الصورة الحالية:</label><br>
             <img src="{{ url_for('static', filename='profile_pics/' + (user[6] or 'default.jpg')) }}"
-                 alt="Profile Image" width="100" height="100" style="border-radius: 50%;">
+                 alt="Profile Image" width="100" height="100">
         </div>
 
         <label>الاسم الأول:</label>
@@ -83,19 +145,12 @@
         <input type="text" name="username" value="{{ user[1] or '' }}" required minlength="4">
 
         <label>كلمة المرور:</label>
-        <input type="password" name="password" placeholder="أدخل كلمة مرور جديدة" minlength="8">
-
-        <label>صورة الملف الشخصي:</label>
+        <input type="password" name="password" placeholder="أدخل كلمة مرور جديدة" minlength="8"><label>صورة الملف الشخصي:</label>
         <input type="file" name="profile_image">
 
         <button type="submit">💾 حفظ التغييرات</button>
     </form>
 
-    <!-- القائمة السفلية -->
-    <div style="position: fixed; bottom: 0; left: 0; right: 0; background: #eee; padding: 10px; display: flex; justify-content: space-around;">
-        <a href="{{ url_for('home') }}">🏠 الرئيسية</a>
-        <a href="{{ url_for('my_profile') }}">👤 الملف الشخصي</a>
-        <a href="{{ url_for('explore') }}">🔍 الاكسبلور</a>
-    </div>
+  {% include 'footer.html' %}
 </body>
 </html>
