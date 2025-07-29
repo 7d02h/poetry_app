@@ -1,0 +1,1 @@
+web: gunicorn poetry_app.app:app
