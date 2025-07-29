@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}تواصل معنا{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow rounded-4">
+    <div class="card-body">
+      <h3 class="text-center text-primary mb-4">📩 تواصل معنا</h3>
+      <form method="POST">
+        <div class="mb-3">
+          <label class="form-label">الاسم</label>
+          <input type="text" class="form-control" name="name" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">البريد الإلكتروني</label>
+          <input type="email" class="form-control" name="email" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">الرسالة</label>
+          <textarea class="form-control" name="message" rows="5" required></textarea>
+        </div>
+        <div class="text-center">
+          <button type="submit" class="btn btn-primary px-5">إرسال</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

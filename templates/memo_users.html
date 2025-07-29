@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة المستخدمين - ميمو{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow rounded-4">
+    <div class="card-body">
+      <h3 class="mb-4 text-center text-primary">إدارة المستخدمين</h3>
+
+      <!-- 🔍 حقل البحث وزر الإضافة -->
+      <div class="d-flex justify-content-between mb-3 flex-wrap gap-2">
+        <a href="{{ url_for('add_user') }}" class="btn btn-success">➕ إضافة مستخدم جديد</a>
+        <input type="text" id="searchInput" class="form-control w-50" placeholder="🔍 ابحث عن مستخدم...">
+      </div>
+
+      <!-- 🧾 جدول المستخدمين -->
+      <div class="table-responsive">
+        <table class="table table-striped table-hover text-center align-middle" id="usersTable">
+          <thead class="table-primary">
+            <tr>
+              <th>ID</th>
+              <th>اسم المستخدم</th>
+              <th>البريد الإلكتروني</th>
+              <th>الاسم الكامل</th>
+              <th>المتابعين</th>
+              <th>التحكم</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+              <tr>
+                <td>{{ user.id }}</td>
+                <td>
+                  {{ user.username }}
+                  {% if user.verified %}
+                    <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18" style="margin-right: 3px;" title="موثق">
+                      <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>
+                    </svg>
+                  {% endif %}
+                </td>
+                <td>{{ user.email or '—' }}</td>
+                <td>{{ user.first_name }} {{ user.last_name }}</td>
+                <td><span id="followers-count-{{ user.id }}">{{ user.followers.count() }}</span></td>
+                <td class="d-flex justify-content-center gap-1 flex-wrap">
+
+                  <!-- تعديل -->
+                  <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-warning btn-sm">تعديل</a>
+
+                  <!-- حذف -->
+                  <form method="post" action="{{ url_for('delete_user', user_id=user.id) }}">
+                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('هل أنت متأكد من حذف هذا المستخدم؟');">حذف</button>
+                  </form>
+
+                  <!-- متابع + (JS) -->
+                  <form onsubmit="increaseFollowers(`event, {{ user.id }}`)" class="d-flex gap-1">
+                    <input type="number" name="amount" min="1" value="1" class="form-control form-control-sm" style="width: 60px;">
+                    <button type="submit" class="btn btn-info btn-sm">📈 متابع +</button>
+                  </form>
+
+                  <!-- توثيق أو إلغاء -->
+                  {% if user.verified %}
+                    <form method="post" action="{{ url_for('unverify_user_route', user_id=user.id) }}">
+                      <button type="submit" class="btn btn-secondary btn-sm">❌ إلغاء التوثيق</button>
+                    </form>
+                  {% else %}
+                    <form method="post" action="{{ url_for('verify_user_route', user_id=user.id) }}">
+                      <button type="submit" class="btn btn-primary btn-sm">توثيق</button>
+                    </form>
+                  {% endif %}
+
+                  <!-- حظر -->
+                  <a href="{{ url_for('memo_ban_form') }}?username={{ user.username }}" class="btn btn-dark btn-sm">🔒 حظر</a>
+
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td colspan="6">لا يوجد مستخدمون حالياً.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 🔍 بحث -->
+<script>
+  const searchInput = document.getElementById("searchInput");
+  searchInput.addEventListener("keyup", function () {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll("#usersTable tbody tr");
+    rows.forEach(function (row) {
+      const username = row.cells[1].textContent.toLowerCase();
+      row.style.display = username.includes(filter) ? "" : "none";
+    });
+  });
+</script>
+
+<!-- 📈 زيادة المتابعين -->
+<script>
+  function increaseFollowers(event, userId) {
+    event.preventDefault();
+    const form = event.target;
+    const amount = form.querySelector("input[name='amount']").value;
+
+    fetch('/increase_followers/' + userId, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'amount=' + encodeURIComponent(amount)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('followers-count-' + userId).innerText = data.followers;
+      } else {
+        alert('فشل في زيادة المتابعين.');
+      }
+    })
+    .catch(error => {
+      console.error('خطأ:', error);
+    });
+  }
+</script>
+{% endblock %}

@@ -1,43 +1,146 @@
-from flask import Flask, render_template, request, redirect, url_for, session,flash
-import sqlite3
-from flask import redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_babel import Babel
-import humanize
-from flask import jsonify, request
-from flask import session
-from datetime import datetime
-created_at = datetime.now()
-from datetime import date
-import os
+from models import db, User, Ban, Notification, Message, MessageReport, ContactMessage, Poem, Settings, Follower
+from user_utils import verify_user, get_user_by_username, get_user_by_id, create_user, promote_to_admin, get_all_users, delete_user, unverify_user_by_id, increase_followers_by_id
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_socketio import SocketIO, emit, join_room
+from flask import has_request_context
+from datetime import datetime, timedelta
+from notification_utils import send_notification  
+from models import Block, Like, Report
+from sqlalchemy import or_, and_, desc
+from flask_migrate import Migrate
+import os
+import json
+import eventlet
+import humanize
+import re
+from user_utils import valid_username
 
+
+eventlet.monkey_patch()
+
+# ----------------------------- إعداد التطبيق -----------------------------
 app = Flask(__name__)
+
+@app.template_filter('short_number')
+def short_number_filter(value):
+    try:
+        value = int(value)
+        if value >= 1_000_000:
+            return f"{value / 1_000_000:.1f}M"
+        elif value >= 1_000:
+            return f"{value / 1_000:.1f}K"
+        else:
+            return str(value)
+    except:
+        return value
+
+app.secret_key = "s3cr3t_2025_kjfh73hdf983hf"
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 app.config['BABEL_DEFAULT_LOCALE'] = 'ar'
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
-@app.context_processor
-def inject_blocked_users():
-    if 'username' not in session:
-        return {}
-    
-    conn = sqlite3.connect("poetry.db")
-    conn.row_factory = sqlite3.Row
-    blocked_users = conn.execute("""
-        SELECT users.*
-        FROM users
-        JOIN blocks ON blocks.blocked = users.username
-        WHERE blocks.blocker = ?
-    """, (session['username'],)).fetchall()
-    conn.close()
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'poetry.db')
+app.config["UPLOAD_FOLDER"] = "static/profile_pics"
+app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2MB
+app.config["UPLOAD_FOLDER"] = os.path.join("static", "profile_pics")
+# ----------------------------- قاعدة البيانات -----------------------------
+db.init_app(app)
+migrate = Migrate(app, db)
 
-    return {'blocked_users_sidebar': blocked_users}
+# ----------------------------- اللغة -----------------------------
 babel = Babel(app)
+
 @babel.localeselector
 def get_locale():
     return session.get('lang', request.accept_languages.best_match(['ar', 'en']))
-app.secret_key = "s3cr3t_2025_kjfh73hdf983hf"
-app.config["UPLOAD_FOLDER"] = "static/profile_pics"
-app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # الحد الأقصى 2 ميغا للصور
+
+# ----------------------------- SocketIO -----------------------------
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
+@socketio.on('connect')
+def handle_connect():
+    print(f"✅ مستخدم متصل عبر SocketIO")
+
+@socketio.on('join')
+def handle_join(data):
+    room = data.get('room')
+    if room:
+        join_room(room)
+        print(f"✅ انضم المستخدم للغرفة: {room}")
+
+def send_notification(to_username, message):
+    socketio.emit('new_notification', {'message': message}, room=to_username)
+
+# ----------------------------- تسجيل الدخول -----------------------------
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class SimpleUser(UserMixin):
+    def __init__(self, user):
+        self.id = user.id
+        self.username = user.username
+        self.email = user.email
+        self.is_admin = user.is_admin
+        self.verified = user.verified
+
+    def get_id(self):
+        return str(self.id)
+
+    @property
+    def is_active(self):
+        return True
+
+@login_manager.user_loader
+def load_user(user_id):
+    user = User.query.get(int(user_id))
+    if user:
+        return SimpleUser(user)
+    return None
+
+# ----------------------------- السياق العام -----------------------------
+@app.context_processor
+def inject_user():
+    return dict(current_user=current_user)
+
+@app.context_processor
+def inject_blocked_users():
+    if not has_request_context() or 'username' not in session:
+        return {}
+    blocked = Block.query.join(User, Block.blocked == User.username)\
+        .filter(Block.blocker == session['username']).all()
+    return {'blocked_users_sidebar': blocked}
+
+@app.context_processor
+def inject_navbar_counts():
+    if current_user.is_authenticated:
+        unread_messages_count = Message.query.filter_by(receiver=current_user.username, is_read=False).count()
+        has_unread_notifications = Notification.query.filter_by(recipient=current_user.username, is_read=False).first() is not None
+    else:
+        unread_messages_count = 0
+        has_unread_notifications = False
+
+    return {
+        'unread_messages_count': unread_messages_count,
+        'has_unread_notifications': has_unread_notifications
+    }
+
+@app.context_processor
+def inject_notifications():
+    if not has_request_context() or 'username' not in session:
+        return {}
+
+    unread_notifications = Notification.query.filter_by(
+        recipient=session['username'], is_read=False
+    ).order_by(Notification.timestamp.desc()).all()
+
+    return {'notifications': unread_notifications}
+
+# ----------------------------- تنسيق التاريخ -----------------------------
 @app.template_filter('format_ar_date')
 def format_ar_date(value):
     months_ar = [
@@ -49,301 +152,193 @@ def format_ar_date(value):
         return f"{dt.day} {months_ar[dt.month - 1]} {dt.year} - {dt.strftime('%I:%M %p').replace('AM', 'صباحًا').replace('PM', 'مساءً')}"
     except:
         return value
-# إنشاء قاعدة البيانات
 
+def time_ago(timestamp):
+    return humanize.naturaltime(datetime.now() - timestamp)
 
-import sqlite3
+# ----------------------------- الاتفاقيات -----------------------------
+@app.before_request
+def require_terms_agreement():
+    allowed_endpoints = ['accept_terms', 'static', 'login', 'register']
+    if request.endpoint not in allowed_endpoints:
+        if not session.get('accepted_terms'):
+            return redirect(url_for('accept_terms'))
 
-def init_db():
-    with sqlite3.connect("poetry.db") as conn:
-        # جدول القصائد + عدد المشاهدات
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS poems (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                text TEXT NOT NULL,
-                likes INTEGER DEFAULT 0,
-                views INTEGER DEFAULT 0,               
-                created_at TEXT DEFAULT (datetime('now', 'localtime')),
-                username TEXT NOT NULL
-            )
-        ''')
-        
-        # جدول المستخدمين
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                first_name TEXT,
-                last_name TEXT,
-                email TEXT,
-                profile_image TEXT DEFAULT 'default.jpg'
-            )
-        ''')
+# ----------------------------- التحقق من الحظر -----------------------------
+def is_user_banned(user_id):
+    now = datetime.now()
+    ban = Ban.query.filter(Ban.user_id == user_id, Ban.ends_at > now)\
+        .order_by(Ban.ends_at.desc()).first()
+    return ban
 
-        # جدول المتابعين
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS followers (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                followed_username TEXT NOT NULL
-            )
-        ''')
+@app.before_request
+def check_user_ban():
+    allowed_endpoints = ['login', 'static', 'accept_terms', 'register']
+    if request.endpoint in allowed_endpoints:
+        return
 
-        # جدول الإعجابات
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS likes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                poem_id INTEGER NOT NULL,
-                username TEXT NOT NULL,
-                FOREIGN KEY(poem_id) REFERENCES poems(id),
-                FOREIGN KEY(username) REFERENCES users(username)
-            )
-        ''')
-
-        # جدول القصائد المحفوظة
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS saved_poems (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL,
-                poem_id INTEGER NOT NULL
-            )
-        ''')
-
-        # جدول الإبلاغات على الأبيات
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS reports (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                poem_id INTEGER NOT NULL,
-                reported_by TEXT NOT NULL,
-                reason TEXT,
-                report_date TEXT DEFAULT (datetime('now', 'localtime')),
-                FOREIGN KEY(poem_id) REFERENCES poems(id),
-                FOREIGN KEY(reported_by) REFERENCES users(username)
-            )
-        ''')
-
-        # جدول الحظر بين المستخدمين
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS blocks (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                blocker TEXT NOT NULL,
-                blocked TEXT NOT NULL,
-                block_date TEXT DEFAULT (datetime('now', 'localtime')),
-                FOREIGN KEY(blocker) REFERENCES users(username),
-                FOREIGN KEY(blocked) REFERENCES users(username)
-            )
-        ''')
-        conn.execute('''
-             CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                sender TEXT NOT NULL,
-                receiver TEXT NOT NULL,
-                content TEXT,
-                file_path TEXT,
-                message_type TEXT DEFAULT 'text',  -- 'text', 'image', 'video', 'file', 'link'
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-                is_read BOOLEAN DEFAULT 0,
-                FOREIGN KEY(sender) REFERENCES users(username),
-                FOREIGN KEY(receiver) REFERENCES users(username)
-            )
-        ''')
-        conn.execute('''
-CREATE TABLE IF NOT EXISTS message_reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reporter TEXT NOT NULL,
-    reported_username TEXT NOT NULL,
-    message_id INTEGER,
-    reason TEXT,
-    report_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(reporter) REFERENCES users(username),
-    FOREIGN KEY(reported_username) REFERENCES users(username),
-    FOREIGN KEY(message_id) REFERENCES messages(id)
-)
-''')
-
-
-# التحقق من صلاحية اسم المستخدم وكلمة المرور
-def valid_username(username):
-    return username and len(username) >= 4
-
-def valid_password(password):
-    return password and len(password) >= 8
-
-def get_user_image(username):
-    # ترجع المسار الصحيح للصورة، مثال:
-    return f"/static/images/{username}.png"
-
-def user_liked(poem_id):
-    username = session.get('username')
-    if not username:
-        return False
-
-    conn = sqlite3.connect('poetry.db')
-    c = conn.cursor()
-    c.execute("SELECT 1 FROM likes WHERE username = ? AND poem_id = ?", (username, poem_id))
-    result = c.fetchone()
-    conn.close()
-
-    return result is not None
-
-
-def is_blocked(current_user, target_user):
-    with sqlite3.connect("poetry.db") as conn:
-        c = conn.cursor()
-        c.execute('''
-            SELECT 1 FROM blocks
-            WHERE blocker = ? AND blocked = ?
-        ''', (current_user, target_user))
-        return c.fetchone() is not None
-
-def get_blocked_users(current_username):
-    conn = sqlite3.connect('poetry.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    c.execute("SELECT blocked FROM blocks WHERE blocker = ?", (current_username,))
-    users = c.fetchall()
-    conn.close()
-    return [{"username": row["blocked"]} for row in users]
-
+    if has_request_context():
+        try:
+            if current_user.is_authenticated and current_user.username != "admin":
+                ban = is_user_banned(current_user.id)
+                if ban:
+                    logout_user()
+                    session.pop('username', None)
+                    ends_at = ban.ends_at.strftime('%Y-%m-%d %H:%M') if ban.ends_at else "غير محدد"
+                    flash(f"🔒 حسابك محظور حتى {ends_at}", "danger")
+                    return redirect(url_for('login'))
+        except Exception as e:
+            print("خطأ أثناء التحقق من الحظر:", e)
+            pass
 @app.route('/')
 def home():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    current_user = session['username']
-    conn = sqlite3.connect('poetry.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    current_username = session['username']
 
-    # جلب أفضل 3 أبيات حسب عدد الإعجابات
-    c.execute('''
-        SELECT poems.id, poems.text, poems.likes, poems.views, users.username, users.profile_image, poems.created_at
-        FROM poems
-        JOIN users ON poems.username = users.username
-        ORDER BY poems.likes DESC
-        LIMIT 3
-    ''')
-    top_poems = c.fetchall()
+    # جلب أفضل 3 أبيات حسب الإعجابات
+    top_poems_raw = (
+        db.session.query(Poem, User)
+        .join(User, Poem.username == User.username)
+        .order_by(Poem.likes.desc())
+        .limit(3)
+        .all()
+    )
 
-    # فلترة الأبيات التي كتبها مستخدمون حظروك أو انت حظرتهم
-    filtered_poems = []
-    for poem in top_poems:
-        poem_author = poem["username"]
-        c.execute('''
-            SELECT 1 FROM blocks 
-            WHERE (blocker = ? AND blocked = ?) OR (blocker = ? AND blocked = ?)
-        ''', (current_user, poem_author, poem_author, current_user))
-        is_blocked = c.fetchone()
-        if not is_blocked:
-            filtered_poems.append(poem)
+    # فلترة الأبيات من المحظورين
+    filtered_top = []
+    for poem, author in top_poems_raw:
+        blocked = Block.query.filter(
+            or_(
+                (Block.blocker == current_username) & (Block.blocked == author.username),
+                (Block.blocker == author.username) & (Block.blocked == current_username)
+            )
+        ).first()
+        if not blocked:
+            filtered_top.append((poem, author))
 
-    top_poems = filtered_poems
+    # تنسيق التاريخ
+    top_poems = []
+    for poem, author in filtered_top:
+        time_ago = humanize.naturaltime(datetime.now() - poem.created_at)
+        top_poems.append({
+            "id": poem.id,
+            "text": poem.text,
+            "likes": poem.likes,
+            "views": poem.views,
+            "username": author.username,
+            "profile_image": author.profile_image,
+            "created_at": time_ago
+        })
 
-    # تنسيق الوقت للأبيات المفضلة
-    for i in range(len(top_poems)):
-        created_at_raw = top_poems[i][6]
-        top_poems[i] = list(top_poems[i])
-        if created_at_raw:
-            if isinstance(created_at_raw, str):
-                created_at = datetime.strptime(created_at_raw, "%Y-%m-%d %H:%M:%S")
-            else:
-                created_at = created_at_raw
-            top_poems[i][6] = humanize.naturaltime(datetime.now() - created_at)
-        else:
-            top_poems[i][6] = "غير معروف"
+    # جميع الأبيات مع استثناء المحظورين
+    blocked_users = [b.blocked for b in Block.query.filter_by(blocker=current_username).all()]
+    all_poems_raw = (
+        db.session.query(Poem, User)
+        .join(User, Poem.username == User.username)
+        .filter(~Poem.username.in_(blocked_users))
+        .order_by(Poem.created_at.desc())
+        .all()
+    )
 
-    # جلب كل الأبيات مع استثناء المحظورين
-    c.execute('''
-        SELECT poems.id, poems.text, poems.likes, poems.views,
-               users.username, users.profile_image, poems.created_at
-        FROM poems
-        JOIN users ON poems.username = users.username
-        WHERE poems.username NOT IN (
-            SELECT blocked FROM blocks WHERE blocker = ?
-        )
-        ORDER BY poems.created_at DESC
-    ''', (current_user,))
-    all_poems = c.fetchall()
+    all_poems = []
+    for poem, author in all_poems_raw:
+        poem.views += 1
+        db.session.commit()
+        time_ago = humanize.naturaltime(datetime.now() - poem.created_at)
+        all_poems.append({
+            "id": poem.id,
+            "text": poem.text,
+            "likes": poem.likes,
+            "views": poem.views,
+            "username": author.username,
+            "profile_image": author.profile_image,
+            "created_at": time_ago
+        })
 
-    # تنسيق الوقت للأبيات العامة
-    for i in range(len(all_poems)):
-        created_at = all_poems[i][6]
-        if isinstance(created_at, str):
-            created_at = datetime.strptime(created_at, "%Y-%m-%d %H:%M:%S")
-        all_poems[i] = list(all_poems[i])
-        all_poems[i][6] = humanize.naturaltime(datetime.now() - created_at)
+    # الأبيات التي أعجب بها المستخدم
+    liked = Like.query.filter_by(username=current_username).with_entities(Like.poem_id).all()
+    user_liked = [row.poem_id for row in liked]
 
-    # تحديث عدد المشاهدات
-    for poem in all_poems:
-        poem_id = poem[0]
-        c.execute("UPDATE poems SET views = views + 1 WHERE id = ?", (poem_id,))
-
-    # جلب الأبيات التي أعجب بها المستخدم
-    c.execute("SELECT poem_id FROM likes WHERE username = ?", (current_user,))
-    user_liked_rows = c.fetchall()
-    user_liked = [row[0] for row in user_liked_rows]
-
-    # جلب المحظورين للقائمة الجانبية
-    c.execute("SELECT blocked FROM blocks WHERE blocker = ?", (current_user,))
-    blocked_users_sidebar = [{"username": row["blocked"]} for row in c.fetchall()]
-
-    conn.commit()
-    conn.close()
+    # المحظورين للقائمة الجانبية
+    sidebar = Block.query.filter_by(blocker=current_username).all()
+    blocked_users_sidebar = [{"username": b.blocked} for b in sidebar]
 
     return render_template('index.html',
-                           username=current_user,
+                           username=current_username,
                            top_poems=top_poems,
                            all_poems=all_poems,
                            user_liked=user_liked,
                            blocked_users_sidebar=blocked_users_sidebar)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        user = User.query.filter_by(username=username).first()
+
+        if user and check_password_hash(user.password, password):
+            # التحقق من وجود حظر نشط
+            now = datetime.now()
+            active_ban = Ban.query.filter(
+                Ban.username == username,
+                Ban.ends_at != None,
+                Ban.ends_at > now
+            ).first()
+
+            if active_ban:
+                ends_at_str = active_ban.ends_at.strftime('%Y-%m-%d %H:%M') if active_ban.ends_at else "غير محدد"
+                flash(f"🚫 حسابك محظور حتى {ends_at_str}.", "danger")
+                return redirect(url_for('login'))
+
+            # تسجيل الدخول باستخدام كائن SimpleUser
+            login_user(SimpleUser(user))
+            session["username"] = username
+            flash("✅ تم تسجيل الدخول بنجاح", "success")
+            return redirect(url_for("home"))
+
+        flash("❌ اسم المستخدم أو كلمة المرور غير صحيحة", "danger")
+
+    return render_template("login.html")
+
+
 # تسجيل مستخدم جديد
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "").strip()
 
-        if not valid_username(username):
-            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل.")
+        if not re.match("^[A-Za-z0-9_]{4,}$", username):
+            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل وباللغة الإنجليزية فقط.")
             return render_template("signup.html")
-        if not valid_password(password):
+
+        if len(password) < 8:
             flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
             return render_template("signup.html")
-        hashed_password = generate_password_hash(password)
 
-        with sqlite3.connect("poetry.db") as conn:
-            try:
-                conn.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_password))
-                conn.commit()
-                flash("✅ تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.")
-                return redirect(url_for("login"))
-            except sqlite3.IntegrityError:
-                flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
-                return render_template("signup.html")
+        hashed_password = generate_password_hash(password)
+        existing = User.query.filter_by(username=username).first()
+
+        if existing:
+            flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
+            return render_template("signup.html")
+        user = User(username=username, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash("✅ تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.")
+        return redirect(url_for("login"))
 
     return render_template("signup.html")
 
-# تسجيل الدخول
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
 
-        with sqlite3.connect("poetry.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
-            row = cursor.fetchone()
-            if row and check_password_hash(row[0], password):
-                session["username"] = username
-                flash("✅ تم تسجيل الدخول بنجاح!")
-                return redirect(url_for("home"))
-            else:
-                flash("❌ اسم المستخدم أو كلمة المرور غير صحيحة.")
-                return render_template("login.html")
 
-    return render_template("login.html")
+
+
 
 # تسجيل الخروج
 @app.route("/logout")
@@ -352,73 +347,76 @@ def logout():
     flash("تم تسجيل الخروج.")
     return redirect("/login")
 
-@app.route("/profile/<username>")
+
+# عرض الملف الشخصي
+@app.route("/profile/<username>", methods=["GET", "POST"])
 def public_profile(username):
-    conn = sqlite3.connect("poetry.db")
-    conn.row_factory = sqlite3.Row
+    current_user = session.get("username")
+    if not current_user:
+        return redirect(url_for("login"))
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return "المستخدم غير موجود", 404
 
     is_following = False
-    followers_count = 0
-
-    # الحصول على بيانات المستخدم
-    user = conn.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    if user is None:
-        return "User not found", 404
-
-    # المستخدم الحالي
-    current_user = session.get("username")
-
-    # التحقق إذا كنت تتابعه
-    if current_user and current_user != username:
-        is_following = conn.execute(
-            "SELECT 1 FROM followers WHERE username = ? AND followed_username = ?",
-            (current_user, username)
-        ).fetchone() is not None
-
-    # عدد المتابعين
-    followers_count = conn.execute(
-        "SELECT COUNT(*) FROM followers WHERE followed_username = ?",
-        (username,)
-    ).fetchone()[0]
-
-    # قصائد المستخدم
-    user_poems = conn.execute(
-        "SELECT * FROM poems WHERE username = ?", (username,)
-    ).fetchall()
-
-    # عدد الإعجابات على قصائده
-    total_likes = conn.execute(
-        "SELECT COUNT(*) FROM likes WHERE poem_id IN (SELECT id FROM poems WHERE username = ?)",
-        (username,)
-    ).fetchone()[0]
-
-    # هل محظور؟
     blocked = False
-    if current_user:
-        result = conn.execute(
-            "SELECT 1 FROM blocks WHERE blocker = ? AND blocked = ?",
-            (current_user, username)
-        ).fetchone()
-        blocked = result is not None
 
-    conn.close()
+    # تنفيذ أزرار المتابعة أو الحظر أو الإلغاء
+    if request.method == "POST":
+        action = request.form.get("action")
 
-    # إرسال البيانات إلى القالب
-    return render_template(
-        "profile.html",
-        user=user,
-        user_poems=user_poems,
-        total_likes=total_likes,
-        followers_count=followers_count,
-        is_following=is_following,
-        current_user=current_user,
-        blocked=blocked
-    )
+        if action == "follow":
+            exists = Follower.query.filter_by(username=current_user, followed_username=username).first()
+            if not exists:
+                db.session.add(Follower(username=current_user, followed_username=username))
+        elif action == "unfollow":
+            Follower.query.filter_by(username=current_user, followed_username=username).delete()
+        elif action == "block":
+            exists = Block.query.filter_by(blocker=current_user, blocked=username).first()
+            if not exists:
+                db.session.add(Block(blocker=current_user, blocked=username))
+        elif action == "unblock":
+            Block.query.filter_by(blocker=current_user, blocked=username).delete()
+
+        db.session.commit()
+
+    # التحقق من حالة المتابعة والحظر
+    if current_user != username:
+        is_following = Follower.query.filter_by(username=current_user, followed_username=username).first() is not None
+        blocked = Block.query.filter_by(blocker=current_user, blocked=username).first() is not None
+
+    # المتابعين وعددهم
+    followers = Follower.query.filter_by(followed_username=username).all()
+    followers_count = len(followers)
+
+    # الأبيات الخاصة بالمستخدم
+    user_poems = Poem.query.filter_by(username=username).all()
+
+    # مجموع الإعجابات
+    total_likes = (
+        db.session.query(db.func.sum(Poem.likes))
+        .filter_by(username=username)
+        .scalar()
+    ) or 0
+
+    return render_template("profile.html",
+                           user=user,
+                           user_poems=user_poems,
+                           total_likes=total_likes,
+                           followers_count=followers_count,
+                           followers=followers,
+                           is_following=is_following,
+                           current_user=current_user,
+                           blocked=blocked)
+
+
 @app.route("/profile")
 def my_profile():
     if "username" not in session:
         return redirect("/login")
     return redirect(url_for("public_profile", username=session["username"]))
+
 
 # تعديل الملف الشخصي
 @app.route("/edit_profile", methods=["GET", "POST"])
@@ -427,412 +425,368 @@ def edit_profile():
         flash("يجب تسجيل الدخول أولاً.")
         return redirect("/login")
 
-    with sqlite3.connect("poetry.db") as conn:
-        user = conn.execute("SELECT * FROM users WHERE username = ?", (session["username"],)).fetchone()
+    user = User.query.filter_by(username=session["username"]).first()
+    if not user:
+        flash("المستخدم غير موجود.")
+        return redirect("/")
 
     if request.method == "POST":
-        new_username = request.form.get("username").strip()
-        new_password = request.form.get("password").strip()
-        first_name = request.form.get("first_name").strip()
-        last_name = request.form.get("last_name").strip()
-        email = request.form.get("email").strip()
+        new_username = request.form.get("username", "").strip()
+        full_name = request.form.get("full_name", "").strip()
+        bio = request.form.get("bio", "").strip()
 
-        # تحقق من صحة البيانات
+        # تقسيم الاسم الكامل
+        first_name = ""
+        last_name = ""
+        if full_name:
+            parts = full_name.split(" ", 1)
+            first_name = parts[0]
+            if len(parts) > 1:
+                last_name = parts[1]
+
         if not valid_username(new_username):
-            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل.")
-            return redirect(url_for("edit_profile"))
-        if new_password and not valid_password(new_password):
-            flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
+            flash("⚠️ اسم المستخدم غير صالح.")
             return redirect(url_for("edit_profile"))
 
-        profile_image_file = request.files.get("profile_image")
-        profile_image_filename = None
+        # معالجة صورة الملف الشخصي
+        profile_image_file = request.files.get("profile_pic")
+        profile_image_filename = user.profile_image or "default.jpg"
         if profile_image_file and profile_image_file.filename != "":
             filename = secure_filename(profile_image_file.filename)
             profile_image_filename = filename
             image_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-
-            # تأكد أن المجلد موجود
             os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
             profile_image_file.save(image_path)
-        else:
-            profile_image_filename = user[6]  # صورة حالية
 
+        # محاولة التحديث
         try:
-            with sqlite3.connect("poetry.db") as conn:
-                if new_password:
-                    hashed_password = generate_password_hash(new_password)
-                    conn.execute("""
-                        UPDATE users
-                        SET username = ?, password = ?, first_name = ?, last_name = ?, email = ?, profile_image = ?
-                        WHERE username = ?
-                    """, (new_username, hashed_password, first_name, last_name, email, profile_image_filename, session["username"]))
-                else:
-                    conn.execute("""
-                        UPDATE users
-                        SET username = ?, first_name = ?, last_name = ?, email = ?, profile_image = ?
-                        WHERE username = ?
-                    """, (new_username, first_name, last_name, email, profile_image_filename, session["username"]))
+            user.username = new_username
+            user.first_name = first_name
+            user.last_name = last_name
+            user.bio = bio
+            user.profile_image = profile_image_filename
+            db.session.commit()
 
-                conn.commit()
-                session["username"] = new_username
-                flash("✅ تم تحديث الملف الشخصي بنجاح!")
-                return redirect(url_for("public_profile", username=new_username))
+            session["username"] = new_username
+            flash("✅ تم تحديث الملف الشخصي بنجاح!")
+            return redirect(url_for("public_profile", username=new_username))
 
-        except sqlite3.IntegrityError:
-            flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
+        except:
+            db.session.rollback()
+            flash("⚠️ اسم المستخدم موجود مسبقًا.")
             return redirect(url_for("edit_profile"))
 
-    return render_template("edit_profile.html", user=user)
+    full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+    return render_template("edit_profile.html",
+                           username=user.username,
+                           full_name=full_name,
+                           bio=user.bio or "",
+                           profile_pic=user.profile_image or "default.jpg")
 
-@app.route('/search', methods=["GET", "POST"])
+
+# ✅ متابعة مستخدم
+@app.route('/follow', methods=['POST'])
+@login_required
+def follow():
+    target_user = request.form.get('target_user')
+    current_username = current_user.username  # استخدم Flask-Login بدلًا من session مباشرة
+
+    # التأكد من أن المستخدم لا يتابع نفسه
+    if target_user and target_user != current_username:
+        exists = Follower.query.filter_by(username=current_username, followed_username=target_user).first()
+
+        if not exists:
+            # إنشاء علاقة المتابعة
+            follow_relation = Follower(username=current_username, followed_username=target_user)
+            db.session.add(follow_relation)
+
+            # إنشاء إشعار في قاعدة البيانات
+            notification = Notification(
+                recipient=target_user,
+                sender=current_username,
+                type="follow",
+                content=f"{current_username} بدأ متابعتك!"
+            )
+            db.session.add(notification)
+
+            # إرسال الإشعار اللحظي عبر Socket.IO
+            send_notification(target_user, f"{current_username} بدأ متابعتك! 👥")
+
+            db.session.commit()
+            flash(f'تمت متابعة {target_user} بنجاح ✅', 'success')
+        else:
+            flash(f'أنت تتابع {target_user} بالفعل.', 'info')
+    else:
+        flash('❌ لا يمكن متابعة نفسك أو مدخل غير صالح.', 'danger')
+
+    return redirect(request.referrer or url_for('search'))
+
+# البحث عن مستخدمين
+@app.route('/search', methods=['GET', 'POST'])
 def search():
-    results = []
-    current_user = session.get("username")
+    if 'username' not in session:
+        flash('يجب تسجيل الدخول أولاً', 'warning')
+        return redirect(url_for('login'))
 
-    if request.method == "POST":
-        keyword = request.form.get("keyword")
-        if keyword and current_user:
-            with sqlite3.connect("poetry.db") as conn:
-                conn.row_factory = sqlite3.Row
-                results = conn.execute("""
-                    SELECT username, first_name, last_name, profile_image
-                    FROM users
-                    WHERE (username LIKE ? OR first_name LIKE ? OR last_name LIKE ?)
-                    AND username NOT IN (
-                        SELECT blocked FROM blocks WHERE blocker = ?
-                    )
-                    AND username != ?
-                """, (
-                    f"%{keyword}%", f"%{keyword}%", f"%{keyword}%",
-                    current_user, current_user
-                )).fetchall()
+    results = None
+    keyword = ''
 
-    return render_template("search.html", results=results)
-# متابعة مستخدم
-
-@app.route("/follow/<username>")
-def follow(username):
-    try:
-        if "username" not in session:
-            flash("يجب تسجيل الدخول أولاً.")
-            return redirect("/login")
-
-        if username == session["username"]:
-            flash("لا يمكنك متابعة نفسك.")
-            return redirect(url_for("public_profile", username=username))
-
-        with sqlite3.connect("poetry.db") as conn:
-            c = conn.cursor()
-
-            # تحقق من وجود حظر بين المستخدمين
-            c.execute('''
-                SELECT 1 FROM blocks
-                WHERE (blocker = ? AND blocked = ?) OR (blocker = ? AND blocked = ?)
-            ''', (session["username"], username, username, session["username"]))
-            is_blocked = c.fetchone()
-
-            if is_blocked:
-                flash("لا يمكنك متابعة هذا المستخدم بسبب الحظر.")
-                return redirect(url_for("public_profile", username=username))
-
-            already_following = c.execute(
-                "SELECT 1 FROM followers WHERE username = ? AND followed_username = ?",
-                (session["username"], username)
-            ).fetchone()
-            
-            if not already_following:
-                c.execute(
-                    "INSERT INTO followers (username, followed_username) VALUES (?, ?)",
-                    (session["username"], username)
+    if request.method == 'POST':
+        keyword = request.form.get('keyword', '').strip()
+        if keyword:
+            results = User.query.filter(
+                or_(
+                    User.username.ilike(f"%{keyword}%"),
+                    User.first_name.ilike(f"%{keyword}%"),
+                    User.last_name.ilike(f"%{keyword}%")
                 )
-                conn.commit()
-                flash()
-            else:
-                flash()
-        return redirect(url_for("public_profile", username=username))
+            ).all()
 
-    except Exception as e:
-        print("Error in /follow route:", e)
-        traceback.print_exc()
-        return "حدث خطأ في السيرفر.", 500
-    
+    return render_template('search.html', results=results, current_user=session.get('username'))
 
-# قوائم إضافية إن أردت (صفحة الاستكشاف - صفحة الرئيسية)
-
-
-
-
+# 📄 صفحة الاستكشاف
 @app.route('/explore')
 def explore_page():
-    current_user = session.get("username")
+    if 'username' not in session:
+        return redirect(url_for('login'))
 
-    conn = sqlite3.connect("poetry.db")
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
+    current_username = session['username']
 
-    # جلب الأبيات الأكثر إعجابًا (من غير المحظورين)
-    c.execute('''
-        SELECT poems.id, poems.text, poems.likes, poems.created_at,
-               users.username, users.profile_image
-        FROM poems
-        JOIN users ON poems.username = users.username
-        WHERE poems.username NOT IN (
-            SELECT blocked FROM blocks WHERE blocker = ?
-        )
-        ORDER BY poems.likes DESC
-    ''', (current_user,))
-    top_poems = c.fetchall()
+    # الأبيات الأكثر إعجابًا
+    top_poems = (
+        db.session.query(Poem, User.profile_image)
+        .join(User, Poem.username == User.username)
+        .order_by(Poem.likes.desc())
+        .limit(10)
+        .all()
+    )
 
-    # جلب مستخدمين مقترحين (من غير المحظورين)
-    c.execute('''
-        SELECT username, first_name, last_name, profile_image
-        FROM users
-        WHERE username != ?
-        AND username NOT IN (
-            SELECT blocked FROM blocks WHERE blocker = ?
-        )
-        ORDER BY RANDOM()
-        LIMIT 10
-    ''', (current_user, current_user))
-    suggested_users = c.fetchall()
+    poems_list = []
+    for poem, profile_image in top_poems:
+        poems_list.append({
+            'id': poem.id,
+            'text': poem.text,
+            'likes': poem.likes,
+            'views': poem.views,
+            'username': poem.username,
+            'profile_image': profile_image,
+            'created_ago': time_ago(poem.created_at)
+        })
 
-    conn.close()
+    # المستخدمين المقترحين (من لا تتابعهم)
+    followed = db.session.query(Follower.followed_username).filter_by(username=current_username).subquery()
+    suggested_users = (
+        db.session.query(User.username, User.first_name, User.last_name, User.profile_image)
+        .filter(User.username != current_username)
+        .filter(~User.username.in_(followed))
+        .limit(5)
+        .all()
+    )
 
-    return render_template('explore.html', top_poems=top_poems, suggested_users=suggested_users)
-# تعديل عدد اللايكات (للمسؤول فقط)
+    # الأبيات التي أعجب بها المستخدم
+    liked_poems = db.session.query(Like.poem_id).filter_by(username=current_username).all()
+    liked_poems_ids = [row.poem_id for row in liked_poems]
+
+    return render_template('explore.html',
+                           top_poems=poems_list,
+                           suggested_users=suggested_users,
+                           user_liked=liked_poems_ids)
+
+
+# ✅ تعديل عدد اللايكات (للمسؤول فقط)
 @app.route('/admin/setlike/<int:poem_id>/<int:like_count>')
 def admin_set_likes(poem_id, like_count):
     if 'username' not in session or session['username'] != 'admin':
         return "ممنوع الدخول!", 403
 
-    with sqlite3.connect("poetry.db") as conn:
-        conn.execute("UPDATE poems SET likes = ? WHERE id = ?", (like_count, poem_id))
-        conn.commit()
+    poem = Poem.query.get(poem_id)
+    if poem:
+        poem.likes = like_count
+        db.session.commit()
+        return f"✅ تم تعديل عدد اللايكات للمنشور رقم {poem_id} إلى {like_count}"
+    return "المنشور غير موجود", 404
 
-    return f"✅ تم تعديل عدد اللايكات للمنشور رقم {poem_id} إلى {like_count}"
 
-
-
-
+# 🗑️ حذف بيت شعري
 @app.route('/delete/<int:poem_id>')
 def delete(poem_id):
-    import sqlite3
-    conn = sqlite3.connect('poetry.db')
-    c = conn.cursor()
-    c.execute("DELETE FROM poems WHERE id = ?", (poem_id,))
-    conn.commit()
-    conn.close()
+    poem = Poem.query.get(poem_id)
+    if poem:
+        db.session.delete(poem)
+        db.session.commit()
     return redirect(url_for('home'))
 
 
-
+# ➕ إرسال بيت شعري جديد
 @app.route('/submit', methods=['POST'])
 def submit():
-    # تأكد أنك تستقبل البيانات من النموذج
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
     text = request.form.get('text')
-    username = session.get('username', 'guest')
+    username = session.get('username')
 
-    conn = sqlite3.connect("poetry.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO poems (text, username) VALUES (?, ?)", (text, username))
-    conn.commit()
-    conn.close()
+    new_poem = Poem(text=text, username=username)
+    db.session.add(new_poem)
+    db.session.commit()
 
-    return redirect(url_for('home'))  # أو أي صفحة بدك ترجع لها
+    return redirect(url_for('home'))
 
-from flask import jsonify, request, session, redirect, url_for
-import sqlite3
 
+# ❤️ زر الإعجاب
 @app.route('/like/<int:poem_id>')
 def like(poem_id):
     if 'username' not in session:
-        # إذا مش مسجّل دخول نرجع رابط تسجيل الدخول
         return jsonify({'success': False, 'redirect': url_for('login')})
 
+      # ✅
+
     username = session['username']
+    poem = Poem.query.get(poem_id)
+    if not poem:
+        return jsonify({'success': False, 'message': 'البيت غير موجود'})
 
-    conn = sqlite3.connect('poetry.db')
-    c = conn.cursor()
+    existing_like = Like.query.filter_by(username=username, poem_id=poem_id).first()
 
-    # تحقق إذا المستخدم أعجب مسبقًا
-    c.execute('SELECT 1 FROM likes WHERE username = ? AND poem_id = ?', (username, poem_id))
-    already_liked = c.fetchone()
-
-    if already_liked:
-        # إذا معجب، نشيله
-        c.execute('DELETE FROM likes WHERE username = ? AND poem_id = ?', (username, poem_id))
-        c.execute('UPDATE poems SET likes = likes - 1 WHERE id = ?', (poem_id,))
+    if existing_like:
+        db.session.delete(existing_like)
+        poem.likes -= 1
     else:
-        # إذا مش معجب، نضيفه
-        c.execute('INSERT INTO likes (username, poem_id) VALUES (?, ?)', (username, poem_id))
-        c.execute('UPDATE poems SET likes = likes + 1 WHERE id = ?', (poem_id,))
+        new_like = Like(username=username, poem_id=poem_id)
+        db.session.add(new_like)
+        poem.likes += 1
 
-    # نجيب عدد الإعجابات الجديد
-    c.execute('SELECT likes FROM poems WHERE id = ?', (poem_id,))
-    likes = c.fetchone()[0]
+        # ✅ إشعار لحظي
+        if poem.username != username:
+            notification = Notification(
+                recipient=poem.username,
+                sender=username,
+                type="like",
+                content=f"{username} أعجب ببيتك!"
+            )
+            db.session.add(notification)
 
-    conn.commit()
-    conn.close()
+            send_notification(poem.username, f"{username} أعجب ببيتك! ❤️")
 
-    return jsonify({'success': True, 'likes': likes})
-    
+    db.session.commit()
 
+    return jsonify({'success': True, 'likes': poem.likes})
+
+
+# 🚩 إبلاغ عن بيت شعري
 @app.route('/report/<int:poem_id>')
 def report_poem(poem_id):
-    username = session.get('username')
-    if not username:
+    if 'username' not in session:
         return redirect(url_for('login'))
 
-    conn = sqlite3.connect("poetry.db")
-    c = conn.cursor()
+    username = session['username']
+    existing_report = Report.query.filter_by(poem_id=poem_id, reported_by=username).first()
 
-    # تأكد ما بلغ قبل
-    c.execute("SELECT * FROM reports WHERE poem_id = ? AND reported_by = ?", (poem_id, username))
-    if c.fetchone():
-        conn.close()
+    if existing_report:
         return "تم الإبلاغ مسبقًا عن هذا البيت."
 
-    c.execute("INSERT INTO reports (poem_id, reported_by) VALUES (?, ?)", (poem_id, username))
-    conn.commit()
-    conn.close()
+    report = Report(poem_id=poem_id, reported_by=username)
+    db.session.add(report)
+    db.session.commit()
     return redirect(request.referrer or url_for('explore_page'))
 
 
-@app.route('/block/<username>')
+# 🚫 حظر مستخدم
+@app.route('/block_user/<username>')
 def block_user(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     current_user = session['username']
-
     if current_user == username:
-        return "لا يمكنك حظر نفسك.", 400
+        flash("❌ لا يمكنك حظر نفسك.", "danger")
+        return redirect(request.referrer or url_for('explore_page'))
 
-    conn = sqlite3.connect('poetry.db')
-    conn.execute("INSERT OR IGNORE INTO blocks (blocker, blocked) VALUES (?, ?)", (current_user, username))
-    conn.commit()
-    conn.close()
+    block = Block.query.filter_by(blocker=current_user, blocked=username).first()
+    if not block:
+        db.session.add(Block(blocker=current_user, blocked=username))
+        db.session.commit()
 
-    return redirect(request.referrer or url_for('home'))
+    flash(f"🚫 تم حظر {username}.", "info")
+    return redirect(request.referrer or url_for('explore_page'))
 
 
+# 🔓 إلغاء الحظر
 @app.route('/unblock/<username>')
 def unblock_user(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     current_user = session['username']
-
-    conn = sqlite3.connect('poetry.db')
-    conn.execute("DELETE FROM blocks WHERE blocker = ? AND blocked = ?", (current_user, username))
-    conn.commit()
-    conn.close()
+    block = Block.query.filter_by(blocker=current_user, blocked=username).first()
+    if block:
+        db.session.delete(block)
+        db.session.commit()
 
     return redirect(request.referrer or url_for('home'))
 
 
-@app.route("/report_message", methods=["POST"])
-def report_message():
-    if 'username' not in session:
-        return redirect(url_for("login"))
-
-    reporter = session['username']
-    reported_username = request.form.get("reported_username")
-    message_id = request.form.get("message_id")  # ممكن يكون فارغ
-    reason = request.form.get("reason", "غير محدد")
-
-    conn = sqlite3.connect("poetry.db")
-    conn.execute(
-        "INSERT INTO message_reports (reporter, reported_username, message_id, reason) VALUES (?, ?, ?, ?)",
-        (reporter, reported_username, message_id, reason)
-    )
-    conn.commit()
-    conn.close()
-
-    flash("تم إرسال البلاغ بنجاح.", "success")
-    return redirect(request.referrer or url_for("inbox"))
-    
-    
-   
+# 📩 الرسائل
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     current_user = session['username']
-
-    conn = sqlite3.connect('poetry.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-
-    # تحقق من وجود حظر بين المستخدمين
-    c.execute('''
-        SELECT 1 FROM blocks
-        WHERE (blocker = ? AND blocked = ?) OR (blocker = ? AND blocked = ?)
-    ''', (current_user, username, username, current_user))
-    is_blocked = c.fetchone()
+    is_blocked = Block.query.filter(
+        or_(
+            and_(Block.blocker == current_user, Block.blocked == username),
+            and_(Block.blocker == username, Block.blocked == current_user)
+        )
+    ).first()
 
     display_name = "User is unavailable" if is_blocked else username
 
-    # جلب الرسائل
-    c.execute('''
-        SELECT sender, receiver, content, file_path, timestamp
-        FROM messages
-        WHERE (sender=? AND receiver=?) OR (sender=? AND receiver=?)
-        ORDER BY timestamp
-    ''', (current_user, username, username, current_user))
-    rows = c.fetchall()
-    conn.close()
-
-    messages = [
-        {
-            'sender': row['sender'],
-            'receiver': row['receiver'],
-            'content': row['content'],
-            'file_path': row['file_path'],
-            'timestamp': row['timestamp']
-        }
-        for row in rows
-    ]
+    messages = Message.query.filter(
+        or_(
+            and_(Message.sender == current_user, Message.receiver == username),
+            and_(Message.sender == username, Message.receiver == current_user)
+        )
+    ).order_by(Message.timestamp).all()
 
     return render_template("messages.html",
-                       messages=messages,
-                       other_user=display_name,
-                       real_username=username,
-                       is_blocked=is_blocked,
-                       current_user=current_user)
+                           messages=messages,
+                           other_user=display_name,
+                           real_username=username,
+                           is_blocked=is_blocked,
+                           current_user=current_user)
+
+
 # 📤 إرسال رسالة جديدة
 @app.route("/send_message/<username>", methods=["POST"])
 def send_message(username):
     if 'username' not in session:
         return redirect(url_for("login"))
 
+    # ✅ استدعاء دالة الإشعارات
+
     sender = session['username']
-    receiver = username
     content = request.form.get("content")
     file_path = None
 
-    # إذا كان فيه ملف مرفق
-    if 'file' in request.files:
-        file = request.files['file']
-        if file and file.filename != '':
-            filename = secure_filename(file.filename)
-            upload_folder = os.path.join('static', 'uploads')
-            os.makedirs(upload_folder, exist_ok=True)
-            file.save(os.path.join(upload_folder, filename))
-            file_path = f"uploads/{filename}"  # المسار داخل static
+    file = request.files.get("file")
+    if file and file.filename != '':
+        filename = secure_filename(file.filename)
+        upload_folder = os.path.join('static', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        file.save(os.path.join(upload_folder, filename))
+        file_path = f"uploads/{filename}"
 
-    conn = sqlite3.connect("poetry.db")
-    conn.execute('''
-        INSERT INTO messages (sender, receiver, content, file_path)
-        VALUES (?, ?, ?, ?)
-    ''', (sender, receiver, content, file_path))
-    conn.commit()
-    conn.close()
+    message = Message(sender=sender, receiver=username, content=content, file_path=file_path)
+    db.session.add(message)
+    db.session.commit()
 
-    return redirect(url_for("view_messages", username=receiver))
+    # ✅ إرسال إشعار لحظي للمستلم
+    if username != sender:
+        send_notification(username, "📨 وصلك رسالة جديدة!")
+
+    return redirect(url_for("view_messages", username=username))
+
 
 
 # 🚨 كود البلاغ عن محادثة
@@ -840,8 +794,13 @@ def send_message(username):
 def report_conversation(username):
     if 'username' not in session:
         return redirect(url_for("login"))
-    
-    # ممكن تسجل البلاغ في جدول خاص أو تطبع رسالة فقط
+
+    reporter = session['username']
+
+    report = MessageReport(reported_user=username, reporter=reporter)
+    db.session.add(report)
+    db.session.commit()
+
     return f"تم الإبلاغ عن المحادثة مع {username} بنجاح!"
 
 
@@ -850,47 +809,625 @@ def inbox():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    current_user = session['username']
+    current_user_name = session['username']
 
-    conn = sqlite3.connect('poetry.db')
-    c = conn.cursor()
-    c.execute('''
-        SELECT DISTINCT 
-            CASE 
-                WHEN sender = ? THEN receiver 
-                ELSE sender 
-            END AS other_user
-        FROM messages
-        WHERE sender = ? OR receiver = ?
-    ''', (current_user, current_user, current_user))
-    rows = c.fetchall()
-    conn.close()
+    # جميع المستخدمين الذين تم التواصل معهم
+    messages = Message.query.filter(
+        (Message.sender == current_user_name) | (Message.receiver == current_user_name)
+    ).all()
 
-    users = [row[0] for row in rows]
+    user_set = set()
+    for msg in messages:
+        other = msg.receiver if msg.sender == current_user_name else msg.sender
+        user_set.add(other)
+
+    users = []
+    for username in user_set:
+        user = User.query.filter_by(username=username).first()
+        if user:
+            full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+            users.append({
+                "username": user.username,
+                "full_name": full_name or user.username,
+                "profile_image": user.profile_image or "default.jpg"
+            })
+
     return render_template('inbox.html', users=users)
 
 
 @app.route("/unfollow/<username>")
 def unfollow(username):
-    try:
-        if "username" not in session:
-            flash("يجب تسجيل الدخول أولاً.")
-            return redirect("/login")
+    if "username" not in session:
+        flash("يجب تسجيل الدخول أولاً.")
+        return redirect("/login")
 
-        with sqlite3.connect("poetry.db") as conn:
-            conn.execute(
-                "DELETE FROM followers WHERE username = ? AND followed_username = ?",
-                (session["username"], username)
-            )
-            conn.commit()
-            flash("تم إلغاء المتابعة.")
+    from models import Follower
+    try:
+        Follower.query.filter_by(
+            username=session["username"],
+            followed_username=username
+        ).delete()
+        db.session.commit()
+        flash("تم إلغاء المتابعة.")
         return redirect(url_for("public_profile", username=username))
 
     except Exception as e:
+        db.session.rollback()
         print("Error in /unfollow route:", e)
-        traceback.print_exc()
         return "حدث خطأ في السيرفر.", 500
 
+
+@app.route("/notifications")
+def notifications():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    notifs = Notification.query.filter_by(recipient=session["username"])\
+                               .order_by(Notification.timestamp.desc())\
+                               .limit(50).all()
+
+    notifications = []
+    for n in notifs:
+        sender = User.query.filter_by(username=n.sender).first()
+        notif = {
+            "id": n.id,  # ✅ مهم جداً لربط زر "عرض"
+            "sender": n.sender,
+            "sender_image": sender.profile_image if sender and sender.profile_image else "default.png",
+            "type": n.type,
+            "is_read": n.is_read,  # ✅ لتمييز المقروء من غير المقروء
+            "time_ago": time_ago(n.timestamp)
+        }
+
+        # محاولة قراءة بيانات content (مثل poem_id)
+        poem_id = None
+        if n.content:
+            try:
+                data = json.loads(n.content)
+                poem_id = data.get("poem_id")
+            except:
+                pass
+
+        # تحديد الرابط المناسب لكل نوع إشعار
+        if n.type == "follow":
+            notif["link"] = url_for("public_profile", username=n.sender)
+        elif n.type in ["like", "comment"] and poem_id:
+            notif["link"] = url_for("view_poem", poem_id=poem_id)
+        else:
+            notif["link"] = "#"
+
+        notifications.append(notif)
+
+    return render_template("notifications.html", notifications=notifications)
+
+@app.route("/notification/<int:notif_id>")
+def go_to_notification(notif_id):
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    notif = Notification.query.get_or_404(notif_id)
+
+    # تحقق أن الإشعار يخص المستخدم الحالي فقط
+    if notif.recipient != session["username"]:
+        flash("❌ ليس لديك صلاحية للوصول لهذا الإشعار.", "danger")
+        return redirect(url_for("notifications"))
+
+    # تحديد الرابط المناسب حسب نوع الإشعار
+    link = "#"
+    if notif.type == "follow":
+        link = url_for("public_profile", username=notif.sender)
+    elif notif.type in ["like", "comment"]:
+        try:
+            data = json.loads(notif.content or "{}")
+            poem_id = data.get("poem_id")
+            if poem_id:
+                link = url_for("view_poem", poem_id=poem_id)
+        except:
+            pass
+
+    # تعليم الإشعار كمقروء
+    if not notif.is_read:
+        notif.is_read = True
+        db.session.commit()
+
+    return redirect(link)
+
+# عرض بيت شعري مفرد
+@app.route("/poem/<int:poem_id>")
+@login_required
+def view_poem(poem_id):
+    from models import Poem, User
+
+    poem = Poem.query.get_or_404(poem_id)
+    user = User.query.filter_by(username=poem.username).first()
+
+    return render_template("view_poem.html", poem=poem, user=user)
+
+@app.route('/settings')
+def settings():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    return render_template("settings.html")
+
+
+from werkzeug.security import check_password_hash, generate_password_hash
+
+@app.route('/change_password', methods=['GET', 'POST'])
+def change_password():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        current_password = request.form["current_password"]
+        new_password = request.form["new_password"]
+        confirm_password = request.form["confirm_password"]
+        user = User.query.filter_by(username=session["username"]).first()
+
+        if not user or not check_password_hash(user.password, current_password):
+            flash("❌ كلمة المرور الحالية غير صحيحة", "danger")
+            return redirect(url_for("change_password"))
+
+        if new_password != confirm_password:
+            flash("❌ كلمة المرور الجديدة غير متطابقة", "danger")
+            return redirect(url_for("change_password"))
+
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+
+        flash("✅ تم تغيير كلمة المرور بنجاح", "success")
+        return redirect(url_for("settings"))
+
+    return render_template("change_password.html")
+
+@app.route('/confirm_delete_account')
+def confirm_delete_account():
+    if "username" not in session:
+        return redirect(url_for("login"))
+    return render_template("confirm_delete_account.html")
+
+
+@app.route('/delete_account', methods=['POST'])
+def delete_account():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    password = request.form.get("password")
+    user = User.query.filter_by(username=session["username"]).first()
+
+    if not user or user.password != password:
+        flash("❌ كلمة المرور غير صحيحة. لم يتم حذف الحساب.", "danger")
+        return redirect(url_for("confirm_delete_account"))
+
+    db.session.delete(user)
+    db.session.commit()
+    session.pop("username", None)
+    flash("✅ تم حذف الحساب بنجاح", "success")
+    return redirect(url_for("signup"))
+
+
+@app.route('/settings/dark_mode')
+def settings_dark_mode():
+    return redirect(url_for('settings'))
+
+
+@app.route('/settings/privacy', methods=['GET', 'POST'])
+def settings_privacy():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    user = User.query.filter_by(username=session["username"]).first()
+
+    if request.method == 'POST':
+        is_private = 1 if request.form.get("is_private") == "on" else 0
+        user.private = bool(is_private)
+        db.session.commit()
+        flash("✅ تم تحديث إعدادات الخصوصية", "success")
+        return redirect(url_for("settings_privacy"))
+
+    return render_template("privacy_settings.html", is_private=user.private if user else False)
+
+
+@app.route("/contact", methods=["GET", "POST"])
+def contact():
+    if request.method == "POST":
+        name = request.form.get("name")
+        email = request.form.get("email")
+        message = request.form.get("message")
+
+        msg = ContactMessage(name=name, email=email, message=message)
+        db.session.add(msg)
+        db.session.commit()
+
+        flash("✅ تم إرسال رسالتك بنجاح! سنقوم بالرد عليك قريبًا.", "success")
+        return redirect(url_for("contact"))
+
+    return render_template("contact.html")
+
+
+@app.route('/memo')
+@login_required
+def memo_dashboard():
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return redirect(url_for('home'))
+    return render_template('memo_dashboard.html')
+
+
+# ✅ إدارة المستخدمين
+@app.route('/memo/users')
+@login_required
+def memo_users():
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    users = User.query.order_by(User.id.desc()).all()
+    return render_template('memo_users.html', users=users)
+
+# حذف مستخدم
+@app.route('/memo/delete_user/<int:user_id>', methods=['POST'])
+@login_required
+def delete_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+    return redirect(url_for('memo_users'))
+
+# إضافة مستخدم
+@app.route('/memo/add_user', methods=['GET', 'POST'])
+@login_required
+def add_user():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = generate_password_hash(request.form['password'], method='sha256')
+        new_user = User(username=username, email=email, password=password)
+        db.session.add(new_user)
+        db.session.commit()
+        return redirect(url_for('memo_users'))
+
+    return render_template('memo_add_user.html')
+
+# تعديل مستخدم
+@app.route('/memo/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return redirect(url_for('memo_users'))
+
+    if request.method == 'POST':
+        user.username = request.form['username']
+        user.email = request.form['email']
+        db.session.commit()
+        return redirect(url_for('memo_users'))
+
+    return render_template('memo_edit_user.html', user=user)
+
+# رسائل "تواصل معنا"
+@app.route('/memo/contact-messages')
+@login_required
+def memo_contact_messages():
+    if not current_user.is_admin:
+        return redirect(url_for("index"))
+
+    from models import ContactMessage  # تأكد من وجود هذا الاستيراد
+    from sqlalchemy import desc        # ضروري للترتيب التنازلي
+
+    messages = ContactMessage.query.order_by(desc(ContactMessage.sent_at)).all()
+    return render_template("memo_contact_messages.html", messages=messages)
+@app.route('/memo/contact-messages/delete/<int:message_id>', methods=['POST'])
+@login_required
+def delete_contact_message(message_id):
+    if not current_user.is_admin:
+        return redirect(url_for("index"))
+
+    message = ContactMessage.query.get(message_id)
+    if message:
+        db.session.delete(message)
+        db.session.commit()
+
+    flash("🗑️ تم حذف الرسالة بنجاح.", "success")
+    return redirect(url_for("memo_contact_messages"))
+
+# إدارة الأبيات
+@app.route('/memo/poems')
+@login_required
+def memo_poems():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    poems = Poem.query.order_by(Poem.created_at.desc()).all()
+    return render_template("memo_poems.html", poems=poems)
+
+@app.route('/memo/delete_poem/<int:poem_id>', methods=["POST"])
+@login_required
+def delete_poem_admin(poem_id):
+    if not current_user.is_admin:
+        return redirect(url_for("home"))
+
+    poem = Poem.query.get(poem_id)
+    if poem:
+        db.session.delete(poem)
+        db.session.commit()
+        flash("✅ تم حذف البيت بنجاح.", "success")
+
+    return redirect(url_for("memo_poems"))
+
+# صفحة إشعارات الإدارة
+@app.route("/memo/notifications")
+@login_required
+def memo_notifications():
+    if not current_user.username == "admin":
+        return redirect(url_for("home"))
+    return render_template("memo_notifications.html")
+
+# إعدادات عامة
+@app.route("/memo/settings", methods=["GET", "POST"])
+@login_required
+def memo_settings():
+    if not current_user.is_admin:
+        return redirect(url_for("home"))
+
+    from models import Settings
+    settings = Settings.query.get(1)
+
+    if not settings:
+        flash("⚠️ لم يتم العثور على الإعدادات!", "danger")
+        return redirect(url_for("home"))
+
+    def get_int_or_default(key, default):
+        val = request.form.get(key, "")
+        return int(val) if val.isdigit() else default
+
+    if request.method == "POST":
+        settings.site_name = request.form.get("site_name", "").strip()
+        settings.site_description = request.form.get("site_description", "").strip()
+
+        settings.allow_registration = bool(request.form.get("allow_registration"))
+        settings.maintenance_mode = bool(request.form.get("maintenance_mode"))
+        settings.auto_verify_users = bool(request.form.get("auto_verify_users"))
+
+        settings.default_ban_duration_days = get_int_or_default("default_ban_duration_days", 7)
+        settings.max_login_attempts = get_int_or_default("max_login_attempts", 5)
+        settings.ban_duration_minutes = get_int_or_default("ban_duration_minutes", 60)
+
+        settings.max_poem_length = get_int_or_default("max_poem_length", 250)
+        settings.post_interval_seconds = get_int_or_default("post_interval_seconds", 60)
+
+        settings.enable_likes = bool(request.form.get("enable_likes"))
+        settings.enable_comments = bool(request.form.get("enable_comments"))
+        settings.enable_saved = bool(request.form.get("enable_saved"))
+        settings.enable_notifications = bool(request.form.get("enable_notifications"))
+        settings.enable_messages = bool(request.form.get("enable_messages"))
+
+        settings.instagram_url = request.form.get("instagram_url", "").strip()
+        settings.twitter_url = request.form.get("twitter_url", "").strip()
+        settings.contact_email = request.form.get("contact_email", "").strip()
+
+        settings.admin_panel_name = request.form.get("admin_panel_name", "ميمو").strip()
+        settings.dark_mode = bool(request.form.get("dark_mode"))
+
+        settings.blocked_words = request.form.get("blocked_words", "").strip()
+
+        db.session.commit()
+        flash("✅ تم تحديث الإعدادات بنجاح", "success")
+
+    return render_template("memo_settings.html", settings=settings)
+
+@app.route('/test_notification')
+def test_notification():
+    socketio.emit("new_notification", {"message": "هذا إشعار تجريبي!"}, to="admin")
+    return "تم إرسال الإشعار"
+
+@app.route('/increase_followers/<int:user_id>', methods=['POST'])
+@login_required
+def increase_followers(user_id):
+    from models import db, User, Follower
+    import random
+    import string
+
+    user = User.query.get_or_404(user_id)
+    amount = int(request.form.get('amount', 1))
+
+    for _ in range(amount):
+        # توليد اسم مستخدم وهمي فريد
+        fake_username = 'fake_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        
+        # إضافة متابع وهمي جديد إلى جدول Follower
+        new_follower = Follower(
+            username=fake_username,
+            followed_username=user.username
+        )
+        db.session.add(new_follower)
+
+    db.session.commit()
+
+    # إعادة تحميل عدد المتابعين من جدول Follower مباشرة
+    follower_count = Follower.query.filter_by(followed_username=user.username).count()
+
+    return jsonify({
+        'success': True,
+        'followers': follower_count
+    })
+# توثيق المستخدم
+@app.route('/verify_user/<int:user_id>', methods=['POST'])
+@login_required
+def verify_user_route(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    user = User.query.get(user_id)
+    if user:
+        user.verified = True
+        db.session.commit()
+    return redirect(url_for('memo_users'))
+
+# إزالة التوثيق
+@app.route('/unverify_user/<int:user_id>', methods=['POST'])
+@login_required
+def unverify_user_route(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    user = User.query.get(user_id)
+    if user:
+        user.verified = False
+        db.session.commit()
+    return redirect(url_for('memo_users'))
+
+
+
+# صفحة عرض المحظورين
+@app.route('/memo/bans')
+@login_required
+def memo_bans():
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    bans = Ban.query.join(User, Ban.username == User.username).add_columns(
+        Ban.id,
+        User.username,
+        User.first_name,
+        User.last_name,
+        Ban.banned_at,
+        Ban.duration_days,
+        Ban.reason
+    ).order_by(Ban.banned_at.desc()).all()
+
+    now = datetime.now()
+    bans_processed = []
+    for b in bans:
+        banned_at = b.banned_at
+        duration_days = b.duration_days or 0
+        ends_at = banned_at + timedelta(days=duration_days)
+        is_active = now < ends_at
+        bans_processed.append({
+            "id": b.id,
+            "username": b.username,
+            "full_name": f"{b.first_name or ''} {b.last_name or ''}",
+            "banned_at": banned_at,
+            "ends_at": ends_at,
+            "reason": b.reason,
+            "active": is_active
+        })
+
+    return render_template('memo_bans.html', bans=bans_processed)
+
+# ✅ إضافة مستخدم إلى قائمة الحظر
+@app.route('/memo/bans/add', methods=['GET', 'POST'])
+@login_required
+def memo_ban_form():
+    if current_user.username != "admin":
+        return redirect(url_for("home"))
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        duration = int(request.form.get("duration", 0))
+        reason = request.form.get("reason", "")
+
+        user = User.query.filter_by(username=username).first()
+        if user:
+            banned_at = datetime.now()
+            ends_at = banned_at + timedelta(days=duration) if duration > 0 else None
+            ban = Ban(username=username, reason=reason, banned_at=banned_at, ends_at=ends_at)
+            db.session.add(ban)
+            db.session.commit()
+            flash("تم حظر المستخدم بنجاح ✅", "success")
+            return redirect(url_for("memo_bans"))
+        else:
+            flash("المستخدم غير موجود ❌", "danger")
+
+    return render_template("memo_ban_form.html")
+
+@app.route('/unban_user/<int:ban_id>', methods=['POST'])
+@login_required
+def unban_user(ban_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    ban = Ban.query.get(ban_id)
+    if ban:
+        ban.ends_at = datetime.now()
+        db.session.commit()
+        flash("✅ تم رفع الحظر عن المستخدم بنجاح", "success")
+    return redirect(url_for('memo_bans'))
+
+@app.route('/memo/ban/<int:user_id>', methods=['POST'])
+@login_required
+def ban_user_form(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    user = User.query.get(user_id)
+    if not user:
+        return "المستخدم غير موجود", 404
+
+    return render_template('memo_ban_form.html', user=user)
+
+@app.route('/memo/ban_user/<int:user_id>', methods=['POST'])
+@login_required
+def ban_user_action(user_id):
+    if not current_user.is_admin:
+        return redirect(url_for('home'))
+
+    duration = request.form.get('duration')
+    reason = request.form.get('reason') or "بلا سبب"
+
+    duration_map = {
+        'day': timedelta(days=1),
+        'week': timedelta(days=7),
+        'month': timedelta(days=30),
+        'permanent': timedelta(days=365 * 100)
+    }
+    if duration not in duration_map:
+        flash("⚠️ مدة غير صالحة", "danger")
+        return redirect(url_for('memo_users'))
+
+    user = User.query.get(user_id)
+    if not user:
+        flash("❌ المستخدم غير موجود", "danger")
+        return redirect(url_for("memo_users"))
+
+    banned_at = datetime.now()
+    ends_at = banned_at + duration_map[duration]
+
+    ban = Ban(user_id=user.id, username=user.username, reason=reason,
+              banned_at=banned_at, ends_at=ends_at)
+    db.session.add(ban)
+    db.session.commit()
+
+    flash("🚫 تم حظر المستخدم بنجاح", "success")
+    return redirect(url_for('memo_users'))
+
+
+@app.route("/terms", methods=["GET", "POST"])
+def accept_terms():
+    if request.method == "POST":
+        session['accepted_terms'] = True
+        return redirect(url_for("home"))
+    return render_template("terms.html")
+
+@app.route("/followers/<username>")
+def followers_page(username):
+    user = User.query.filter_by(username=username).first_or_404()
+    followers = Follower.query.filter_by(followed_username=username).all()
+    return render_template("followers_page.html", user=user, followers=followers)
+
+
+
+
+
+
+
 if __name__ == "__main__":
-    init_db()
-    app.run(debug=True)
+ with app.app_context():
+    db.create_all()
+    socketio.run(app, debug=True)

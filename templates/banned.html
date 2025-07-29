@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}🚫 حسابك محظور{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="height: 70vh;">
+  <div class="text-center">
+    <h1 class="text-danger mb-4">🚫 حسابك محظور</h1>
+    <p class="lead">تم حظر حسابك مؤقتًا حتى:</p>
+    <h3 class="text-dark">{{ ends_at }}</h3>
+    <a href="{{ url_for('login') }}" class="btn btn-outline-danger mt-4">تسجيل الدخول بحساب آخر</a>
+  </div>
+</div>
+{% endblock %}

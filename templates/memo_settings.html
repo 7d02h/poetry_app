@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}الإعدادات العامة - ميمو{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg border-0 rounded-4">
+    <div class="card-body">
+      <h3 class="mb-4 text-center text-primary">⚙️ الإعدادات العامة</h3>
+
+      <form method="POST" action="{{ url_for('memo_settings') }}">
+        <!-- إعدادات التسجيل -->
+        <h5 class="mt-4 text-dark">التسجيل</h5>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_registration" id="enable_registration"
+                 {% if settings.enable_registration %}checked{% endif %}>
+          <label class="form-check-label" for="enable_registration">السماح بالتسجيل</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="auto_verify_users" id="auto_verify_users"
+                 {% if settings.auto_verify_users %}checked{% endif %}>
+          <label class="form-check-label" for="auto_verify_users">توثيق المستخدمين تلقائيًا</label>
+        </div>
+
+        <!-- الأمان والحظر -->
+        <h5 class="mt-4 text-dark">الأمان والحظر</h5>
+        <div class="mb-3">
+          <label class="form-label">عدد المحاولات قبل الحظر المؤقت</label>
+          <input type="number" name="max_login_attempts" class="form-control" value="{{ settings.max_login_attempts }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">مدة الحظر (بالدقائق)</label>
+          <input type="number" name="ban_duration_minutes" class="form-control" value="{{ settings.ban_duration_minutes }}">
+        </div>
+
+        <!-- إعدادات القصائد -->
+        <h5 class="mt-4 text-dark">القصائد</h5>
+        <div class="mb-3">
+          <label class="form-label">أقصى عدد حروف للبيت الواحد</label>
+          <input type="number" name="max_poem_length" class="form-control" value="{{ settings.max_poem_length }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">المدة الزمنية بين كل نشر (ثواني)</label>
+          <input type="number" name="post_interval_seconds" class="form-control" value="{{ settings.post_interval_seconds }}">
+        </div>
+
+        <!-- الميزات -->
+        <h5 class="mt-4 text-dark">الميزات</h5>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_likes" id="enable_likes"
+                 {% if settings.enable_likes %}checked{% endif %}>
+          <label class="form-check-label" for="enable_likes">تفعيل الإعجابات</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_comments" id="enable_comments"
+                 {% if settings.enable_comments %}checked{% endif %}>
+          <label class="form-check-label" for="enable_comments">تفعيل التعليقات</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_saved" id="enable_saved"
+                 {% if settings.enable_saved %}checked{% endif %}>
+          <label class="form-check-label" for="enable_saved">تفعيل الحفظ</label>
+        </div>
+
+        <!-- التنبيهات والرسائل -->
+        <h5 class="mt-4 text-dark">التنبيهات والرسائل</h5>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_notifications" id="enable_notifications"
+                 {% if settings.enable_notifications %}checked{% endif %}>
+          <label class="form-check-label" for="enable_notifications">تفعيل التنبيهات اللحظية</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="enable_messages" id="enable_messages"
+                 {% if settings.enable_messages %}checked{% endif %}>
+          <label class="form-check-label" for="enable_messages">تفعيل الرسائل الخاصة</label>
+        </div>
+        
+        <!-- معلومات الموقع -->
+        <h5 class="mt-4 text-dark">معلومات الموقع</h5>
+        <div class="mb-3">
+          <label class="form-label">اسم الموقع</label>
+          <input type="text" name="site_name" class="form-control" value="{{ settings.site_name }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">وصف الموقع</label>
+          <textarea name="site_description" class="form-control" rows="2">{{ settings.site_description }}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">رابط انستغرام</label>
+          <input type="url" name="instagram_url" class="form-control" value="{{ settings.instagram_url }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">رابط تويتر (إكس)</label>
+          <input type="url" name="twitter_url" class="form-control" value="{{ settings.twitter_url }}">
+        </div>
+
+        <!-- الوضع الليلي -->
+        <h5 class="mt-4 text-dark">الوضع الليلي</h5>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="dark_mode" id="dark_mode"
+                 {% if settings.dark_mode %}checked{% endif %}>
+          <label class="form-check-label" for="dark_mode">الوضع الليلي مفعل افتراضيًا</label>
+        </div>
+
+        <!-- لوحة ميمو -->
+        <h5 class="mt-4 text-dark">لوحة ميمو</h5>
+        <div class="mb-3">
+          <label class="form-label">اسم لوحة الإدارة</label>
+          <input type="text" name="admin_panel_name" class="form-control" value="{{ settings.admin_panel_name }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">بريد تواصل معنا</label>
+          <input type="email" name="contact_email" class="form-control" value="{{ settings.contact_email }}">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">كلمات محظورة (افصل بينها بفاصلة)</label>
+          <textarea name="blocked_words" class="form-control" rows="3">{{ settings.blocked_words }}</textarea>
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-primary rounded-pill px-5">💾 حفظ التغييرات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

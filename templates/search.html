@@ -1,79 +1,55 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta charset="UTF-8">
-    <title>بحث عن مستخدم</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .search-box {
-            max-width: 500px;
-            margin: 30px auto;
-            text-align: center;
-        }
-        .search-results {
-            max-width: 600px;
-            margin: auto;
-        }
-        .user-card {
-            border: 1px solid #ccc;
-            padding: 10px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 15px;
-            background-color: #f9f9f9;
-        }
-        .user-card img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .user-card a {
-            font-weight: bold;
-            text-decoration: none;
-        }
-        .user-card form {
-            margin-left: auto;
-        }
-    </style>
-</head>
-<body>
+{% extends 'base.html' %}
 
-<div class="search-box">
-    <h2>🔍 البحث عن المستخدمين</h2>
-    <form method="POST">
-        <input type="text" name="keyword" placeholder="اكتب اسم المستخدم أو الاسم" required>
-        <button type="submit">بحث</button>
-    </form>
-</div>
+{% block content %}
+<div class="container py-4">
 
-<div class="search-results">
+    <div class="text-center mb-4">
+        <h2>🔍 البحث عن المستخدمين</h2>
+        <form method="POST" class="d-flex justify-content-center mt-3">
+            <input type="text" name="keyword" class="form-control w-50 me-2" placeholder="اكتب اسم المستخدم أو الاسم" required>
+            <button type="submit" class="btn btn-primary">بحث</button>
+        </form>
+    </div>
+
     {% if results %}
-        <h3>نتائج البحث:</h3>
-        {% for user in results %}
-            <div class="user-card">
-                <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" alt="الصورة">
-                <div>
-                    <a href="{{ url_for('public_profile', username=user['username']) }}">{{ user['username'] }}</a><br>
-                    {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
+        <h4 class="mb-4 text-center">نتائج البحث:</h4>
+        <div class="row justify-content-center">
+            {% for user in results %}
+                <div class="card mb-3 shadow-sm" style="max-width: 600px;">
+                    <div class="row g-0 align-items-center">
+                        <div class="col-auto">
+                            <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" 
+                                 alt="الصورة" 
+                                 class="img-fluid rounded-circle m-3" 
+                                 style="width: 60px; height: 60px; object-fit: cover;">
+                        </div>
+                        <div class="col">
+                            <div class="card-body">
+                                <h5 class="card-title mb-1">
+                                    <a href="{{ url_for('public_profile', username=user['username']) }}" class="text-decoration-none">
+                                        {{ user['username'] }}
+                                    </a>
+                                </h5>
+                                <p class="card-text text-muted">{{ user['first_name'] or '' }} {{ user['last_name'] or '' }}</p>
+                            </div>
+                        </div>
+                        <div class="col-auto me-3">
+                            {% if session.username != user['username'] %}
+                                <form action="{{ url_for('follow') }}" method="POST">
+                                    <input type="hidden" name="username" value="{{ user['username'] }}">
+                                    <button type="submit" class="btn btn-outline-success">➕ متابعة</button>
+                                </form>
+                            {% else %}
+                                <span class="badge bg-secondary">أنت</span>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-                {% if session.username != user['username'] %}
-                    <form action="{{ url_for('follow', username=user['username']) }}" method="get">
-                        <button type="submit">➕ متابعة</button>
-                    </form>
-                {% endif %}
-            </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
+
     {% elif results is not none %}
-        <p style="text-align:center;">🚫 لا توجد نتائج مطابقة.</p>
+        <p class="text-center mt-5 text-danger">🚫 لا توجد نتائج مطابقة.</p>
     {% endif %}
 </div>
-
-<!-- القائمة السفلية -->
-{% include 'footer.html' %}
-
-</body>
-</html>
+{% endblock %}

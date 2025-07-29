@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container py-5">
+  <h2 class="mb-4 text-center">الإعدادات</h2>
+  <div class="list-group">
+    <a href="{{ url_for('change_password') }}" class="list-group-item list-group-item-action">🔑 تغيير كلمة المرور</a>
+    <a href="{{ url_for('confirm_delete_account') }}" class="list-group-item list-group-item-action">🗑️ حذف الحساب</a>
+    <a href="{{ url_for('settings_dark_mode') }}" class="list-group-item list-group-item-action">🌙 الوضع الداكن</a>
+    <a href="{{ url_for('notifications') }}" class="list-group-item list-group-item-action">🔔 الإشعارات</a>
+    <a href="{{ url_for('settings_privacy') }}" class="list-group-item list-group-item-action">🔒 الخصوصية</a>
+  </div>
+</div>
+{% endblock %}

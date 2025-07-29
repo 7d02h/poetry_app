@@ -1,305 +1,111 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-  <meta charset="UTF-8" />
-  <title>الصفحة الرئيسية - جزيرة العرب</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      background: #f4f4f8;
-      font-family: 'Arial', sans-serif;
-      margin: 0;
-      padding-bottom: 80px;
-    }
-    h1, h2 {
-      color: #333;
-      text-align: center;
-    }
-    .poem {
-      background: #ffffff;
-      border: 1px solid #ddd;
-      padding: 15px;
-      margin: 20px 10px;
-      border-radius: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-    .poem p {
-      white-space: pre-wrap;
-      font-size: 17px;
-      color: #444;
-      line-height: 1.8;
-    }
-    .timestamp {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 8px;
-    }
-    .user-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .user-info img {
-      width: 35px;
-      height: 35px;
-      border-radius: 50%;
-      border: 2px solid #eee;
-      object-fit: cover;
-    }
-    .user-info a {
-      font-weight: bold;
-      color: #007b83;
-      text-decoration: none;
-    }
-    .poem-footer {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 15px;
-      font-size: 16px;
-    }
-    .views-count {
-      color: #555;
-      background: #eee;
-      padding: 4px 10px;
-      border-radius: 6px;
-    }
-    .action-btn, .like-button {
-      font-size: 18px;
-      padding: 6px 12px;
-      background: #fafafa;
-      border-radius: 10px;
-      text-decoration: none;
-      color: #bd003f;
-      border: 1px solid #ddd;
-      transition: 0.3s;
-      cursor: pointer;
-    }
-    .action-btn:hover, .like-button:hover {
-      background: #e91e63;
-      color: white;
-    }
-    .like-button.liked {
-      background: #ffe6ed;
-      color: #e91e63;
-      font-weight: bold;
-    }
-    form textarea {
-      width: 95%;
-      margin: 10px auto;
-      display: block;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      resize: vertical;
-      height: 100px;
-    }
-    form button {
-      display: block;
-      width: 95%;
-      margin: 0 auto;
-      padding: 10px;
-      background: #28a745;
-      color: white;
-      font-size: 16px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    form button:hover {
-      background: #218838;
-    }
+{% extends "base.html" %}
+{% block title %}الصفحة الرئيسية - جزيرة العرب{% endblock %}
 
-    #menuToggle {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 10001;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      width: 30px;
-      height: 22px;
-      cursor: pointer;
-    }
-    #menuToggle span {
-      display: block;
-      height: 4px;
-      background: #333;
-      border-radius: 3px;
-    }
-    #sideMenu {
-      position: fixed;
-      top: 0;
-      right: -250px;
-      width: 250px;
-      height: 100%;
-      background: #fff;
-      box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-      transition: right 0.3s ease;
-      z-index: 10000;
-      padding-top: 60px;
-      direction: rtl;
-    }
-    #sideMenu ul {
-      list-style: none;
-      padding: 0;
-    }
-    #sideMenu li {
-      padding: 15px 20px;
-      border-bottom: 1px solid #eee;
-    }
-    #sideMenu a {
-      color: #333;
-      text-decoration: none;
-      font-size: 16px;
-    }
+{% block content %}
+<div class="container mt-5 mb-5">
 
-    textarea::placeholder {
-      color: #999;
-    }
-  </style>
-</head>
-<body>
-  <div id="menuToggle" onclick="toggleMenu()">
-    <span></span>
-    <span></span>
-    <span></span>
-  </div>
-
-  <nav id="sideMenu">
-    <ul>
-      <li><a href="{{ url_for('my_profile') }}">👤 صفحتي</a></li>
-      <li><a href="#">💬 تواصل معنا</a></li>
-      <li><a href="#">⚙️ الإعدادات</a></li><li>
-        <details>
-          <summary>🚫 قائمة المحظورين</summary>
-          <ul style="list-style: none; padding-right: 1rem;">
-            {% if blocked_users_sidebar %}
-              {% for u in blocked_users_sidebar %}
-                <li style="display: flex; justify-content: space-between; align-items: center;">
-                  <span>{{ u["username"] }}</span>
-                  <a href="{{ url_for('unblock_user', username=u.username) }}" style="color: red; font-size: small;">إلغاء</a>
-                </li>
-              {% endfor %}
-            {% else %}
-              <li><em style="color: gray;">لا يوجد</em></li>
+  <!-- أفضل ٣ أبيات اليوم -->
+  <h2 class="text-center mb-4">🌟 أفضل ٣ أبيات اليوم</h2>
+  {% if top_poems %}
+    {% for poem in top_poems %}
+      <div class="card mb-4 shadow-sm" id="poem-{{ poem.id }}">
+        <div class="card-body">
+          <p class="card-text" style="white-space: pre-wrap;">{{ poem.text }}</p>
+          <p class="text-muted small">{{ poem.created_at }}</p>
+          <div class="d-flex align-items-center gap-2">
+            <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"
+                 alt="صورة المستخدم"
+                 class="rounded-circle" width="35" height="35">
+            <a href="{{ url_for('public_profile', username=poem.username) }}">{{ poem.username }}</a>
+          </div>
+          <div class="mt-3 d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark">{{ poem.views or 0 }} مشاهدة</span>
+            <a class="btn btn-sm btn-outline-danger {% if poem.id in user_liked %}active{% endif %}"
+               onclick="likePoem('{{ poem.id }}', this)">❤️ {{ poem.likes }}</a>
+            {% if poem.username == username %}
+              <a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}" class="btn btn-sm btn-outline-secondary">🗑 حذف</a>
             {% endif %}
-          </ul>
-        </details>
-      </li>
-      <li><a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a></li>
-    </ul>
-  </nav>
-
-  <div class="container">
-    <h1>جزيرة العرب</h1>
-
-    <section>
-      <h2>🌟 أفضل ٣ أبيات اليوم</h2>
-      {% if top_poems %}
-        {% for poem in top_poems %}
-          <div class="poem" id="poem-{{ poem[0] }}">
-            <p>{{ poem[1] }}</p>
-            <p class="timestamp">{{ poem[6] }}</p>
-            <div class="user-info">
-              <img src="{{ url_for('static', filename='profile_pics/' + poem[5]) }}" alt="صورة المستخدم">
-              <a href="{{ url_for('public_profile', username=poem[4]) }}">{{ poem[4] }}</a>
-            </div>
-            <div class="poem-footer">
-              <div class="views-count">{{ poem[3] or 0 }} مشاهدة</div>
-              <a class="like-button {% if poem[0] in user_liked %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
-              {% if poem[4] == username %}
-                <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
-              {% endif %}
-              <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
-              <a class="action-btn" href="{{ url_for('report_poem', poem_id=poem[0]) }}">🚨 إبلاغ</a>
-              {% if poem[4] != username %}
-                <a class="action-btn" href="{{ url_for('block_user', username=poem[4]) }}">🚫 حظر</a>
-              {% endif %}
-            </div>
+            <a class="btn btn-sm btn-outline-primary" href="#" onclick="sharePoem(`{{ poem.text|e }}`); return false;">📤 مشاركة</a>
+            {% if poem.username != username %}
+              <a class="btn btn-sm btn-outline-warning" href="{{ url_for('block_user', username=poem.username) }}">🚫 حظر</a>
+            {% endif %}
           </div>
-        {% endfor %}
-      {% else %}
-        <p>لا يوجد مشاركات اليوم.</p>
-      {% endif %}
-    </section>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-center">لا يوجد مشاركات اليوم.</p>
+  {% endif %}
 
-    <section>
-      <h2>✍️ انشر بيتك</h2>
-      <form action="{{ url_for('submit') }}" method="POST">
-        <textarea name="text" placeholder="اكتب بيتك الشعري هنا..." required></textarea>
-        <button type="submit">نشر</button>
-      </form>
-    </section>
+  <!-- نشر بيت جديد -->
+  <h2 class="text-center mt-5 mb-4">✍️ انشر بيتك</h2>
+  <form action="{{ url_for('submit') }}" method="POST" class="mb-5">
+    <div class="mb-3">
+      <textarea name="text" class="form-control" rows="4" placeholder="اكتب بيتك الشعري هنا..." required></textarea>
+    </div>
+    <button type="submit" class="btn btn-success w-100">نشر</button>
+  </form>
 
-    <section>
-      <h2>📚 كل الأبيات</h2>
-      {% if all_poems %}
-        {% for poem in all_poems %}
-          <div class="poem" id="poem-{{ poem[0] }}">
-            <p>{{ poem[1] }}</p>
-            <p class="timestamp">{{ poem[6] }}</p>
-            <div class="user-info">
-              <img src="{{ url_for('static', filename='profile_pics/' + poem[5]) }}" alt="صورة المستخدم">
-              <a href="{{ url_for('public_profile', username=poem[4]) }}">{{ poem[4] }}</a>
-            </div>
-            <div class="poem-footer">
-              <div class="views-count">{{ poem[3] or 0 }} مشاهدة</div>
-              <a class="like-button {% if poem[0] in user_liked %}liked{% endif %}" onclick="likePoem('{{ poem[0] }}', this)">❤️ {{ poem[2] }}</a>
-              {% if poem[4] == username %}
-                <a href="{{ url_for('delete', poem_id=poem[0]) }}#poem-{{ poem[0] }}" class="action-btn">🗑 حذف</a>
-              {% endif %}
-              <a class="action-btn" href="#" onclick="sharePoem(`{{ poem[1]|e }}`); return false;">📤 مشاركة</a>
-            </div>
+  <!-- كل الأبيات -->
+  <h2 class="text-center mb-4">📚 كل الأبيات</h2>
+  {% if all_poems %}
+    {% for poem in all_poems %}
+      <div class="card mb-4 shadow-sm" id="poem-{{ poem.id }}">
+        <div class="card-body">
+          <p class="card-text" style="white-space: pre-wrap;">{{ poem.text }}</p>
+          <p class="text-muted small">{{ poem.created_at }}</p>
+          <div class="d-flex align-items-center gap-2">
+            <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"
+                 alt="صورة المستخدم"
+                 class="rounded-circle" width="35" height="35">
+            <a href="{{ url_for('public_profile', username=poem.username) }}">{{ poem.username }}</a>
           </div>
-        {% endfor %}
-      {% else %}
-        <p>لا توجد أبيات منشورة بعد.</p>
-      {% endif %}
-    </section>
-  </div>
+          <div class="mt-3 d-flex flex-wrap gap-2">
+            <span class="badge bg-light text-dark">{{ poem.views or 0 }} مشاهدة</span>
+            <a class="btn btn-sm btn-outline-danger {% if poem.id in user_liked %}active{% endif %}"
+               onclick="likePoem('{{ poem.id }}', this)">❤️ {{ poem.likes }}</a>
+            {% if poem.username == username %}
+              <a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}" class="btn btn-sm btn-outline-secondary">🗑 حذف</a>
+            {% endif %}
+            <a class="btn btn-sm btn-outline-primary" href="#" onclick="sharePoem(`{{ poem.text|e }}`); return false;">📤 مشاركة</a>
+            {% if poem.username != username %}
+              <a class="btn btn-sm btn-outline-warning" href="{{ url_for('block_user', username=poem.username) }}">🚫 حظر</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <p class="text-center">لا توجد أبيات منشورة بعد.</p>
+  {% endif %}
 
-  {% include 'footer.html' %}
+</div>
 
-  <script>
-    function toggleMenu() {
-      const menu = document.getElementById('sideMenu');
-      menu.style.right = (menu.style.right === '0px') ? '-250px' : '0px';
-    }function sharePoem(poemText) {
-      if (navigator.share) {
-        navigator.share({
-          title: '📜 بيت من جزيرة العرب',
-          text: poemText,
-          url: window.location.href
-        }).catch((error) => console.log('خطأ في المشاركة:', error));
-      } else {
-        alert("المشاركة غير مدعومة في هذا المتصفح.");
-      }
+<script>
+  function likePoem(poemId, element) {
+    const isLiked = element.classList.contains("active");
+    fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          element.classList.toggle("active");
+          element.innerHTML = '❤️ ' + data.likes;
+        } else if (data.redirect) {
+          window.location.href = data.redirect;
+        }
+      });
+  }
+
+  function sharePoem(poemText) {
+    if (navigator.share) {
+      navigator.share({
+        title: '📜 بيت من جزيرة العرب',
+        text: poemText,
+        url: window.location.href
+      }).catch((error) => console.log('خطأ في المشاركة:', error));
+    } else {
+      alert("المشاركة غير مدعومة في هذا المتصفح.");
     }
-
-    function likePoem(poemId, element) {
-      const isLiked = element.classList.contains("liked");
-      fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            element.innerHTML = '❤️ ' + data.likes;
-            element.classList.toggle("liked");
-          } else if (data.redirect) {
-            window.location.href = data.redirect;
-          } else {
-            alert("حدث خطأ أثناء الإعجاب.");
-          }
-        })
-        .catch(error => {
-          console.error("خطأ في الاتصال بالسيرفر:", error);
-        });
-    }
-  </script>
-</body>
-</html>
+  }
+</script>
+{% endblock %}

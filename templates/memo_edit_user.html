@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}تعديل المستخدم - ميمو{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow rounded-4">
+    <div class="card-body">
+      <h3 class="mb-4 text-center text-warning">✏️ تعديل بيانات المستخدم</h3>
+
+      <form method="POST" action="{{ url_for('edit_user', user_id=user.id) }}">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">اسم المستخدم</label>
+            <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">البريد الإلكتروني</label>
+            <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">الاسم الأول</label>
+            <input type="text" name="first_name" class="form-control" value="{{ user.first_name }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">الاسم الأخير</label>
+            <input type="text" name="last_name" class="form-control" value="{{ user.last_name }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">كلمة مرور جديدة</label>
+            <input type="password" name="password" class="form-control" placeholder="اتركها فارغة إذا لم تُرد التغيير">
+          </div>
+        </div>
+
+        <div class="text-center mt-4">
+          <button type="submit" class="btn btn-primary px-5">حفظ التغييرات</button>
+          <a href="{{ url_for('memo_users') }}" class="btn btn-secondary">عودة</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

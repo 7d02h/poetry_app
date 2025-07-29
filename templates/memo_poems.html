@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}إدارة الأبيات - ميمو{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg border-0 rounded-4">
+    <div class="card-body">
+      <h3 class="mb-4 text-center text-primary">📜 إدارة الأبيات</h3>
+
+      {% if poems %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover align-middle text-center">
+            <thead class="table-dark">
+              <tr>
+                <th>رقم</th>
+                <th>النص</th>
+                <th>المستخدم</th>
+                <th>الإعجابات</th>
+                <th>المشاهدات</th>
+                <th>تاريخ النشر</th>
+                <th>🗑️ حذف</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for poem in poems %}
+              <tr>
+                <td>{{ poem.id }}</td>
+                <td style="max-width: 300px; white-space: pre-wrap;">{{ poem.text }}</td>
+                <td>{{ poem.username }}</td>
+                <td>{{ poem.likes }}</td>
+                <td>{{ poem.views }}</td>
+                <td>{{ poem.created_at }}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('delete_poem_admin', poem_id=poem.id) }}">
+                    <button class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-info text-center">لا توجد أبيات حاليًا.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

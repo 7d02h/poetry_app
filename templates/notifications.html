@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}الإشعارات{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h2 class="text-center mb-4">🔔 الإشعارات</h2>
+
+  {% if notifications %}
+    <div class="list-group">
+      {% for n in notifications %}
+        <div class="list-group-item list-group-item-action d-flex align-items-center gap-3 {% if not n.is_read %}bg-light{% endif %}">
+          <!-- صورة المرسل -->
+          <img src="{{ url_for('static', filename='profile_pics/' + (n.sender_image or 'default.png')) }}" 
+               class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" alt="صورة">
+
+          <!-- تفاصيل الإشعار -->
+          <div class="flex-grow-1">
+            <div>
+              <strong>{{ n.sender }}</strong>
+              {% if n.type == 'like' %}
+                <span class="text-danger">أعجب</span> ببيتك الشعري
+              {% elif n.type == 'follow' %}
+                <span class="text-primary">بدأ</span> بمتابعتك
+              {% elif n.type == 'comment' %}
+                <span class="text-success">علق</span> على أحد أبياتك
+              {% else %}
+                قام بإجراء جديد
+              {% endif %}
+            </div>
+            <small class="text-muted">{{ n.time_ago }}</small>
+          </div>
+
+          <!-- زر الإجراء -->
+          <a href="{{ url_for('go_to_notification', notif_id=n.id) }}" class="btn btn-sm btn-outline-secondary">
+            عرض
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info text-center mt-4">
+      لا توجد إشعارات حاليًا.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

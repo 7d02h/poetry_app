@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}عرض البيت الشعري{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="card shadow-lg border-0 rounded-4 p-4">
+    <h4 class="mb-3">✍️ البيت الشعري</h4>
+    <p class="fs-4">{{ poem.content }}</p>
+
+    <hr>
+    <p class="text-muted">كتبه: <strong>{{ user.first_name }} {{ user.last_name }}</strong></p>
+    <p class="text-muted">بتاريخ: {{ poem.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+
+    <a href="{{ url_for('explore_page') }}" class="btn btn-outline-primary mt-3">← العودة للاستكشاف</a>
+  </div>
+</div>
+{% endblock %}

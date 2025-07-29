@@ -1,107 +1,30 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta charset="UTF-8" />
-  <title>تسجيل الدخول</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    body {
-      font-family: 'Tajawal', sans-serif;
-      background-color: #f2f2f2;
-      margin: 0;
-      padding: 0;
-    }
+{% extends 'base.html' %}
+{% block title %}تسجيل الدخول{% endblock %}
+{% block content %}
 
-    .container {
-      max-width: 400px;
-      margin: 60px auto;
-      background-color: #ffffff;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.07);
-    }
-
-    h1 {
-      text-align: center;
-      color: #333;
-      margin-bottom: 30px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-      color: #444;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #ccc;
-      border-radius: 12px;
-      font-size: 15px;
-      margin-bottom: 20px;
-      box-sizing: border-box;
-      transition: 0.3s;
-    }
-
-    input[type="text"]:focus,
-    input[type="password"]:focus {
-      border-color: #007b83;
-      outline: none;
-    }
-
-    button {
-      width: 100%;
-      background-color: #007b83;
-      color: white;
-      padding: 12px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-
-    button:hover {
-      background-color: #005f62;
-    }
-
-    p {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 14px;
-    }
-
-    a {
-      color: #007b83;
-      text-decoration: none;
-      font-weight: bold;
-    }
-
-    a:hover {
-      color: #bd003f;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>تسجيل الدخول</h1>
+<div class="container" style="max-width: 400px; margin-top: 60px;">
+  <div class="bg-white p-4 rounded-4 shadow-sm">
+    <h2 class="text-center mb-4" style="color: #333;">تسجيل الدخول</h2>
     <form method="POST">
-      <label for="username">اسم المستخدم:</label>
-      <input type="text" name="username" id="username" required>
+      <div class="mb-3">
+        <label for="username" class="form-label fw-medium" style="color: #444;">اسم المستخدم:</label>
+        <input type="text" name="username" id="username" class="form-control rounded-4" required style="font-size: 15px;">
+      </div>
 
-      <label for="password">كلمة المرور:</label>
-      <input type="password" name="password" id="password" required>
+      <div class="mb-3">
+        <label for="password" class="form-label fw-medium" style="color: #444;">كلمة المرور:</label>
+        <input type="password" name="password" id="password" class="form-control rounded-4" required style="font-size: 15px;">
+      </div>
 
-      <button type="submit">دخول</button>
+      <button type="submit" class="btn w-100 text-white rounded-4" style="background-color: #007b83; font-size: 16px;">
+        دخول
+      </button>
     </form>
 
-    <p>لا تملك حسابًا؟ <a href="/signup">إنشاء حساب</a></p>
+    <p class="text-center mt-3" style="font-size: 14px;">
+      لا تملك حسابًا؟ <a href="{{ url_for('signup') }}" style="color: #007b83; font-weight: bold;">إنشاء حساب</a>
+    </p>
   </div>
+</div>
 
-  {% include 'footer.html' %}
-</body>
-</html>
+{% endblock %}

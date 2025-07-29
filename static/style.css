@@ -177,7 +177,7 @@ footer.navbar a span {
   margin-bottom: 3px;
 }
 
-/* القائمة الجانبية */
+/* زر القائمة الجانبية (ثلاث شحطات) */
 #menuToggle {
   position: fixed;
   top: 20px;
@@ -198,6 +198,7 @@ footer.navbar a span {
   border-radius: 3px;
 }
 
+/* القائمة الجانبية */
 #sideMenu {
   position: fixed;
   top: 0;
@@ -210,6 +211,10 @@ footer.navbar a span {
   z-index: 10000;
   padding-top: 60px;
   direction: rtl;
+}
+
+#sideMenu.open {
+  right: 0 !important;
 }
 
 #sideMenu ul {
@@ -243,14 +248,14 @@ footer.navbar a span {
   margin-bottom: 12px;
   font-size: 26px;
   color: #222;
-}
-
-.profile-stats {
+}.profile-stats {
   display: flex;
   justify-content: center;
   gap: 40px;
   margin-top: 15px;
-}.profile-stats .stat {
+}
+
+.profile-stats .stat {
   text-align: center;
   font-size: 18px;
   color: #444;
