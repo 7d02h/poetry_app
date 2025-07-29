@@ -2,5 +2,5 @@ Flask==2.2.5
 gunicorn
 Flask-Babel==2.0.0
 humanize
-
+flask_login
 Flask-SocketIO==5.3.4
