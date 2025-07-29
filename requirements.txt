@@ -10,3 +10,4 @@ python-dotenv
 email-validator
 WTForms
 flask-wtf
+flask-migrate
