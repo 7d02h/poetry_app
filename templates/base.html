@@ -176,7 +176,7 @@
     <li><a href="{{ url_for('my_profile') }}">صفحتي</a></li>
     <li><a href="{{ url_for('contact') }}">تواصل معنا</a></li>
     <li><a href="{{ url_for('settings') }}">الإعدادات</a></li>
-    <li><a href="{{ url_for('block_user', username=current_user.username) }}">قائمة المحظورين 🚫</a></li>
+    <li><a href="{{ url_for('blocked_users') }}">قائمة المحظورين 🚫</a></li>
     {% if current_user.is_authenticated %}
       <li><a href="{{ url_for('logout') }}">تسجيل الخروج</a></li>
     {% else %}

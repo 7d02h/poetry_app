@@ -12,6 +12,9 @@ from notification_utils import send_notification
 from models import Block, Like, Report
 from sqlalchemy import or_, and_, desc
 from flask_migrate import Migrate
+from models import FollowRequest, Follower, User, Notification
+
+
 import os
 import json
 import eventlet
@@ -72,9 +75,13 @@ def handle_join(data):
         join_room(room)
         print(f"✅ انضم المستخدم للغرفة: {room}")
 
-def send_notification(to_username, message):
-    socketio.emit('new_notification', {'message': message}, room=to_username)
 
+def send_notification(to_username, message, notif_type='general'):
+    # إرسال الإشعار اللحظي باستخدام SocketIO
+    socketio.emit('new_notification', {
+        'type': notif_type,
+        'message': message
+    }, room=to_username)
 # ----------------------------- تسجيل الدخول -----------------------------
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -111,18 +118,36 @@ def inject_user():
 def inject_blocked_users():
     if not has_request_context() or 'username' not in session:
         return {}
-    blocked = Block.query.join(User, Block.blocked == User.username)\
-        .filter(Block.blocker == session['username']).all()
-    return {'blocked_users_sidebar': blocked}
+
+    blocked_entries = Block.query.filter_by(blocker=session['username']).all()
+    blocked_users = []
+
+    for entry in blocked_entries:
+        blocked_user = User.query.filter_by(username=entry.blocked).first()
+        if blocked_user:
+            blocked_users.append(blocked_user)
+
+    return {'blocked_users_sidebar': blocked_users}
 
 @app.context_processor
 def inject_navbar_counts():
+    unread_messages_count = 0
+    has_unread_notifications = False
+
     if current_user.is_authenticated:
-        unread_messages_count = Message.query.filter_by(receiver=current_user.username, is_read=False).count()
-        has_unread_notifications = Notification.query.filter_by(recipient=current_user.username, is_read=False).first() is not None
-    else:
-        unread_messages_count = 0
-        has_unread_notifications = False
+        try:
+            unread_messages_count = Message.query.filter_by(
+                receiver=current_user.username,
+                is_read=False
+            ).count()
+
+            has_unread_notifications = Notification.query.filter_by(
+                recipient=current_user.username,
+                is_read=False
+            ).first() is not None
+        except Exception as e:
+            # لتفادي كسر الواجهة إذا حصلت مشكلة
+            print("خطأ أثناء جلب عدد الإشعارات أو الرسائل:", e)
 
     return {
         'unread_messages_count': unread_messages_count,
@@ -132,14 +157,19 @@ def inject_navbar_counts():
 @app.context_processor
 def inject_notifications():
     if not has_request_context() or 'username' not in session:
-        return {}
+        return {'notifications': []}
 
-    unread_notifications = Notification.query.filter_by(
-        recipient=session['username'], is_read=False
-    ).order_by(Notification.timestamp.desc()).all()
+    try:
+        unread_notifications = Notification.query.filter_by(
+            recipient=session['username'],
+            is_read=False
+        ).order_by(Notification.timestamp.desc()).all()
 
-    return {'notifications': unread_notifications}
-
+        return {'notifications': unread_notifications}
+    except Exception as e:
+        print("❌ خطأ أثناء جلب الإشعارات:", e)
+        return {'notifications': []}
+    
 # ----------------------------- تنسيق التاريخ -----------------------------
 @app.template_filter('format_ar_date')
 def format_ar_date(value):
@@ -261,7 +291,8 @@ def home():
     liked = Like.query.filter_by(username=current_username).with_entities(Like.poem_id).all()
     user_liked = [row.poem_id for row in liked]
 
-    # المحظورين للقائمة الجانبية
+
+# المحظورين للقائمة الجانبية
     sidebar = Block.query.filter_by(blocker=current_username).all()
     blocked_users_sidebar = [{"username": b.blocked} for b in sidebar]
 
@@ -347,8 +378,6 @@ def logout():
     flash("تم تسجيل الخروج.")
     return redirect("/login")
 
-
-# عرض الملف الشخصي
 @app.route("/profile/<username>", methods=["GET", "POST"])
 def public_profile(username):
     current_user = session.get("username")
@@ -359,57 +388,116 @@ def public_profile(username):
     if not user:
         return "المستخدم غير موجود", 404
 
-    is_following = False
-    blocked = False
+    is_following = Follower.query.filter_by(
+        username=current_user,
+        followed_username=username
+    ).first() is not None
 
-    # تنفيذ أزرار المتابعة أو الحظر أو الإلغاء
+    blocked = Block.query.filter_by(
+        blocker=current_user,
+        blocked=username
+    ).first() is not None
+
+    # هل أرسل طلب متابعة سابقًا
+    follow_request_sent = FollowRequest.query.filter_by(
+        sender_username=current_user,
+        receiver_username=username,
+        status='pending'
+    ).first() is not None
+
     if request.method == "POST":
         action = request.form.get("action")
 
         if action == "follow":
-            exists = Follower.query.filter_by(username=current_user, followed_username=username).first()
-            if not exists:
-                db.session.add(Follower(username=current_user, followed_username=username))
+            if user.private:
+                existing_request = FollowRequest.query.filter_by(
+                    sender_username=current_user,
+                    receiver_username=username,
+                    status='pending'
+                ).first()
+                if not existing_request:
+                    new_request = FollowRequest(
+                        sender_username=current_user,
+                        receiver_username=username,
+                        status='pending'
+                    )
+                    db.session.add(new_request)
+
+                    # إرسال إشعار لصاحب الحساب
+                    notif = Notification(
+                        recipient=username,
+                        sender=current_user,
+                        type='follow_request',
+                        content=json.dumps({}),
+                        timestamp=datetime.utcnow()
+                    )
+                    db.session.add(notif)
+            else:
+                exists = Follower.query.filter_by(
+                    username=current_user,
+                    followed_username=username
+                ).first()
+                if not exists:
+                    db.session.add(Follower(
+                        username=current_user,
+                        followed_username=username
+                    ))
+
+                    # إرسال إشعار بالمتابعة
+                    notif = Notification(
+                        recipient=username,
+                        sender=current_user,
+                        type='follow',
+                        content=json.dumps({}),
+                        timestamp=datetime.utcnow()
+                    )
+                    db.session.add(notif)
+
         elif action == "unfollow":
-            Follower.query.filter_by(username=current_user, followed_username=username).delete()
+            Follower.query.filter_by(
+                username=current_user,
+                followed_username=username
+            ).delete()
+
         elif action == "block":
-            exists = Block.query.filter_by(blocker=current_user, blocked=username).first()
-            if not exists:
-                db.session.add(Block(blocker=current_user, blocked=username))
+            if not Block.query.filter_by(
+                blocker=current_user,
+                blocked=username
+            ).first():
+                db.session.add(Block(
+                    blocker=current_user,
+                    blocked=username
+                ))
+
         elif action == "unblock":
-            Block.query.filter_by(blocker=current_user, blocked=username).delete()
+            Block.query.filter_by(
+                blocker=current_user,
+                blocked=username
+            ).delete()
 
         db.session.commit()
+        return redirect(url_for("public_profile", username=username))
 
-    # التحقق من حالة المتابعة والحظر
-    if current_user != username:
-        is_following = Follower.query.filter_by(username=current_user, followed_username=username).first() is not None
-        blocked = Block.query.filter_by(blocker=current_user, blocked=username).first() is not None
-
-    # المتابعين وعددهم
+    # عدد المتابعين
     followers = Follower.query.filter_by(followed_username=username).all()
     followers_count = len(followers)
 
-    # الأبيات الخاصة بالمستخدم
+    # الأبيات
     user_poems = Poem.query.filter_by(username=username).all()
 
     # مجموع الإعجابات
-    total_likes = (
-        db.session.query(db.func.sum(Poem.likes))
-        .filter_by(username=username)
-        .scalar()
-    ) or 0
+    total_likes = db.session.query(db.func.sum(Poem.likes))\
+                            .filter_by(username=username).scalar() or 0
 
     return render_template("profile.html",
-                           user=user,
-                           user_poems=user_poems,
+                           user=user,user_poems=user_poems,
                            total_likes=total_likes,
                            followers_count=followers_count,
                            followers=followers,
                            is_following=is_following,
                            current_user=current_user,
-                           blocked=blocked)
-
+                           blocked=blocked,
+                           follow_request_sent=follow_request_sent)
 
 @app.route("/profile")
 def my_profile():
@@ -552,8 +640,8 @@ def explore_page():
 
     current_username = session['username']
 
-    # الأبيات الأكثر إعجابًا
-    top_poems = (
+    # ✅ الأبيات الأكثر إعجابًا (مع صورة المستخدم ووقت النشر)
+    top_poems_query = (
         db.session.query(Poem, User.profile_image)
         .join(User, Poem.username == User.username)
         .order_by(Poem.likes.desc())
@@ -561,9 +649,9 @@ def explore_page():
         .all()
     )
 
-    poems_list = []
-    for poem, profile_image in top_poems:
-        poems_list.append({
+    top_poems = []
+    for poem, profile_image in top_poems_query:
+        top_poems.append({
             'id': poem.id,
             'text': poem.text,
             'likes': poem.likes,
@@ -573,25 +661,36 @@ def explore_page():
             'created_ago': time_ago(poem.created_at)
         })
 
-    # المستخدمين المقترحين (من لا تتابعهم)
-    followed = db.session.query(Follower.followed_username).filter_by(username=current_username).subquery()
+    # ✅ المستخدمون المقترحون (من لا تتابعهم)
+    followed_subquery = (
+        db.session.query(Follower.followed_username)
+        .filter(Follower.username == current_username)
+    )
+
     suggested_users = (
         db.session.query(User.username, User.first_name, User.last_name, User.profile_image)
         .filter(User.username != current_username)
-        .filter(~User.username.in_(followed))
+        .filter(~User.username.in_(followed_subquery))
         .limit(5)
         .all()
     )
 
-    # الأبيات التي أعجب بها المستخدم
-    liked_poems = db.session.query(Like.poem_id).filter_by(username=current_username).all()
-    liked_poems_ids = [row.poem_id for row in liked_poems]
+    # ✅ الأبيات التي أعجب بها المستخدم الحالي
+    liked_poems_ids = (
+        db.session.query(Like.poem_id)
+        .filter(Like.username == current_username)
+        .with_entities(Like.poem_id)
+        .all()
+    )
+    liked_poems_ids = [poem_id for (poem_id,) in liked_poems_ids]
 
-    return render_template('explore.html',
-                           top_poems=poems_list,
-                           suggested_users=suggested_users,
-                           user_liked=liked_poems_ids)
-
+    # ✅ عرض الصفحة
+    return render_template(
+        'explore.html',
+        top_poems=top_poems,
+        suggested_users=suggested_users,
+        user_liked=liked_poems_ids
+    )
 
 # ✅ تعديل عدد اللايكات (للمسؤول فقط)
 @app.route('/admin/setlike/<int:poem_id>/<int:like_count>')
@@ -710,9 +809,8 @@ def block_user(username):
     flash(f"🚫 تم حظر {username}.", "info")
     return redirect(request.referrer or url_for('explore_page'))
 
-
 # 🔓 إلغاء الحظر
-@app.route('/unblock/<username>')
+@app.route('/unblock/<username>', methods=['POST'])
 def unblock_user(username):
     if 'username' not in session:
         return redirect(url_for('login'))
@@ -724,7 +822,6 @@ def unblock_user(username):
         db.session.commit()
 
     return redirect(request.referrer or url_for('home'))
-
 
 # 📩 الرسائل
 @app.route("/messages/<username>")
@@ -870,28 +967,33 @@ def notifications():
     for n in notifs:
         sender = User.query.filter_by(username=n.sender).first()
         notif = {
-            "id": n.id,  # ✅ مهم جداً لربط زر "عرض"
+            "id": n.id,
             "sender": n.sender,
             "sender_image": sender.profile_image if sender and sender.profile_image else "default.png",
             "type": n.type,
-            "is_read": n.is_read,  # ✅ لتمييز المقروء من غير المقروء
+            "is_read": n.is_read,
             "time_ago": time_ago(n.timestamp)
         }
 
-        # محاولة قراءة بيانات content (مثل poem_id)
-        poem_id = None
+        # التعامل مع محتوى الإشعار
+        content_data = {}
         if n.content:
             try:
-                data = json.loads(n.content)
-                poem_id = data.get("poem_id")
-            except:
+                content_data = json.loads(n.content)
+            except json.JSONDecodeError:
                 pass
 
-        # تحديد الرابط المناسب لكل نوع إشعار
+        # تحديد الرابط حسب نوع الإشعار
         if n.type == "follow":
             notif["link"] = url_for("public_profile", username=n.sender)
-        elif n.type in ["like", "comment"] and poem_id:
-            notif["link"] = url_for("view_poem", poem_id=poem_id)
+        elif n.type == "follow_request":
+            notif["link"] = url_for("public_profile", username=n.sender)
+        elif n.type in ["like", "comment"]:
+            poem_id = content_data.get("poem_id")
+            if poem_id:
+                notif["link"] = url_for("view_poem", poem_id=poem_id)
+            else:
+                notif["link"] = "#"
         else:
             notif["link"] = "#"
 
@@ -906,23 +1008,24 @@ def go_to_notification(notif_id):
 
     notif = Notification.query.get_or_404(notif_id)
 
-    # تحقق أن الإشعار يخص المستخدم الحالي فقط
+    # التأكد أن الإشعار يخص المستخدم الحالي
     if notif.recipient != session["username"]:
         flash("❌ ليس لديك صلاحية للوصول لهذا الإشعار.", "danger")
         return redirect(url_for("notifications"))
 
-    # تحديد الرابط المناسب حسب نوع الإشعار
+    # تحديد الرابط المناسب
     link = "#"
-    if notif.type == "follow":
+    try:
+        content_data = json.loads(notif.content or "{}")
+    except:
+        content_data = {}
+
+    if notif.type == "follow" or notif.type == "follow_request":
         link = url_for("public_profile", username=notif.sender)
     elif notif.type in ["like", "comment"]:
-        try:
-            data = json.loads(notif.content or "{}")
-            poem_id = data.get("poem_id")
-            if poem_id:
-                link = url_for("view_poem", poem_id=poem_id)
-        except:
-            pass
+        poem_id = content_data.get("poem_id")
+        if poem_id:
+            link = url_for("view_poem", poem_id=poem_id)
 
     # تعليم الإشعار كمقروء
     if not notif.is_read:
@@ -1008,7 +1111,6 @@ def delete_account():
 def settings_dark_mode():
     return redirect(url_for('settings'))
 
-
 @app.route('/settings/privacy', methods=['GET', 'POST'])
 def settings_privacy():
     if "username" not in session:
@@ -1017,13 +1119,13 @@ def settings_privacy():
     user = User.query.filter_by(username=session["username"]).first()
 
     if request.method == 'POST':
-        is_private = 1 if request.form.get("is_private") == "on" else 0
-        user.private = bool(is_private)
+        # ✅ التصحيح هنا: يجب أن يكون user.private
+        user.private = request.form.get("is_private") == "on"
         db.session.commit()
-        flash("✅ تم تحديث إعدادات الخصوصية", "success")
+        flash("", "success")
         return redirect(url_for("settings_privacy"))
 
-    return render_template("privacy_settings.html", is_private=user.private if user else False)
+    return render_template("privacy_settings.html", user=user)
 
 
 @app.route("/contact", methods=["GET", "POST"])
@@ -1168,7 +1270,6 @@ def memo_notifications():
     if not current_user.username == "admin":
         return redirect(url_for("home"))
     return render_template("memo_notifications.html")
-
 # إعدادات عامة
 @app.route("/memo/settings", methods=["GET", "POST"])
 @login_required
@@ -1179,9 +1280,11 @@ def memo_settings():
     from models import Settings
     settings = Settings.query.get(1)
 
+    # 🛠️ إذا لم توجد إعدادات، نقوم بإنشائها تلقائيًا
     if not settings:
-        flash("⚠️ لم يتم العثور على الإعدادات!", "danger")
-        return redirect(url_for("home"))
+        settings = Settings(id=1)
+        db.session.add(settings)
+        db.session.commit()
 
     def get_int_or_default(key, default):
         val = request.form.get(key, "")
@@ -1321,56 +1424,71 @@ def memo_bans():
 
     return render_template('memo_bans.html', bans=bans_processed)
 
-# ✅ إضافة مستخدم إلى قائمة الحظر
-@app.route('/memo/bans/add', methods=['GET', 'POST'])
-@login_required
-def memo_ban_form():
-    if current_user.username != "admin":
-        return redirect(url_for("home"))
 
-    if request.method == "POST":
-        username = request.form.get("username")
-        duration = int(request.form.get("duration", 0))
-        reason = request.form.get("reason", "")
-
-        user = User.query.filter_by(username=username).first()
-        if user:
-            banned_at = datetime.now()
-            ends_at = banned_at + timedelta(days=duration) if duration > 0 else None
-            ban = Ban(username=username, reason=reason, banned_at=banned_at, ends_at=ends_at)
-            db.session.add(ban)
-            db.session.commit()
-            flash("تم حظر المستخدم بنجاح ✅", "success")
-            return redirect(url_for("memo_bans"))
-        else:
-            flash("المستخدم غير موجود ❌", "danger")
-
-    return render_template("memo_ban_form.html")
 
 @app.route('/unban_user/<int:ban_id>', methods=['POST'])
 @login_required
 def unban_user(ban_id):
-    if not current_user.is_admin:
+    if not hasattr(current_user, "is_admin") or not current_user.is_admin:
+        flash("❌ ليس لديك صلاحيات إدارية.", "danger")
         return redirect(url_for('home'))
 
-    ban = Ban.query.get(ban_id)
-    if ban:
-        ban.ends_at = datetime.now()
-        db.session.commit()
-        flash("✅ تم رفع الحظر عن المستخدم بنجاح", "success")
+    ban = Ban.query.get_or_404(ban_id)
+
+    # تحديث تاريخ الانتهاء ليتم رفع الحظر فوراً
+    ban.end_date = datetime.utcnow()
+    db.session.commit()
+
+    flash("✅ تم رفع الحظر عن المستخدم بنجاح", "success")
     return redirect(url_for('memo_bans'))
 
-@app.route('/memo/ban/<int:user_id>', methods=['POST'])
+@app.route('/memo/bans/add', methods=['GET', 'POST'])
 @login_required
-def ban_user_form(user_id):
+def memo_ban_form():
     if not current_user.is_admin:
         return redirect(url_for('home'))
 
-    user = User.query.get(user_id)
-    if not user:
-        return "المستخدم غير موجود", 404
+    if request.method == 'POST':
+        username = request.form.get('username')
+        duration_days = int(request.form.get('duration'))
+        reason = request.form.get('reason')
 
-    return render_template('memo_ban_form.html', user=user)
+        # الحصول على المستخدم
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            flash("❌ المستخدم غير موجود", "danger")
+            return redirect(url_for('memo_ban_form'))
+
+        # التحقق إذا كان محظور مسبقًا
+        active_ban = Ban.query.filter(
+            Ban.user_id == user.id,
+            Ban.ends_at > datetime.utcnow()
+        ).first()
+
+        if active_ban:
+            flash("⚠️ المستخدم محظور بالفعل", "warning")
+            return redirect(url_for('memo_bans'))
+
+        # حساب وقت انتهاء الحظر
+        ends_at = datetime.utcnow() + timedelta(days=duration_days)
+
+        new_ban = Ban(
+            user_id=user.id,
+            username=user.username,
+            reason=reason,
+            banned_at=datetime.utcnow(),
+            duration_days=duration_days,
+            ends_at=ends_at
+        )
+        db.session.add(new_ban)
+        db.session.commit()
+
+        flash(f"✅ تم حظر {username} بنجاح", "success")
+        return redirect(url_for('memo_bans'))
+
+    return render_template('memo_ban_form.html')
+
 
 @app.route('/memo/ban_user/<int:user_id>', methods=['POST'])
 @login_required
@@ -1422,10 +1540,110 @@ def followers_page(username):
     return render_template("followers_page.html", user=user, followers=followers)
 
 
+@app.route("/report/<username>")
+def report_user(username):
+    flash(f"تم إرسال بلاغ ضد المستخدم {username}", "warning")
+    return redirect(url_for("public_profile", username=username))
+
+
+@app.route('/handle_follow_request', methods=['POST'])
+def handle_follow_request():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    current_username = session["username"]
+    sender_username = request.form.get("sender_username")
+    action = request.form.get("action")  # "accept" or "reject"
+
+    # تحقق من وجود الطلب
+    request_entry = FollowRequest.query.filter_by(
+        sender_username=sender_username,
+        receiver_username=current_username,
+        status='pending'
+    ).first()
+
+    if not request_entry:
+        flash("❌ لم يتم العثور على طلب المتابعة.", "danger")
+        return redirect(url_for("notifications"))
+
+    if action == "accept":
+        # إضافة المتابع
+        new_follower = Follower(username=sender_username, followed_username=current_username)
+        db.session.add(new_follower)
+
+        # حذف الطلب
+        db.session.delete(request_entry)
+
+        # تعليم الإشعار كمقروء
+        notif = Notification.query.filter_by(
+            recipient=current_username,
+            sender=sender_username,
+            type='follow_request',
+            is_read=False
+        ).first()
+        if notif:
+            notif.is_read = True
+
+        flash("✅ تم قبول طلب المتابعة.", "success")
+
+    elif action == "reject":
+        # فقط حذف الطلب
+        db.session.delete(request_entry)
+
+        # تعليم الإشعار كمقروء
+        notif = Notification.query.filter_by(
+            recipient=current_username,
+            sender=sender_username,
+            type='follow_request',
+            is_read=False
+        ).first()
+        if notif:
+            notif.is_read = True
+
+        flash("❌ تم رفض طلب المتابعة.", "info")
+
+    db.session.commit()
+    return redirect(url_for("notifications"))
+
+@app.route("/blocked_users")
+def blocked_users():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    current_username = session["username"]
+    blocks = Block.query.filter_by(blocker=current_username).all()
+
+    blocked_users = []
+    for entry in blocks:
+        user = User.query.filter_by(username=entry.blocked).first()
+        if user:
+            blocked_users.append(user)
+
+    return render_template("blocked_users.html", users=blocked_users)
 
 
 
+# صفحة لوحة الإحصائيات
+@app.route("/memo/stats")
+@login_required
+def memo_stats():
+    if not current_user.is_admin:
+        return redirect(url_for("home"))
 
+    from models import User, Poem, Message, Ban, Like
+    total_users = User.query.count()
+    total_poems = Poem.query.count()
+    total_messages = Message.query.count()
+    total_bans = Ban.query.count()
+    total_likes = Like.query.count()
+
+    return render_template("memo_stats.html", 
+        total_users=total_users,
+        total_poems=total_poems,
+        total_messages=total_messages,
+        total_bans=total_bans,
+        total_likes=total_likes
+    )
 
 if __name__ == "__main__":
  with app.app_context():

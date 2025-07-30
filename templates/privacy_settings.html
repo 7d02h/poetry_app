@@ -4,12 +4,24 @@
 {% block content %}
 <div class="container py-4" style="max-width: 600px;">
   <h3 class="mb-4">🔐 إعدادات الخصوصية</h3>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
   <form method="POST">
     <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" name="is_private" id="is_private" {% if is_private %}checked{% endif %}>
+      <input class="form-check-input" type="checkbox" name="is_private" id="is_private" {% if user.private %}checked{% endif %}>
       <label class="form-check-label" for="is_private">اجعل حسابي خاصًا</label>
     </div>
-    <button type="submit" class="btn btn-dark mt-3">حفظ التغييرات</button>
+    <button type="submit" class="btn btn-dark mt-3">💾 حفظ التغييرات</button>
   </form>
 </div>
 {% endblock %}

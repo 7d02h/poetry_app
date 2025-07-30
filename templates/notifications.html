@@ -1,5 +1,4 @@
 {% extends 'base.html' %}
-
 {% block title %}الإشعارات{% endblock %}
 
 {% block content %}
@@ -9,32 +8,40 @@
   {% if notifications %}
     <div class="list-group">
       {% for n in notifications %}
-        <div class="list-group-item list-group-item-action d-flex align-items-center gap-3 {% if not n.is_read %}bg-light{% endif %}">
-          <!-- صورة المرسل -->
-          <img src="{{ url_for('static', filename='profile_pics/' + (n.sender_image or 'default.png')) }}" 
-               class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" alt="صورة">
+        <div class="list-group-item d-flex flex-column gap-2 {% if not n.is_read %}bg-light{% endif %}">
+          <a href="{{ url_for('go_to_notification', notif_id=n.id) }}" class="d-flex align-items-center gap-3 text-decoration-none text-dark">
+            <!-- صورة المرسل -->
+            <img src="{{ url_for('static', filename='profile_pics/' + (n.sender_image or 'default.jpg')) }}" 
+                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" alt="صورة">
 
-          <!-- تفاصيل الإشعار -->
-          <div class="flex-grow-1">
-            <div>
-              <strong>{{ n.sender }}</strong>
-              {% if n.type == 'like' %}
-                <span class="text-danger">أعجب</span> ببيتك الشعري
-              {% elif n.type == 'follow' %}
-                <span class="text-primary">بدأ</span> بمتابعتك
-              {% elif n.type == 'comment' %}
-                <span class="text-success">علق</span> على أحد أبياتك
-              {% else %}
-                قام بإجراء جديد
-              {% endif %}
+            <!-- تفاصيل الإشعار -->
+            <div class="flex-grow-1">
+              <div>
+                <strong>{{ n.sender }}</strong>
+                {% if n.type == 'like' %}
+                  <span class="text-danger">أعجب</span> ببيتك الشعري
+                {% elif n.type == 'follow' %}
+                  <span class="text-primary">بدأ</span> بمتابعتك
+                {% elif n.type == 'comment' %}
+                  <span class="text-success">علق</span> على أحد أبياتك
+                {% elif n.type == 'follow_request' %}
+                  <span class="text-warning">طلب</span> متابعتك
+                {% else %}
+                  قام بإجراء جديد
+                {% endif %}
+              </div>
+              <small class="text-muted">{{ n.time_ago }}</small>
             </div>
-            <small class="text-muted">{{ n.time_ago }}</small>
-          </div>
-
-          <!-- زر الإجراء -->
-          <a href="{{ url_for('go_to_notification', notif_id=n.id) }}" class="btn btn-sm btn-outline-secondary">
-            عرض
           </a>
+
+          {% if n.type == 'follow_request' %}
+            <!-- أزرار قبول أو رفض طلب المتابعة -->
+            <form method="POST" action="{{ url_for('handle_follow_request') }}" class="mt-2 text-end">
+              <input type="hidden" name="sender_username" value="{{ n.sender }}">
+              <button name="action" value="accept" class="btn btn-sm btn-success rounded-pill px-3">✅ قبول</button>
+              <button name="action" value="reject" class="btn btn-sm btn-danger rounded-pill px-3">❌ رفض</button>
+            </form>
+          {% endif %}
         </div>
       {% endfor %}
     </div>

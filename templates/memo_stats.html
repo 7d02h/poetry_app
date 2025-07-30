@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}📊 لوحة الإحصائيات - ميمو{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-lg rounded-4">
+    <div class="card-body">
+      <h3 class="text-center text-primary mb-4">📊 لوحة الإحصائيات العامة</h3>
+
+      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 text-center">
+
+        <div class="col">
+          <div class="card border-0 shadow-sm rounded-3 bg-light">
+            <div class="card-body">
+              <h1 class="text-primary">{{ total_users }}</h1>
+              <p class="mb-0">المستخدمين</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card border-0 shadow-sm rounded-3 bg-light">
+            <div class="card-body">
+              <h1 class="text-success">{{ total_poems }}</h1>
+              <p class="mb-0">الأبيات المنشورة</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card border-0 shadow-sm rounded-3 bg-light">
+            <div class="card-body">
+              <h1 class="text-info">{{ total_messages }}</h1>
+              <p class="mb-0">الرسائل الخاصة</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card border-0 shadow-sm rounded-3 bg-light">
+            <div class="card-body">
+              <h1 class="text-danger">{{ total_bans }}</h1>
+              <p class="mb-0">الحسابات المبندة</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col">
+          <div class="card border-0 shadow-sm rounded-3 bg-light">
+            <div class="card-body">
+              <h1 class="text-warning">{{ total_likes }}</h1>
+              <p class="mb-0">الإعجابات</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

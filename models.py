@@ -1,3 +1,5 @@
+
+
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -24,6 +26,7 @@ class User(db.Model):
         lazy='dynamic'
     )
 
+
 class Poem(db.Model):
     __tablename__ = 'poems'
     id = db.Column(db.Integer, primary_key=True)
@@ -33,6 +36,7 @@ class Poem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
 
+
 class Follower(db.Model):
     __tablename__ = 'followers'
     id = db.Column(db.Integer, primary_key=True)
@@ -41,25 +45,29 @@ class Follower(db.Model):
 
     user = db.relationship("User", foreign_keys=[username])
 
+
 class Like(db.Model):
     __tablename__ = 'likes'
     id = db.Column(db.Integer, primary_key=True)
     poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'), nullable=False)
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
 
+
 class SavedPoem(db.Model):
     __tablename__ = 'saved_poems'
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), nullable=False)
-    poem_id = db.Column(db.Integer, nullable=False)
+    username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
+    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'), nullable=False)
+
 
 class Report(db.Model):
     __tablename__ = 'reports'
     id = db.Column(db.Integer, primary_key=True)
     poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'), nullable=False)
-    reported_by = db.Column(db.String(64), nullable=False)
+    reported_by = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     reason = db.Column(db.Text)
     report_date = db.Column(db.DateTime, default=datetime.now)
+
 
 class Block(db.Model):
     __tablename__ = 'blocks'
@@ -68,15 +76,17 @@ class Block(db.Model):
     blocked = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     block_date = db.Column(db.DateTime, default=datetime.now)
 
+
 class Ban(db.Model):
     __tablename__ = 'bans'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # ✅ مضاف لحل المشكلة
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     reason = db.Column(db.Text)
     banned_at = db.Column(db.DateTime, default=datetime.now)
     duration_days = db.Column(db.Integer)
     ends_at = db.Column(db.DateTime)
+
 
 class Message(db.Model):
     __tablename__ = 'messages'
@@ -98,6 +108,7 @@ class MessageReport(db.Model):
     reason = db.Column(db.Text)
     report_date = db.Column(db.DateTime, default=datetime.now)
 
+
 class Notification(db.Model):
     __tablename__ = 'notifications'
     id = db.Column(db.Integer, primary_key=True)
@@ -108,6 +119,7 @@ class Notification(db.Model):
     is_read = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
 
+
 class ContactMessage(db.Model):
     __tablename__ = 'contact_messages'
     id = db.Column(db.Integer, primary_key=True)
@@ -115,6 +127,7 @@ class ContactMessage(db.Model):
     email = db.Column(db.String(120), nullable=False)
     message = db.Column(db.Text, nullable=False)
     sent_at = db.Column(db.DateTime, default=datetime.now)
+
 
 class Settings(db.Model):
     __tablename__ = 'settings'
@@ -149,3 +162,12 @@ class Settings(db.Model):
     admin_panel_name = db.Column(db.String(100), default="admin")
     dark_mode = db.Column(db.Boolean, default=False)
     blocked_words = db.Column(db.Text, default="")
+
+
+class FollowRequest(db.Model):
+    __tablename__ = 'follow_requests'
+    id = db.Column(db.Integer, primary_key=True)
+    sender_username = db.Column(db.String(100), db.ForeignKey('users.username'), nullable=False)
+    receiver_username = db.Column(db.String(100), db.ForeignKey('users.username'), nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending / accepted / rejected
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
