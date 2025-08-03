@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}تطبيقي{% endblock %}</title>
 
-  <!-- ✅ رابط CSS المحلي -->
+  <!-- ✅ روابط CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap.min.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
@@ -28,6 +28,8 @@
       padding: 15px;
       margin-top: 40px;
     }
+
+    /* القائمة الجانبية */
     #sideMenu {
       position: fixed;
       top: 0;
@@ -44,8 +46,9 @@
       right: 0;
     }
     #sideMenu ul {
-      list-style-type: none;
+      list-style: none;
       padding: 0;
+      margin: 0;
     }
     #sideMenu ul li {
       padding: 15px 20px;
@@ -56,6 +59,8 @@
       text-decoration: none;
       display: block;
     }
+
+    /* زر القائمة */
     #menuToggle {
       cursor: pointer;
       display: flex;
@@ -73,6 +78,17 @@
       display: block;
       border-radius: 2px;
     }
+
+    .notif-dot {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      width: 8px;
+      height: 8px;
+      background-color: red;
+      border-radius: 50%;
+    }
+
     body.dark-mode {
       background-color: #121212 !important;
       color: #ffffff !important;
@@ -86,32 +102,21 @@
       background-color: #333;
       color: white;
     }
-    .notif-dot {
-      position: absolute;
-      top: 8px;
-      left: 10px;
-      width: 8px;
-      height: 8px;
-      background-color: red;
-      border-radius: 50%;
-    }
 
     @media (max-width: 768px) {
       .navbar .container-fluid {
         flex-direction: column;
         align-items: flex-start;
       }
-      .navbar .nav-item {
-        padding-right: 10px;
-      }
-      #menuToggle {
-        margin-bottom: 10px;
+      .collapse.navbar-collapse {
+        display: none !important;
       }
     }
   </style>
 </head>
 <body>
 
+<!-- ✅ الشريط العلوي -->
 <nav class="navbar navbar-expand-lg mb-4">
   <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap">
     <div class="d-flex align-items-center">
@@ -120,7 +125,9 @@
       </div>
       <a class="navbar-brand ms-2" href="{{ url_for('home') }}">📜 تطبيقي</a>
     </div>
-    <div class="collapse navbar-collapse mt-2 mt-lg-0">
+
+    <!-- ✅ القائمة على الشاشات الكبيرة -->
+    <div class="collapse navbar-collapse d-none d-lg-block mt-2 mt-lg-0">
       <ul class="navbar-nav me-auto">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('my_profile') }}">الملف الشخصي</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('explore_page') }}">استكشاف</a></li>
@@ -133,13 +140,12 @@
               </span>
             {% endif %}
           </a>
-        </li>
+</li>
         <li class="nav-item position-relative">
           <a class="nav-link" href="{{ url_for('notifications') }}">
-
             الإشعارات
             {% if has_unread_notifications %}
-            <span class="notif-dot"></span>
+              <span class="notif-dot"></span>
             {% endif %}
           </a>
         </li>
@@ -150,10 +156,35 @@
         {% endif %}
       </ul>
     </div>
+
+    <!-- ✅ زر الوضع الليلي -->
     <button id="toggle-dark-mode" class="btn btn-sm btn-outline-light ms-2">🌙</button>
   </div>
 </nav>
 
+<!-- ✅ قائمة جانبية للجوال -->
+<div id="sideMenu">
+  <ul>
+    <li><a href="{{ url_for('my_profile') }}">📄 الملف الشخصي</a></li>
+    <li><a href="{{ url_for('explore_page') }}">🌍 استكشاف</a></li>
+    <li><a href="{{ url_for('inbox') }}">✉️ الرسائل</a></li>
+    <li><a href="{{ url_for('notifications') }}">🔔 الإشعارات</a></li>
+    <li><a href="{{ url_for('search') }}">🔎 البحث</a></li>
+    {% if current_user.is_authenticated and current_user.is_admin %}
+      <li><a href="{{ url_for('memo_dashboard') }}">⚙️ لوحة ميمو</a></li>
+      <li><a href="{{ url_for('memo_users') }}">👥 إدارة المستخدمين</a></li>
+    {% endif %}
+    <li><a href="{{ url_for('contact') }}">📞 تواصل معنا</a></li>
+    <li><a href="{{ url_for('settings') }}">⚙️ الإعدادات</a></li>
+    {% if current_user.is_authenticated %}
+      <li><a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a></li>
+    {% else %}
+      <li><a href="{{ url_for('login') }}">🔑 تسجيل الدخول</a></li>
+    {% endif %}
+  </ul>
+</div>
+
+<!-- ✅ الرسائل والتنبيهات -->
 <div class="container mt-3">
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -171,23 +202,9 @@
   {% block content %}{% endblock %}
 </div>
 
-<div id="sideMenu">
-  <ul>
-    <li><a href="{{ url_for('my_profile') }}">صفحتي</a></li>
-    <li><a href="{{ url_for('contact') }}">تواصل معنا</a></li>
-    <li><a href="{{ url_for('settings') }}">الإعدادات</a></li>
-    <li><a href="{{ url_for('blocked_users') }}">قائمة المحظورين 🚫</a></li>
-    {% if current_user.is_authenticated %}
-      <li><a href="{{ url_for('logout') }}">تسجيل الخروج</a></li>
-    {% else %}
-      <li><a href="{{ url_for('login') }}">تسجيل الدخول</a></li>
-    {% endif %}
-  </ul>
-</div>
-
 <footer>جميع الحقوق محفوظة © {{ year if year else "2025" }}</footer>
 
-<!-- ✅ السكربتات -->
+<!-- ✅ سكربتات القائمة والوضع الليلي -->
 <script>
   function toggleMenu() {
     const menu = document.getElementById('sideMenu');
@@ -210,8 +227,7 @@
 
   toggleButton.addEventListener('click', () => {
     body.classList.toggle('dark-mode');
-    const isDark = body.classList.contains('dark-mode');
-    localStorage.setItem('dark-mode', isDark);
+    localStorage.setItem('dark-mode', body.classList.contains('dark-mode'));
   });
 </script>
 
@@ -225,7 +241,7 @@
     const username = "{{ current_user.username if current_user.is_authenticated else '' }}";
     if (username !== "") {
       socket.emit("join", { room: username });
-    }
+}
     socket.on("new_notification", function (data) {
       showToast(data.message);
     });

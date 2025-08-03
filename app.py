@@ -13,7 +13,7 @@ from models import Block, Like, Report
 from sqlalchemy import or_, and_, desc
 from flask_migrate import Migrate
 from models import FollowRequest, Follower, User, Notification
-
+from flask_cors import CORS
 
 import os
 import json
@@ -28,6 +28,7 @@ eventlet.monkey_patch()
 # ----------------------------- إعداد التطبيق -----------------------------
 app = Flask(__name__)
 
+CORS(app)
 @app.template_filter('short_number')
 def short_number_filter(value):
     try:
@@ -705,6 +706,19 @@ def admin_set_likes(poem_id, like_count):
         return f"✅ تم تعديل عدد اللايكات للمنشور رقم {poem_id} إلى {like_count}"
     return "المنشور غير موجود", 404
 
+
+# ✅ زيادة عدد مشاهدات مخصص (للمسؤول فقط)
+@app.route('/admin/addviews/<int:poem_id>/<int:view_count>')
+def admin_add_views(poem_id, view_count):
+    if 'username' not in session or session['username'] != 'admin':
+        return "ممنوع الدخول!", 403
+
+    poem = Poem.query.get(poem_id)
+    if poem:
+        poem.views += view_count
+        db.session.commit()
+        return f"👁️ تمت إضافة {view_count} مشاهدة للمنشور رقم {poem_id}. عدد المشاهدات الآن: {poem.views}"
+    return "المنشور غير موجود", 404
 
 # 🗑️ حذف بيت شعري
 @app.route('/delete/<int:poem_id>')
@@ -1648,4 +1662,4 @@ def memo_stats():
 if __name__ == "__main__":
  with app.app_context():
     db.create_all()
-    socketio.run(app, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
