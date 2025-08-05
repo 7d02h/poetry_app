@@ -2,51 +2,58 @@
 {% block title %}الإشعارات{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <h2 class="text-center mb-4">🔔 الإشعارات</h2>
+<div class="max-w-2xl mx-auto py-10 px-4">
+  <h2 class="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">🔔 الإشعارات</h2>
 
   {% if notifications %}
-    <div class="list-group">
+    <div class="space-y-4">
       {% for n in notifications %}
-        <div class="list-group-item d-flex flex-column gap-2 {% if not n.is_read %}bg-light{% endif %}">
-          <a href="{{ url_for('go_to_notification', notif_id=n.id) }}" class="d-flex align-items-center gap-3 text-decoration-none text-dark">
+        <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-4 {% if not n.is_read %}ring-2 ring-blue-500{% endif %}">
+          <a href="{{ url_for('go_to_notification', notif_id=n.id) }}"
+             class="flex items-center space-x-4 rtl:space-x-reverse no-underline hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-xl transition">
             <!-- صورة المرسل -->
-            <img src="{{ url_for('static', filename='profile_pics/' + (n.sender_image or 'default.jpg')) }}" 
-                 class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;" alt="صورة">
+            <img src="{{ url_for('static', filename='profile_pics/' + (n.sender_image or 'default.jpg')) }}"
+                 alt="صورة"
+                 class="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-300 dark:border-gray-600">
 
-            <!-- تفاصيل الإشعار -->
-            <div class="flex-grow-1">
-              <div>
+            <!-- محتوى الإشعار -->
+            <div class="flex-1">
+              <p class="text-gray-800 dark:text-gray-100">
                 <strong>{{ n.sender }}</strong>
                 {% if n.type == 'like' %}
-                  <span class="text-danger">أعجب</span> ببيتك الشعري
+                  <span class="text-red-500">أعجب</span> ببيتك الشعري
                 {% elif n.type == 'follow' %}
-                  <span class="text-primary">بدأ</span> بمتابعتك
+                  <span class="text-blue-500">بدأ</span> بمتابعتك
                 {% elif n.type == 'comment' %}
-                  <span class="text-success">علق</span> على أحد أبياتك
+                  <span class="text-green-500">علق</span> على أحد أبياتك
                 {% elif n.type == 'follow_request' %}
-                  <span class="text-warning">طلب</span> متابعتك
+                  <span class="text-yellow-500">طلب</span> متابعتك
                 {% else %}
                   قام بإجراء جديد
                 {% endif %}
-              </div>
-              <small class="text-muted">{{ n.time_ago }}</small>
+              </p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ n.time_ago }}</p>
             </div>
           </a>
 
           {% if n.type == 'follow_request' %}
-            <!-- أزرار قبول أو رفض طلب المتابعة -->
-            <form method="POST" action="{{ url_for('handle_follow_request') }}" class="mt-2 text-end">
+            <form method="POST" action="{{ url_for('handle_follow_request') }}" class="flex justify-end gap-2 mt-3">
               <input type="hidden" name="sender_username" value="{{ n.sender }}">
-              <button name="action" value="accept" class="btn btn-sm btn-success rounded-pill px-3">✅ قبول</button>
-              <button name="action" value="reject" class="btn btn-sm btn-danger rounded-pill px-3">❌ رفض</button>
+              <button name="action" value="accept"
+                      class="px-4 py-1 text-sm font-medium bg-green-500 text-white rounded-full hover:bg-green-600 transition">
+                ✅ قبول
+              </button>
+              <button name="action" value="reject"
+                      class="px-4 py-1 text-sm font-medium bg-red-500 text-white rounded-full hover:bg-red-600 transition">
+                ❌ رفض
+              </button>
             </form>
           {% endif %}
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <div class="alert alert-info text-center mt-4">
+    <div class="mt-6 text-center text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 p-6 rounded-xl shadow-sm">
       لا توجد إشعارات حاليًا.
     </div>
   {% endif %}

@@ -1,5 +1,3 @@
-
-
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -18,6 +16,7 @@ class User(db.Model):
     private = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
     verified = db.Column(db.Boolean, default=False)
+    allow_anonymous_messages = db.Column(db.Boolean, default=False)  # ✅ جديد
 
     followers = db.relationship(
         'Follower',
@@ -98,7 +97,9 @@ class Message(db.Model):
     message_type = db.Column(db.String(32), default='text')
     timestamp = db.Column(db.DateTime, default=datetime.now)
     is_read = db.Column(db.Boolean, default=False)
-
+    is_anonymous = db.Column(db.Boolean, default=False)  # ✅ جديد
+    anonymous = db.Column(db.Boolean, default=False)
+    
 class MessageReport(db.Model):
     __tablename__ = 'message_reports'
     id = db.Column(db.Integer, primary_key=True)

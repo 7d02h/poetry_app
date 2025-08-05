@@ -1,13 +1,55 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container py-5">
-  <h2 class="mb-4 text-center">الإعدادات</h2>
-  <div class="list-group">
-    <a href="{{ url_for('change_password') }}" class="list-group-item list-group-item-action">🔑 تغيير كلمة المرور</a>
-    <a href="{{ url_for('confirm_delete_account') }}" class="list-group-item list-group-item-action">🗑️ حذف الحساب</a>
-    <a href="{{ url_for('settings_dark_mode') }}" class="list-group-item list-group-item-action">🌙 الوضع الداكن</a>
-    <a href="{{ url_for('notifications') }}" class="list-group-item list-group-item-action">🔔 الإشعارات</a>
-    <a href="{{ url_for('settings_privacy') }}" class="list-group-item list-group-item-action">🔒 الخصوصية</a>
+<div class="max-w-md mx-auto py-10 px-4">
+  <h2 class="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">⚙️ الإعدادات</h2>
+
+  <div class="bg-white dark:bg-gray-900 rounded-xl shadow divide-y divide-gray-200 dark:divide-gray-700">
+    
+    <a href="{{ url_for('change_password') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-gray-800 dark:text-gray-200">🔑 تغيير كلمة المرور</div>
+      <svg class="w-5 h-5 text-gray-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
+    <a href="{{ url_for('confirm_delete_account') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-red-600 dark:text-red-400">🗑️ حذف الحساب</div>
+      <svg class="w-5 h-5 text-red-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
+    <a href="{{ url_for('settings_dark_mode') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-gray-800 dark:text-gray-200">🌙 الوضع الداكن</div>
+      <svg class="w-5 h-5 text-gray-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
+    <a href="{{ url_for('notifications') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-gray-800 dark:text-gray-200">🔔 الإشعارات</div>
+      <svg class="w-5 h-5 text-gray-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
+    <a href="{{ url_for('settings_privacy') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-gray-800 dark:text-gray-200">🔒 الخصوصية</div>
+      <svg class="w-5 h-5 text-gray-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
   </div>
 </div>
 {% endblock %}

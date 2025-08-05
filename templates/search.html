@@ -1,55 +1,55 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container py-4">
+<div class="max-w-4xl mx-auto py-10 px-4">
 
-    <div class="text-center mb-4">
-        <h2>🔍 البحث عن المستخدمين</h2>
-        <form method="POST" class="d-flex justify-content-center mt-3">
-            <input type="text" name="keyword" class="form-control w-50 me-2" placeholder="اكتب اسم المستخدم أو الاسم" required>
-            <button type="submit" class="btn btn-primary">بحث</button>
-        </form>
+  <!-- عنوان البحث -->
+  <div class="text-center mb-8">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">🔍 البحث عن المستخدمين</h2>
+    <form method="POST" class="mt-6 flex flex-col sm:flex-row justify-center items-center gap-3">
+      <input type="text" name="keyword" class="w-full sm:w-2/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white" placeholder="اكتب اسم المستخدم أو الاسم" required>
+      <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">بحث</button>
+    </form>
+  </div>
+
+  <!-- نتائج البحث -->
+  {% if results %}
+    <h3 class="text-center text-lg font-semibold text-gray-700 mb-6 dark:text-white">نتائج البحث:</h3>
+    <div class="space-y-4">
+      {% for user in results %}
+        <div class="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl px-4 py-3">
+          <div class="flex items-center gap-4">
+            <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}"
+                 alt="الصورة"
+                 class="w-14 h-14 rounded-full object-cover border border-gray-300">
+            <div>
+              <a href="{{ url_for('public_profile', username=user['username']) }}"
+                 class="text-lg font-bold text-gray-800 hover:text-blue-600 dark:text-white">
+                {{ user['username'] }}
+              </a>
+              <p class="text-sm text-gray-500 dark:text-gray-400">{{ user['first_name'] or '' }} {{ user['last_name'] or '' }}</p>
+            </div>
+          </div>
+          <div>
+            {% if session.username != user['username'] %}
+              <form action="{{ url_for('follow') }}" method="POST">
+                <input type="hidden" name="username" value="{{ user['username'] }}">
+                <button type="submit"
+                        class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg transition">
+                  ➕ متابعة
+                </button>
+              </form>
+            {% else %}
+              <span class="text-sm text-gray-500 dark:text-gray-300">أنت</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
     </div>
 
-    {% if results %}
-        <h4 class="mb-4 text-center">نتائج البحث:</h4>
-        <div class="row justify-content-center">
-            {% for user in results %}
-                <div class="card mb-3 shadow-sm" style="max-width: 600px;">
-                    <div class="row g-0 align-items-center">
-                        <div class="col-auto">
-                            <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}" 
-                                 alt="الصورة" 
-                                 class="img-fluid rounded-circle m-3" 
-                                 style="width: 60px; height: 60px; object-fit: cover;">
-                        </div>
-                        <div class="col">
-                            <div class="card-body">
-                                <h5 class="card-title mb-1">
-                                    <a href="{{ url_for('public_profile', username=user['username']) }}" class="text-decoration-none">
-                                        {{ user['username'] }}
-                                    </a>
-                                </h5>
-                                <p class="card-text text-muted">{{ user['first_name'] or '' }} {{ user['last_name'] or '' }}</p>
-                            </div>
-                        </div>
-                        <div class="col-auto me-3">
-                            {% if session.username != user['username'] %}
-                                <form action="{{ url_for('follow') }}" method="POST">
-                                    <input type="hidden" name="username" value="{{ user['username'] }}">
-                                    <button type="submit" class="btn btn-outline-success">➕ متابعة</button>
-                                </form>
-                            {% else %}
-                                <span class="badge bg-secondary">أنت</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
+  {% elif results is not none %}
+    <p class="text-center text-red-500 mt-10 text-lg">🚫 لا توجد نتائج مطابقة.</p>
+  {% endif %}
 
-    {% elif results is not none %}
-        <p class="text-center mt-5 text-danger">🚫 لا توجد نتائج مطابقة.</p>
-    {% endif %}
 </div>
 {% endblock %}

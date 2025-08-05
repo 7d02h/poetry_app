@@ -3,265 +3,140 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}تطبيقي{% endblock %}</title>
+  <title>{% block title %}الصفحة الرئيسية{% endblock %}</title>
 
-  <!-- ✅ روابط CSS -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='libs/bootstrap.min.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <!-- ✅ Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
     body {
-      background-color: #f5f7fa;
       font-family: 'Cairo', sans-serif;
     }
-    .navbar {
-      background-color: #343a40;
-    }
-    .navbar-brand, .nav-link, .navbar-text {
-      color: #fff !important;
-    }
-    footer {
-      background-color: #343a40;
-      color: white;
-      text-align: center;
-      padding: 15px;
-      margin-top: 40px;
-    }
-
-    /* القائمة الجانبية */
-    #sideMenu {
-      position: fixed;
-      top: 0;
-      right: -250px;
-      width: 250px;
-      height: 100%;
-      background-color: #343a40;
-      color: white;
-      transition: right 0.3s ease-in-out;
-      padding-top: 60px;
-      z-index: 1000;
-    }
-    #sideMenu.open {
-      right: 0;
-    }
-    #sideMenu ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-    #sideMenu ul li {
-      padding: 15px 20px;
-      border-bottom: 1px solid #495057;
-    }
-    #sideMenu ul li a {
-      color: white;
-      text-decoration: none;
-      display: block;
-    }
-
-    /* زر القائمة */
-    #menuToggle {
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 5px;
-      width: 30px;
-      height: 30px;
-      margin-left: 10px;
-    }
-    #menuToggle span {
-      height: 3px;
-      width: 100%;
-      background: white;
-      display: block;
-      border-radius: 2px;
-    }
-
-    .notif-dot {
-      position: absolute;
-      top: 8px;
-      left: 10px;
-      width: 8px;
-      height: 8px;
-      background-color: red;
-      border-radius: 50%;
-    }
-
-    body.dark-mode {
-      background-color: #121212 !important;
-      color: #ffffff !important;
-    }
-    body.dark-mode .form-control {
-      background-color: #1e1e1e;
-      color: white;
-      border-color: #444;
-    }
-    body.dark-mode .btn {
-      background-color: #333;
-      color: white;
-    }
-
-    @media (max-width: 768px) {
-      .navbar .container-fluid {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .collapse.navbar-collapse {
-        display: none !important;
-      }
+    [dir="rtl"] .toast {
+      direction: rtl;
     }
   </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-white">
 
-<!-- ✅ الشريط العلوي -->
-<nav class="navbar navbar-expand-lg mb-4">
-  <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap">
-    <div class="d-flex align-items-center">
-      <div id="menuToggle" onclick="toggleMenu()">
-        <span></span><span></span><span></span>
-      </div>
-      <a class="navbar-brand ms-2" href="{{ url_for('home') }}">📜 تطبيقي</a>
+  <!-- ✅ غطاء خلفي للقائمة الجانبية -->
+  <div id="backdrop" class="fixed inset-0 bg-black bg-opacity-50 hidden z-40" onclick="closeMenu()"></div>
+
+  <!-- ✅ القائمة الجانبية الفخمة -->
+  <aside id="sideMenu" class="fixed top-0 right-0 w-72 h-full bg-gradient-to-b from-gray-800 to-gray-900 text-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 p-6 space-y-6 rounded-l-3xl">
+    <div class="flex justify-between items-center">
+      <h2 class="text-2xl font-bold">القائمة</h2>
+      <button onclick="closeMenu()" class="text-white text-3xl">&times;</button>
     </div>
+    <nav class="space-y-4 text-lg">
+      <a href="{{ url_for('my_profile') }}" class="block hover:text-yellow-400">👤 الملف الشخصي</a>
+      <a href="{{ url_for('contact') }}" class="block hover:text-yellow-400">📞 تواصل معنا</a>
+      <a href="{{ url_for('settings') }}" class="block hover:text-yellow-400">⚙️ الإعدادات</a>
+      {% if current_user.is_authenticated %}
+      <a href="{{ url_for('logout') }}" class="block hover:text-yellow-400">🚪 تسجيل الخروج</a>
+      {% else %}
+      <a href="{{ url_for('login') }}" class="block hover:text-yellow-400">🔑 تسجيل الدخول</a>
+      {% endif %}
+    </nav>
+  </aside>
 
-    <!-- ✅ القائمة على الشاشات الكبيرة -->
-    <div class="collapse navbar-collapse d-none d-lg-block mt-2 mt-lg-0">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('my_profile') }}">الملف الشخصي</a></li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('explore_page') }}">استكشاف</a></li>
-        <li class="nav-item position-relative">
-          <a class="nav-link" href="{{ url_for('inbox') }}">
-            الرسائل
-            {% if unread_messages_count > 0 %}
-              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                {{ '+5' if unread_messages_count > 5 else unread_messages_count }}
-              </span>
-            {% endif %}
-          </a>
-</li>
-        <li class="nav-item position-relative">
-          <a class="nav-link" href="{{ url_for('notifications') }}">
-            الإشعارات
-            {% if has_unread_notifications %}
-              <span class="notif-dot"></span>
-            {% endif %}
-          </a>
-        </li>
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('search') }}">البحث</a></li>
-        {% if current_user.is_authenticated and current_user.is_admin %}
-          <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{{ url_for('memo_dashboard') }}">⚙️ لوحة ميمو</a></li>
-          <li class="nav-item"><a class="nav-link text-warning fw-bold" href="{{ url_for('memo_users') }}">👥 إدارة المستخدمين</a></li>
-        {% endif %}
-      </ul>
-    </div>
-
-    <!-- ✅ زر الوضع الليلي -->
-    <button id="toggle-dark-mode" class="btn btn-sm btn-outline-light ms-2">🌙</button>
-  </div>
-</nav>
-
-<!-- ✅ قائمة جانبية للجوال -->
-<div id="sideMenu">
-  <ul>
-    <li><a href="{{ url_for('my_profile') }}">📄 الملف الشخصي</a></li>
-    <li><a href="{{ url_for('explore_page') }}">🌍 استكشاف</a></li>
-    <li><a href="{{ url_for('inbox') }}">✉️ الرسائل</a></li>
-    <li><a href="{{ url_for('notifications') }}">🔔 الإشعارات</a></li>
-    <li><a href="{{ url_for('search') }}">🔎 البحث</a></li>
-    {% if current_user.is_authenticated and current_user.is_admin %}
-      <li><a href="{{ url_for('memo_dashboard') }}">⚙️ لوحة ميمو</a></li>
-      <li><a href="{{ url_for('memo_users') }}">👥 إدارة المستخدمين</a></li>
-    {% endif %}
-    <li><a href="{{ url_for('contact') }}">📞 تواصل معنا</a></li>
-    <li><a href="{{ url_for('settings') }}">⚙️ الإعدادات</a></li>
-    {% if current_user.is_authenticated %}
-      <li><a href="{{ url_for('logout') }}">🚪 تسجيل الخروج</a></li>
-    {% else %}
-      <li><a href="{{ url_for('login') }}">🔑 تسجيل الدخول</a></li>
-    {% endif %}
-  </ul>
-</div>
-
-<!-- ✅ الرسائل والتنبيهات -->
-<div class="container mt-3">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show text-center" role="alert">
+  <!-- ✅ الرسائل والتنبيهات -->
+  <div class="container mx-auto mt-4">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 px-4 py-3 rounded bg-{{ 'red' if category == 'danger' else 'green' }}-100 text-{{ 'red' if category == 'danger' else 'green' }}-800">
           {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
-</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+  </div>
 
-<div class="container">
-  {% block content %}{% endblock %}
-</div>
+  <!-- ✅ المحتوى الرئيسي -->
+  <div class="container mx-auto px-4 pb-24">
+    {% block content %}{% endblock %}
+  </div>
 
-<footer>جميع الحقوق محفوظة © {{ year if year else "2025" }}</footer>
+  <!-- ✅ شريط تنقل سفلي فخم -->
+  <nav class="fixed bottom-0 inset-x-0 bg-white dark:bg-gray-800 text-gray-800 dark:text-white border-t border-gray-200 dark:border-gray-700 shadow-xl z-50 rounded-t-3xl">
+    <div class="max-w-4xl mx-auto px-6 py-3 flex justify-between items-center text-sm md:text-base">
+      <button onclick="openMenu()" class="flex flex-col items-center hover:text-yellow-500 transition">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
+            d="M4 6h16M4 12h16M4 18h16" /></svg>
+        قائمة
+      </button>
+      <a href="{{ url_for('home') }}" class="flex flex-col items-center hover:text-yellow-500 transition">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
+            d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+        الرئيسية
+      </a>
+      <a href="{{ url_for('explore_page') }}" class="flex flex-col items-center hover:text-yellow-500 transition">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
+            d="M11 17a4 4 0 1 1 0-8 4 4 0 0 1 0 8z" /><path stroke-linecap="round" stroke-linejoin="round"
+            d="M21 21l-4.35-4.35" /></svg>
+        استكشاف
+      </a>
+      <a href="{{ url_for('search') }}" class="flex flex-col items-center hover:text-yellow-500 transition">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round"
+            d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
+        البحث
+      </a>
+      <!-- ✅ إشعارات بدل الوضع -->
+      <a href="{{ url_for('notifications') }}" class="flex flex-col items-center hover:text-yellow-500 transition relative">
+        <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" stroke-width="2"
+          viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        الإشعارات
+        {% if has_unread_notifications %}
+        <span class="absolute top-1 right-2 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+        {% endif %}
+      </a>
+    </div>
+  </nav>
 
-<!-- ✅ سكربتات القائمة والوضع الليلي -->
-<script>
-  function toggleMenu() {
-    const menu = document.getElementById('sideMenu');
-    menu.classList.toggle('open');
-  }
-
-  document.addEventListener('click', function(event) {
-    const menu = document.getElementById('sideMenu');
-    const toggle = document.getElementById('menuToggle');
-    if (!menu.contains(event.target) && !toggle.contains(event.target)) {
-      menu.classList.remove('open');
+  <!-- ✅ JavaScript -->
+  <script>
+    function openMenu() {
+      document.getElementById('sideMenu').classList.remove('translate-x-full');
+      document.getElementById('backdrop').classList.remove('hidden');
     }
-  });
 
-  const toggleButton = document.getElementById('toggle-dark-mode');
-  const body = document.body;
-  if (localStorage.getItem('dark-mode') === 'true') {
-    body.classList.add('dark-mode');
-  }
+    function closeMenu() {
+      document.getElementById('sideMenu').classList.add('translate-x-full');
+      document.getElementById('backdrop').classList.add('hidden');
+    }
+  </script>
 
-  toggleButton.addEventListener('click', () => {
-    body.classList.toggle('dark-mode');
-    localStorage.setItem('dark-mode', body.classList.contains('dark-mode'));
-  });
-</script>
+  <!-- ✅ Socket + Bootstrap -->
+  <script src="{{ url_for('static', filename='libs/bootstrap.bundle.min.js') }}"></script>
+  <script src="{{ url_for('static', filename='libs/socket.io.min.js') }}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const socket = io();
+      const username = "{{ current_user.username if current_user.is_authenticated else '' }}";
+      if (username !== "") {
+        socket.emit("join", { room: username });
+      }
+      socket.on("new_notification", function (data) {
+        showToast(data.message);
+      });
 
-<!-- ✅ سكربتات محلية -->
-<script src="{{ url_for('static', filename='libs/bootstrap.bundle.min.js') }}"></script>
-<script src="{{ url_for('static', filename='libs/socket.io.min.js') }}"></script>
-
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const socket = io();
-    const username = "{{ current_user.username if current_user.is_authenticated else '' }}";
-    if (username !== "") {
-      socket.emit("join", { room: username });
-}
-    socket.on("new_notification", function (data) {
-      showToast(data.message);
+      function showToast(message) {
+        const toast = document.createElement("div");
+        toast.className = "toast fixed bottom-5 right-5 bg-blue-600 text-white px-4 py-2 rounded shadow-lg z-50";
+        toast.innerText = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 5000);
+      }
     });
-    function showToast(message) {
-      const toast = document.createElement("div");
-      toast.className = "toast align-items-center text-bg-primary border-0 show";
-      toast.style.position = "fixed";
-      toast.style.bottom = "20px";
-      toast.style.right = "20px";
-      toast.style.zIndex = "9999";
-      toast.innerHTML =
-        '<div class="d-flex">' +
-        '<div class="toast-body">' + message + '</div>' +
-        '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>' +
-        '</div>';
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 5000);
-    }
-  });
-</script>
-
+  </script>
 </body>
 </html>

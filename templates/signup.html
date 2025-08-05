@@ -1,28 +1,36 @@
 {% extends 'base.html' %}
-{% block title %}تسجيل الدخول{% endblock %}
+{% block title %}إنشاء حساب{% endblock %}
 {% block content %}
 
-<div class="container" style="max-width: 400px; margin-top: 60px;">
-  <div class="bg-white p-4 rounded-4 shadow-sm">
-    <h2 class="text-center mb-4" style="color: #333;">تسجيل الدخول</h2>
+<div class="container" style="max-width: 450px; margin-top: 50px;">
+  <div class="bg-light p-4 rounded-4 shadow-sm">
+    <h2 class="text-center mb-4 text-success">🚀 إنشاء حساب جديد</h2>
     <form method="POST">
       <div class="mb-3">
-        <label for="username" class="form-label fw-medium" style="color: #444;">اسم المستخدم:</label>
-        <input type="text" name="username" id="username" class="form-control rounded-4" required style="font-size: 15px;">
+        <label for="first_name" class="form-label fw-medium">الاسم الأول:</label>
+        <input type="text" name="first_name" id="first_name" class="form-control rounded-4" required>
       </div>
 
       <div class="mb-3">
-        <label for="password" class="form-label fw-medium" style="color: #444;">كلمة المرور:</label>
-        <input type="password" name="password" id="password" class="form-control rounded-4" required style="font-size: 15px;">
+        <label for="last_name" class="form-label fw-medium">الاسم الأخير:</label>
+        <input type="text" name="last_name" id="last_name" class="form-control rounded-4" required>
       </div>
 
-      <button type="submit" class="btn w-100 text-white rounded-4" style="background-color: #007b83; font-size: 16px;">
-        دخول
-      </button>
+      <div class="mb-3">
+        <label for="username" class="form-label fw-medium">اسم المستخدم:</label>
+        <input type="text" name="username" id="username" class="form-control rounded-4" required>
+      </div>
+
+      <div class="mb-3">
+        <label for="password" class="form-label fw-medium">كلمة المرور:</label>
+        <input type="password" name="password" id="password" class="form-control rounded-4" required>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100 rounded-4">إنشاء الحساب</button>
     </form>
 
-    <p class="text-center mt-3" style="font-size: 14px;">
-      لا تملك حسابًا؟ <a href="{{ url_for('signup') }}" style="color: #007b83; font-weight: bold;">إنشاء حساب</a>
+    <p class="text-center mt-3">
+      لديك حساب؟ <a href="{{ url_for('login') }}" class="fw-bold text-success">تسجيل الدخول</a>
     </p>
   </div>
 </div>

@@ -1,330 +1,173 @@
+:root {
+  --primary: #4f46e5;
+  --primary-light: #818cf8;
+  --bg: #f9fafb;
+  --text: #111827;
+  --card-bg: rgba(255, 255, 255, 0.7);
+  --blur: 20px;
+  --radius: 18px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  --transition: 0.3s ease-in-out;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e2f;
+    --text: #e5e7eb;
+    --card-bg: rgba(30, 30, 47, 0.6);
+    --shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+  }
+}
+
 body {
   font-family: 'Tajawal', sans-serif;
-  direction: rtl;
-  background: #f0f4f8;
-  padding: 20px;
-  padding-bottom: 100px;
+  background: var(--bg);
+  color: var(--text);
   margin: 0;
-  color: #333;
+  padding: 0;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Containers */
 .container {
-  max-width: 100%;
-  margin: auto;
-  background: white;
+  max-width: 900px;
+  margin: 40px auto;
   padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-h1, h2 {
-  text-align: center;
-  color: #222;
-  font-weight: bold;
+/* Fancy Card */
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(var(--blur));
+  padding: 24px;
+  margin-bottom: 32px;
+  transition: var(--transition);
 }
 
-/* حقول الإدخال */
+.card:hover {
+  transform: translateY(-4px);
+}
+
+/* Buttons */
+.button {
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 16px;
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+}
+
+.button:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+/* Inputs */
 input[type="text"],
-input[type="email"],
-input[type="password"],
 textarea {
   width: 100%;
-  padding: 12px 16px;
-  margin-bottom: 15px;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  background: #fafafa;
-  transition: 0.3s ease;
+  padding: 14px 18px;
+  border: none;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  transition: var(--transition);
+  backdrop-filter: blur(10px);
 }
 
 input:focus,
 textarea:focus {
-  border-color: #007b83;
-  background: #fff;
   outline: none;
+  background: rgba(255, 255, 255, 0.9);
 }
 
-/* الزر */
-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #007b83;
+/* Message Bubbles */
+.chat-bubble {
+  max-width: 70%;
+  padding: 14px 20px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+  word-wrap: break-word;
+  box-shadow: var(--shadow);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+.chat-bubble.sent {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
   color: white;
-  border: none;
-  font-size: 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: 0.3s ease;
+  margin-left: auto;
+  border-bottom-right-radius: 0;
 }
 
-button:hover {
-  background-color: #005f62;
+.chat-bubble.received {
+  background: #e5e7eb;
+  color: #111827;
+  margin-right: auto;
+  border-bottom-left-radius: 0;
 }
 
-/* كرت القصيدة */
-.poem {
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 14px;
-  padding: 20px;
-  margin-bottom: 25px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-}
-
-.poem p {
-  font-size: 20px;
-  line-height: 1.8;
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.poem .timestamp {
-  font-size: 14px;
-  color: #888;
-  margin-bottom: 5px;
-}
-
-/* معلومات المستخدم */
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.user-info img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #ccc;
-}
-
-/* تذييل القصيدة */
-.poem-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
-  margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
-  font-size: 16px;
-  flex-wrap: wrap;
-}
-
-.poem-footer .action-btn,
-.poem-footer .like-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #f8f8f8;
-  border: 1px solid #ddd;
-  padding: 8px 12px;
-  border-radius: 10px;
-  text-decoration: none;
-  color: #555;
-  font-size: 16px;
-  transition: 0.3s ease;
-  cursor: pointer;
-}
-
-.poem-footer .action-btn:hover,
-.poem-footer .like-button:hover {
-  background-color: #e91e63;
-  color: white;
-}
-
-.like-button.liked {
-  color: #e91e63;
-  font-weight: bold;
-  text-shadow: 0 0 5px rgba(233, 30, 99, 0.3);
-  transform: scale(1.1);
-}
-
-/* القائمة السفلية */
+/* Footer Nav (Glass style) */
 footer.navbar {
   position: fixed;
   bottom: 0;
-  left: 0;
   width: 100%;
-  background: #ffffff;
-  border-top: 1px solid #ccc;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #e5e7eb;
   display: flex;
   justify-content: space-around;
   padding: 10px 0;
-  z-index: 1000;
-  box-shadow: 0 -1px 5px rgba(0,0,0,0.05);
+  z-index: 100;
 }
 
 footer.navbar a {
-  color: #007b83;
+  color: var(--primary);
+  font-size: 24px;
   text-decoration: none;
-  font-size: 26px;
-  text-align: center;
-  flex: 1;
-  transition: 0.2s ease;
+  transition: var(--transition);
 }
 
 footer.navbar a:hover {
-  color: #e91e63;
+  color: #e11d48;
+  transform: scale(1.1);
 }
 
-footer.navbar a span {
-  display: block;
-  font-size: 18px;
-  margin-bottom: 3px;
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* زر القائمة الجانبية (ثلاث شحطات) */
-#menuToggle {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 10001;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 22px;
-  cursor: pointer;
-}
-
-#menuToggle span {
-  display: block;
-  height: 4px;
-  background: #333;
-  border-radius: 3px;
-}
-
-/* القائمة الجانبية */
-#sideMenu {
-  position: fixed;
-  top: 0;
-  right: -250px;
-  width: 250px;
-  height: 100%;
-  background: #fff;
-  box-shadow: -2px 0 8px rgba(0,0,0,0.2);
-  transition: right 0.3s ease;
-  z-index: 10000;
-  padding-top: 60px;
-  direction: rtl;
-}
-
-#sideMenu.open {
-  right: 0 !important;
-}
-
-#sideMenu ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#sideMenu li {
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
-}
-
-#sideMenu a {
-  color: #007b83;
-  text-decoration: none;
-  font-size: 17px;
-}
-
-/* الملف الشخصي */
-.profile-box {
-  background: #fff;
-  padding: 24px;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  text-align: center;
-  margin-top: 30px;
-}
-
-.profile-box h2 {
-  margin-bottom: 12px;
-  font-size: 26px;
-  color: #222;
-}.profile-stats {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  margin-top: 15px;
-}
-
-.profile-stats .stat {
-  text-align: center;
-  font-size: 18px;
-  color: #444;
-}
-
-.profile-stats .stat span {
-  display: block;
-  font-weight: bold;
-  font-size: 22px;
-  color: #007b83;
-}
-
-/* الهواتف */
+/* Responsive */
 @media (max-width: 600px) {
-  .poem p {
-    font-size: 16px;
+  .container {
+    padding: 16px;
   }
 
-  .poem-footer {
-    justify-content: center;
+  .chat-bubble {
+    max-width: 90%;
     font-size: 14px;
   }
 
-  .poem-footer .action-btn,
-  .poem-footer .like-button {
-    font-size: 14px;
-    padding: 6px 10px;
+  .button {
+    width: 100%;
   }
 
   footer.navbar a {
     font-size: 20px;
-  }
-
-  footer.navbar a span {
-    font-size: 14px;
-  }
-
-  .profile-stats {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .profile-box h2 {
-    font-size: 22px;
-  }
-
-  .profile-stats .stat {
-    font-size: 16px;
-  }
-
-  .profile-stats .stat span {
-    font-size: 18px;
-  }
-
-  .container {
-    padding: 12px;
-  }
-
-  textarea {
-    height: 50px;
-    font-size: 14px;
-  }
-
-  button {
-    font-size: 14px;
-    padding: 10px;
-  }
-
-  h1, h2 {
-    font-size: 22px;
   }
 }

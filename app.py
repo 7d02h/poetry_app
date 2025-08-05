@@ -308,8 +308,12 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
+        if not username or not password:
+            flash("❗ يرجى ملء جميع الحقول.", "warning")
+            return render_template("login.html")
 
         user = User.query.filter_by(username=username).first()
 
@@ -337,37 +341,48 @@ def login():
 
     return render_template("login.html")
 
-
 # تسجيل مستخدم جديد
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
+        first_name = request.form.get("first_name", "").strip()
+        last_name = request.form.get("last_name", "").strip()
 
+        # التحقق من صحة اسم المستخدم
         if not re.match("^[A-Za-z0-9_]{4,}$", username):
             flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل وباللغة الإنجليزية فقط.")
             return render_template("signup.html")
 
+        # التحقق من طول كلمة المرور
         if len(password) < 8:
             flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
             return render_template("signup.html")
 
-        hashed_password = generate_password_hash(password)
+        # التحقق من عدم تكرار اسم المستخدم
         existing = User.query.filter_by(username=username).first()
-
         if existing:
             flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
             return render_template("signup.html")
-        user = User(username=username, password=hashed_password)
+
+        # إنشاء المستخدم
+        hashed_password = generate_password_hash(password)
+        user = User(
+            username=username,
+            password=hashed_password,
+            first_name=first_name,
+            last_name=last_name
+        )
         db.session.add(user)
         db.session.commit()
-        flash("✅ تم إنشاء الحساب بنجاح! يمكنك تسجيل الدخول الآن.")
-        return redirect(url_for("login"))
+
+        # تسجيل الدخول تلقائيًا بعد التسجيل
+        session["username"] = username
+        flash("✅ تم إنشاء الحساب بنجاح! مرحبًا بك 🌟")
+        return redirect(url_for("home"))  # أو أي صفحة رئيسية عندك
 
     return render_template("signup.html")
-
-
 
 
 
@@ -633,15 +648,14 @@ def search():
 
     return render_template('search.html', results=results, current_user=session.get('username'))
 
-# 📄 صفحة الاستكشاف
+from flask_login import login_required, current_user
+
 @app.route('/explore')
+@login_required
 def explore_page():
-    if 'username' not in session:
-        return redirect(url_for('login'))
+    current_username = current_user.username  # استخدم Flask-Login
 
-    current_username = session['username']
-
-    # ✅ الأبيات الأكثر إعجابًا (مع صورة المستخدم ووقت النشر)
+    # ✅ الأبيات الأكثر إعجابًا
     top_poems_query = (
         db.session.query(Poem, User.profile_image)
         .join(User, Poem.username == User.username)
@@ -662,7 +676,7 @@ def explore_page():
             'created_ago': time_ago(poem.created_at)
         })
 
-    # ✅ المستخدمون المقترحون (من لا تتابعهم)
+    # ✅ المستخدمون المقترحون
     followed_subquery = (
         db.session.query(Follower.followed_username)
         .filter(Follower.username == current_username)
@@ -676,7 +690,7 @@ def explore_page():
         .all()
     )
 
-    # ✅ الأبيات التي أعجب بها المستخدم الحالي
+    # ✅ الأبيات التي أعجب بها المستخدم
     liked_poems_ids = (
         db.session.query(Like.poem_id)
         .filter(Like.username == current_username)
@@ -685,7 +699,6 @@ def explore_page():
     )
     liked_poems_ids = [poem_id for (poem_id,) in liked_poems_ids]
 
-    # ✅ عرض الصفحة
     return render_template(
         'explore.html',
         top_poems=top_poems,
@@ -837,13 +850,19 @@ def unblock_user(username):
 
     return redirect(request.referrer or url_for('home'))
 
-# 📩 الرسائل
+
+from sqlalchemy import and_, or_
+
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     current_user = session['username']
+    
+    # قراءة وضع الرسائل المجهولة من الرابط (0 أو 1)
+    anonymous_mode = request.args.get("anonymous", "0") == "1"
+
     is_blocked = Block.query.filter(
         or_(
             and_(Block.blocker == current_user, Block.blocked == username),
@@ -853,10 +872,14 @@ def view_messages(username):
 
     display_name = "User is unavailable" if is_blocked else username
 
+    # ✅ فلترة الرسائل حسب نوعها بشكل صحيح
     messages = Message.query.filter(
-        or_(
-            and_(Message.sender == current_user, Message.receiver == username),
-            and_(Message.sender == username, Message.receiver == current_user)
+        and_(
+            or_(
+                and_(Message.sender == current_user, Message.receiver == username),
+                and_(Message.sender == username, Message.receiver == current_user)
+            ),
+            Message.anonymous == anonymous_mode
         )
     ).order_by(Message.timestamp).all()
 
@@ -865,7 +888,8 @@ def view_messages(username):
                            other_user=display_name,
                            real_username=username,
                            is_blocked=is_blocked,
-                           current_user=current_user)
+                           current_user=current_user,
+                           anonymous_mode=anonymous_mode)
 
 
 # 📤 إرسال رسالة جديدة
@@ -888,7 +912,17 @@ def send_message(username):
         file.save(os.path.join(upload_folder, filename))
         file_path = f"uploads/{filename}"
 
-    message = Message(sender=sender, receiver=username, content=content, file_path=file_path)
+    # ✅ قراءة خيار الإرسال كمجهول
+    anonymous = 'anonymous' in request.form
+
+    # ✅ إنشاء الرسالة مع خاصية المجهول
+    message = Message(
+        sender=sender,
+        receiver=username,
+        content=content,
+        file_path=file_path,
+        anonymous=anonymous
+    )
     db.session.add(message)
     db.session.commit()
 
@@ -896,8 +930,7 @@ def send_message(username):
     if username != sender:
         send_notification(username, "📨 وصلك رسالة جديدة!")
 
-    return redirect(url_for("view_messages", username=username))
-
+    return redirect(url_for("view_messages", username=username, anonymous=int(anonymous)))
 
 
 # 🚨 كود البلاغ عن محادثة
@@ -922,10 +955,11 @@ def inbox():
 
     current_user_name = session['username']
 
-    # جميع المستخدمين الذين تم التواصل معهم
+    anonymous = request.args.get("anonymous", "0") == "1"
+
     messages = Message.query.filter(
         (Message.sender == current_user_name) | (Message.receiver == current_user_name)
-    ).all()
+    ).filter(Message.anonymous == anonymous).all()
 
     user_set = set()
     for msg in messages:
@@ -936,14 +970,14 @@ def inbox():
     for username in user_set:
         user = User.query.filter_by(username=username).first()
         if user:
-            full_name = f"{user.first_name or ''} {user.last_name or ''}".strip()
+            display_name = "مجهول" if anonymous else (user.first_name or user.username)
             users.append({
                 "username": user.username,
-                "full_name": full_name or user.username,
+                "display_name": display_name,
                 "profile_image": user.profile_image or "default.jpg"
             })
 
-    return render_template('inbox.html', users=users)
+    return render_template('inbox.html', users=users, anonymous=anonymous)
 
 
 @app.route("/unfollow/<username>")
@@ -1133,10 +1167,10 @@ def settings_privacy():
     user = User.query.filter_by(username=session["username"]).first()
 
     if request.method == 'POST':
-        # ✅ التصحيح هنا: يجب أن يكون user.private
         user.private = request.form.get("is_private") == "on"
+        user.allow_anonymous_messages = request.form.get("allow_anonymous_messages") == "on"
         db.session.commit()
-        flash("", "success")
+        flash("✅ تم حفظ إعدادات الخصوصية بنجاح", "success")
         return redirect(url_for("settings_privacy"))
 
     return render_template("privacy_settings.html", user=user)
@@ -1658,6 +1692,28 @@ def memo_stats():
         total_bans=total_bans,
         total_likes=total_likes
     )
+
+
+# 📌 صفحة "نسيت كلمة المرور"
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+
+        if not email:
+            flash("يرجى إدخال بريد إلكتروني صالح.", 'warning')
+            return render_template('forgot_password.html')
+
+        user = User.query.filter_by(email=email).first()
+
+        if user:
+            # هنا يمكنك إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
+            flash("📧 تم إرسال تعليمات إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.", 'success')
+        else:
+            flash("هذا البريد الإلكتروني غير مسجل.", 'danger')
+
+    return render_template('forgot_password.html')
+
 
 if __name__ == "__main__":
  with app.app_context():

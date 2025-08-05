@@ -1,28 +1,32 @@
 {% extends 'base.html' %}
 {% block title %}تسجيل الدخول{% endblock %}
-{% block content %}
 
-<div class="container" style="max-width: 400px; margin-top: 60px;">
-  <div class="bg-white p-4 rounded shadow-sm">
-    <h2 class="text-center mb-4 text-primary">تسجيل الدخول</h2>
+{% block content %}
+<div class="container" style="max-width: 420px; margin-top: 60px;">
+  <div class="p-4 bg-white rounded-4 shadow-sm border">
+    <h2 class="text-center mb-4 text-primary">🔐 تسجيل الدخول</h2>
+
     <form method="POST">
       <div class="mb-3">
-        <label for="username" class="form-label fw-bold">اسم المستخدم:</label>
-        <input type="text" name="username" id="username" class="form-control" required>
+        <label for="username" class="form-label fw-bold">👤 اسم المستخدم</label>
+        <input type="text" id="username" name="username" class="form-control rounded-3" required>
       </div>
 
-      <div class="mb-3">
-        <label for="password" class="form-label fw-bold">كلمة المرور:</label>
-        <input type="password" name="password" id="password" class="form-control" required>
+      <div class="mb-2">
+        <label for="password" class="form-label fw-bold">🔒 كلمة المرور</label>
+        <input type="password" id="password" name="password" class="form-control rounded-3" required>
       </div>
 
-      <button type="submit" class="btn btn-primary w-100">دخول</button>
+      <div class="text-end mb-3">
+        <a href="{{ url_for('forgot_password') }}" class="text-decoration-none text-muted small">هل نسيت كلمة المرور؟</a>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 rounded-3">دخول</button>
     </form>
 
-    <p class="mt-3 text-center">
-      لا تملك حسابًا؟ <a href="{{ url_for('signup') }}">إنشاء حساب</a>
+    <p class="text-center mt-3 mb-0 small">
+      ليس لديك حساب؟ <a href="{{ url_for('signup') }}" class="fw-bold text-primary">إنشاء حساب جديد</a>
     </p>
   </div>
 </div>
-
 {% endblock %}
