@@ -1,27 +1,37 @@
 {% extends "base.html" %}
+{% block title %}🗑️ حذف الحساب - ميمو{% endblock %}
+
 {% block content %}
-<div class="container mt-5" style="max-width: 500px;">
-    <h3 class="mb-4 text-danger">تأكيد حذف الحساب</h3>
+<div class="container py-5" style="max-width: 500px;">
+  <div class="card shadow-lg border-0 rounded-4 p-4">
+    <h3 class="text-center text-danger mb-4">🗑️ تأكيد حذف الحساب</h3>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
 
-    <form action="{{ url_for('delete_account') }}" method="POST" class="border p-4 rounded shadow-sm">
-        <p>من فضلك أدخل كلمة المرور لتأكيد حذف الحساب:</p>
-        <div class="mb-3">
-            <label class="form-label">كلمة المرور</label>
-            <input type="password" name="password" class="form-control" required>
-        </div>
-        <button type="submit" class="btn btn-danger">تأكيد الحذف</button>
-        <a href="{{ url_for('settings') }}" class="btn btn-secondary">إلغاء</a>
+    <form action="{{ url_for('delete_account') }}" method="POST">
+      <p class="text-center text-muted mb-3">
+        ⚠️ هل أنت متأكد أنك تريد حذف حسابك؟ هذه العملية لا يمكن التراجع عنها.
+      </p>
+
+      <div class="mb-3">
+        <label class="form-label fw-bold">🔑 كلمة المرور</label>
+        <input type="password" name="password" class="form-control rounded-3" placeholder="••••••••" required>
+      </div>
+
+      <div class="d-flex justify-content-between">
+        <a href="{{ url_for('settings') }}" class="btn btn-secondary px-4">إلغاء</a>
+        <button type="submit" class="btn btn-danger px-4">تأكيد الحذف</button>
+      </div>
     </form>
+  </div>
 </div>
 {% endblock %}

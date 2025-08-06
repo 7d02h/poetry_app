@@ -1,18 +1,26 @@
 {% extends 'base.html' %}
 
-{% block title %}عرض البيت الشعري{% endblock %}
+{% block title %}📖 عرض البيت الشعري{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-5" style="max-width: 750px;">
   <div class="card shadow-lg border-0 rounded-4 p-4">
-    <h4 class="mb-3">✍️ البيت الشعري</h4>
-    <p class="fs-4">{{ poem.content }}</p>
+    <h3 class="mb-4 text-center text-primary">✍️ البيت الشعري</h3>
+
+    <blockquote class="blockquote text-center fs-4 mb-4">
+      <p class="mb-0">{{ poem.content }}</p>
+    </blockquote>
 
     <hr>
-    <p class="text-muted">كتبه: <strong>{{ user.first_name }} {{ user.last_name }}</strong></p>
-    <p class="text-muted">بتاريخ: {{ poem.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
 
-    <a href="{{ url_for('explore_page') }}" class="btn btn-outline-primary mt-3">← العودة للاستكشاف</a>
+    <div class="text-center text-muted">
+      <p>✒️ كتبه: <strong>{{ user.first_name }} {{ user.last_name }}</strong></p>
+      <p>🕒 بتاريخ: {{ poem.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="{{ url_for('explore_page') }}" class="btn btn-outline-primary px-4">← العودة للاستكشاف</a>
+    </div>
   </div>
 </div>
 {% endblock %}

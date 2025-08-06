@@ -14,7 +14,7 @@ from sqlalchemy import or_, and_, desc
 from flask_migrate import Migrate
 from models import FollowRequest, Follower, User, Notification
 from flask_cors import CORS
-
+from flask_socketio import SocketIO, emit, join_room
 import os
 import json
 import eventlet
@@ -851,16 +851,12 @@ def unblock_user(username):
     return redirect(request.referrer or url_for('home'))
 
 
-from sqlalchemy import and_, or_
-
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
     current_user = session['username']
-    
-    # قراءة وضع الرسائل المجهولة من الرابط (0 أو 1)
     anonymous_mode = request.args.get("anonymous", "0") == "1"
 
     is_blocked = Block.query.filter(
@@ -870,9 +866,6 @@ def view_messages(username):
         )
     ).first()
 
-    display_name = "User is unavailable" if is_blocked else username
-
-    # ✅ فلترة الرسائل حسب نوعها بشكل صحيح
     messages = Message.query.filter(
         and_(
             or_(
@@ -885,12 +878,11 @@ def view_messages(username):
 
     return render_template("messages.html",
                            messages=messages,
-                           other_user=display_name,
+                           other_user=username,
                            real_username=username,
                            is_blocked=is_blocked,
                            current_user=current_user,
                            anonymous_mode=anonymous_mode)
-
 
 # 📤 إرسال رسالة جديدة
 @app.route("/send_message/<username>", methods=["POST"])
@@ -954,20 +946,27 @@ def inbox():
         return redirect(url_for('login'))
 
     current_user_name = session['username']
-
     anonymous = request.args.get("anonymous", "0") == "1"
 
+    # جلب جميع الرسائل الخاصة أو المجهولة المتعلقة بالمستخدم
     messages = Message.query.filter(
-        (Message.sender == current_user_name) | (Message.receiver == current_user_name)
-    ).filter(Message.anonymous == anonymous).all()
+        ((Message.sender == current_user_name) | (Message.receiver == current_user_name)) &
+        (Message.anonymous == anonymous)
+    ).order_by(Message.timestamp.desc()).all()
 
-    user_set = set()
+    # إنشاء قائمة المحادثات مع كل مستخدم تم التواصل معه
+    conversation_users = {}
     for msg in messages:
-        other = msg.receiver if msg.sender == current_user_name else msg.sender
-        user_set.add(other)
+        other_user = msg.receiver if msg.sender == current_user_name else msg.sender
+        if other_user not in conversation_users:
+            conversation_users[other_user] = msg.timestamp  # نحفظ توقيت آخر رسالة
 
+    # ترتيب المستخدمين حسب آخر رسالة
+    sorted_usernames = sorted(conversation_users.items(), key=lambda x: x[1], reverse=True)
+
+    # تجهيز بيانات المستخدمين للعرض في الواجهة
     users = []
-    for username in user_set:
+    for username, _ in sorted_usernames:
         user = User.query.filter_by(username=username).first()
         if user:
             display_name = "مجهول" if anonymous else (user.first_name or user.username)
@@ -978,7 +977,6 @@ def inbox():
             })
 
     return render_template('inbox.html', users=users, anonymous=anonymous)
-
 
 @app.route("/unfollow/<username>")
 def unfollow(username):
@@ -1593,6 +1591,22 @@ def report_user(username):
     flash(f"تم إرسال بلاغ ضد المستخدم {username}", "warning")
     return redirect(url_for("public_profile", username=username))
 
+
+
+
+# لما أحد يرسل رسالة:
+@socketio.on("send_message")
+def handle_send_message(data):
+    receiver = data.get("receiver")
+    message = data.get("message")
+
+    # تخزين الرسالة في قاعدة البيانات هنا...
+
+    # 🔔 إرسال إشعار مباشر للطرف المستقبل:
+    emit("new_message", {
+        "from": data.get("sender"),
+        "text": message
+    }, room=receiver)
 
 @app.route('/handle_follow_request', methods=['POST'])
 def handle_follow_request():

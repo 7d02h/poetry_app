@@ -1,30 +1,32 @@
 {% extends 'base.html' %}
-{% block title %}قائمة المحظورين{% endblock %}
+{% block title %}🚫 قائمة المحظورين - ميمو{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-  <h3 class="mb-4">🚫 الأشخاص الذين قمت بحظرهم</h3>
+<div class="container py-5" style="max-width: 700px;">
+  <div class="card shadow-lg border-0 rounded-4 p-4">
+    <h3 class="mb-4 text-center text-danger">🚫 قائمة الأشخاص المحظورين</h3>
 
-  {% if users %}
-    <ul class="list-group">
-      {% for user in users %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-          <div>
-            <strong>{{ user.username }}</strong>
-            {% if user.first_name or user.last_name %}
-              <small class="text-muted">({{ user.first_name }} {{ user.last_name }})</small>
-            {% endif %}
-          </div>
-          <form method="POST" action="{{ url_for('unblock_user', username=user.username) }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger">إلغاء الحظر</button>
-          </form>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <div class="alert alert-info text-center mt-4">
-      لم تقم بحظر أي مستخدم بعد.
-    </div>
-  {% endif %}
+    {% if users %}
+      <ul class="list-group list-group-flush">
+        {% for user in users %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ user.username }}</strong>
+              {% if user.first_name or user.last_name %}
+                <small class="text-muted">({{ user.first_name }} {{ user.last_name }})</small>
+              {% endif %}
+            </div>
+            <form method="POST" action="{{ url_for('unblock_user', username=user.username) }}">
+              <button type="submit" class="btn btn-outline-danger btn-sm">🔓 إلغاء الحظر</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="alert alert-info text-center mt-4">
+        لم تقم بحظر أي مستخدم بعد.
+      </div>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

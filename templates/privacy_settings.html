@@ -1,33 +1,38 @@
 {% extends "base.html" %}
-{% block title %}إعدادات الخصوصية{% endblock %}
+
+{% block title %}🔐 إعدادات الخصوصية - ميمو{% endblock %}
 
 {% block content %}
-<div class="container py-4" style="max-width: 600px;">
-  <h3 class="mb-4">🔐 إعدادات الخصوصية</h3>
+<div class="container py-5" style="max-width: 600px;">
+  <div class="card shadow-lg border-0 rounded-4 p-4">
+    <h3 class="mb-4 text-center text-primary">🔐 إعدادات الخصوصية</h3>
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-  <form method="POST">
-    <div class="form-check form-switch mb-3">
-      <input class="form-check-input" type="checkbox" name="is_private" id="is_private" {% if user.private %}checked{% endif %}>
-      <label class="form-check-label" for="is_private">اجعل حسابي خاصًا</label>
-    </div>
+    <form method="POST">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" name="is_private" id="is_private" {% if user.private %}checked{% endif %}>
+        <label class="form-check-label fw-bold" for="is_private">🔒 اجعل حسابي خاصًا</label>
+      </div>
 
-    <div class="form-check form-switch mb-3">
-      <input class="form-check-input" type="checkbox" name="allow_anonymous_messages" id="allow_anonymous_messages" {% if user.allow_anonymous_messages %}checked{% endif %}>
-      <label class="form-check-label" for="allow_anonymous_messages">اجعل رسائلي مجهولة</label>
-    </div>
+      <div class="form-check form-switch mb-4">
+        <input class="form-check-input" type="checkbox" name="allow_anonymous_messages" id="allow_anonymous_messages" {% if user.allow_anonymous_messages %}checked{% endif %}>
+        <label class="form-check-label fw-bold" for="allow_anonymous_messages">👤 السماح بالرسائل المجهولة</label>
+      </div>
 
-    <button type="submit" class="btn btn-dark mt-3">💾 حفظ التغييرات</button>
-  </form>
+      <div class="text-center">
+        <button type="submit" class="btn btn-dark px-5 py-2">💾 حفظ التغييرات</button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

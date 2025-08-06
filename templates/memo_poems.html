@@ -3,48 +3,52 @@
 {% block title %}إدارة الأبيات - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-4">
-    <div class="card-body">
-      <h3 class="mb-4 text-center text-primary">📜 إدارة الأبيات</h3>
+<div class="max-w-7xl mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-6">
 
-      {% if poems %}
-        <div class="table-responsive">
-          <table class="table table-bordered table-hover align-middle text-center">
-            <thead class="table-dark">
-              <tr>
-                <th>رقم</th>
-                <th>النص</th>
-                <th>المستخدم</th>
-                <th>الإعجابات</th>
-                <th>المشاهدات</th>
-                <th>تاريخ النشر</th>
-                <th>🗑️ حذف</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for poem in poems %}
-              <tr>
-                <td>{{ poem.id }}</td>
-                <td style="max-width: 300px; white-space: pre-wrap;">{{ poem.text }}</td>
-                <td>{{ poem.username }}</td>
-                <td>{{ poem.likes }}</td>
-                <td>{{ poem.views }}</td>
-                <td>{{ poem.created_at }}</td>
-                <td>
-                  <form method="POST" action="{{ url_for('delete_poem_admin', poem_id=poem.id) }}">
-                    <button class="btn btn-sm btn-danger" onclick="return confirm('هل أنت متأكد من الحذف؟')">حذف</button>
-                  </form>
-                </td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <div class="alert alert-info text-center">لا توجد أبيات حاليًا.</div>
-      {% endif %}
-    </div>
+    <h3 class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">📜 إدارة الأبيات</h3>
+
+    {% if poems %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-center text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+          <thead class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold">
+            <tr>
+              <th class="px-4 py-2 border">رقم</th>
+              <th class="px-4 py-2 border">النص</th>
+              <th class="px-4 py-2 border">المستخدم</th>
+              <th class="px-4 py-2 border">الإعجابات</th>
+              <th class="px-4 py-2 border">المشاهدات</th>
+              <th class="px-4 py-2 border">تاريخ النشر</th>
+              <th class="px-4 py-2 border">🗑️ حذف</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for poem in poems %}
+            <tr class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border-b">
+              <td class="px-4 py-2 border">{{ poem.id }}</td>
+              <td class="px-4 py-2 border max-w-xs whitespace-pre-wrap break-words text-right">{{ poem.text }}</td>
+              <td class="px-4 py-2 border">{{ poem.username }}</td>
+              <td class="px-4 py-2 border">{{ poem.likes }}</td>
+              <td class="px-4 py-2 border">{{ poem.views }}</td>
+              <td class="px-4 py-2 border">{{ poem.created_at }}</td>
+              <td class="px-4 py-2 border">
+                <form method="POST" action="{{ url_for('delete_poem_admin', poem_id=poem.id) }}">
+                  <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded"
+                          onclick="return confirm('هل أنت متأكد من الحذف؟')">
+                    حذف
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-center text-gray-600 dark:text-gray-300 mt-4">
+        لا توجد أبيات حاليًا.
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

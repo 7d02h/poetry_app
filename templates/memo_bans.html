@@ -4,44 +4,44 @@
 
 {% block content %}
 <div class="container mt-5">
-  <div class="card shadow rounded-4">
+  <div class="card shadow-lg border-0 rounded-4">
     <div class="card-body">
       <h3 class="text-center text-danger mb-4">🚫 إدارة الحسابات المحظورة</h3>
 
       {% if bans %}
       <div class="table-responsive">
-        <table class="table table-hover text-center align-middle">
+        <table class="table table-bordered table-hover text-center align-middle">
           <thead class="table-danger">
             <tr>
-              <th>ID</th>
-              <th>اسم المستخدم</th>
-              <th>تاريخ الحظر</th>
-              <th>ينتهي في</th>
-              <th>سبب الحظر</th>
-              <th>الحالة</th>
-              <th>التحكم</th>
+              <th>#</th>
+              <th>👤 المستخدم</th>
+              <th>📅 تاريخ الحظر</th>
+              <th>⏳ ينتهي في</th>
+              <th>📌 السبب</th>
+              <th>⚙️ الحالة</th>
+              <th>🎯 التحكم</th>
             </tr>
           </thead>
           <tbody>
             {% for ban in bans %}
               <tr>
                 <td>{{ ban.id }}</td>
-                <td>{{ ban.username }}</td>
-                <td>{{ ban.banned_at }}</td>
-                <td>{{ ban.ends_at }}</td>
+                <td><strong>{{ ban.username }}</strong></td>
+                <td>{{ ban.banned_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ ban.ends_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ ban.reason or "—" }}</td>
                 <td>
                   {% if ban.active %}
-                    <span class="badge bg-danger">مفعل</span>
+                    <span class="badge bg-danger px-3 py-2">مفعل</span>
                   {% else %}
-                    <span class="badge bg-success">منتهي</span>
+                    <span class="badge bg-success px-3 py-2">منتهي</span>
                   {% endif %}
                 </td>
                 <td>
                   {% if ban.active %}
                     <form method="POST" action="{{ url_for('unban_user', ban_id=ban.id) }}">
-                      <button class="btn btn-outline-secondary btn-sm" type="submit"
-                              onclick="return confirm('هل أنت متأكد من رفع الحظر؟');">
+                      <button class="btn btn-sm btn-outline-secondary"
+                              onclick="return confirm('هل أنت متأكد من رفع الحظر عن {{ ban.username }}؟');">
                         ✅ رفع الحظر
                       </button>
                     </form>
@@ -55,7 +55,9 @@
         </table>
       </div>
       {% else %}
-        <p class="text-center text-muted">لا يوجد حسابات محظورة حاليًا.</p>
+        <div class="alert alert-info text-center">
+          لا يوجد حسابات محظورة حاليًا.
+        </div>
       {% endif %}
     </div>
   </div>

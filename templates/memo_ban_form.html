@@ -4,14 +4,23 @@
 
 {% block content %}
 <div class="container mt-5">
-  <div class="card shadow rounded-4 mx-auto" style="max-width: 600px;">
+  <div class="card shadow-lg border-0 rounded-4 mx-auto" style="max-width: 600px;">
     <div class="card-body">
+      <h4 class="text-center text-danger mb-4">
+        📛 {% if user %} حظر المستخدم <strong>{{ user.username }}</strong>
+        {% else %} حظر مستخدم جديد {% endif %}
+      </h4>
 
-      {% if user %}
-        <h4 class="text-center text-danger mb-4">📛 حظر مؤقت للمستخدم <strong>{{ user.username }}</strong></h4>
-      {% else %}
-        <h4 class="text-center text-danger mb-4">📛 حظر مستخدم جديد</h4>
-      {% endif %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
       <form method="POST" action="{{ url_for('memo_ban_form') }}">
         <div class="mb-3">
@@ -23,20 +32,20 @@
         <div class="mb-3">
           <label for="duration" class="form-label">⏰ مدة الحظر</label>
           <select name="duration" id="duration" class="form-select" required>
-            <option value="1">يوم</option>
-            <option value="7">أسبوع</option>
-            <option value="30">شهر</option>
-            <option value="9999">دائم</option>
+            <option value="1">يوم واحد</option>
+            <option value="7">7 أيام</option>
+            <option value="30">30 يومًا</option>
+            <option value="9999">حظر دائم</option>
           </select>
         </div>
 
         <div class="mb-3">
           <label for="reason" class="form-label">📄 سبب الحظر</label>
           <textarea name="reason" id="reason" class="form-control" rows="3"
-                    placeholder="اكتب السبب..." required>{{ request.form.reason or '' }}</textarea>
+                    placeholder="اكتب السبب هنا..." required>{{ request.form.reason or '' }}</textarea>
         </div>
 
-        <div class="text-center mt-4">
+        <div class="d-flex justify-content-center gap-3 mt-4">
           <button type="submit" class="btn btn-danger px-4">📛 تنفيذ الحظر</button>
           <a href="{{ url_for('memo_users') }}" class="btn btn-secondary px-4">رجوع</a>
         </div>

@@ -2,38 +2,34 @@
 {% block title %}متابعو {{ user.username }}{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="card mx-auto shadow rounded-4" style="max-width: 650px;">
-        <div class="card-body">
-            <h4 class="mb-4 text-center">قائمة متابعين {{ user.username }}</h4>
+<div class="container mx-auto px-4 py-10 max-w-xl">
+  <div class="bg-white dark:bg-gray-800 shadow-lg rounded-3xl p-6">
+    <h2 class="text-xl font-bold text-center mb-6 text-blue-600">👥 متابعو {{ user.username }}</h2>
 
-            {% if followers %}
-                <ul class="list-group list-group-flush">
-                    {% for f in followers %}
-                        <li class="list-group-item d-flex align-items-center gap-3">
-                            {% if f.user.profile_image %}
-                                <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
-                                     alt="صورة"
-                                     class="rounded-circle shadow-sm"
-                                     width="45" height="45"
-                                     style="object-fit: cover;">
-                            {% else %}
-                                <div class="rounded-circle bg-secondary d-flex justify-content-center align-items-center text-white"
-                                     style="width: 45px; height: 45px; font-size: 1.2rem;">
-                                    {{ f.username[0]|upper }}
-                                </div>
-                            {% endif %}
-
-                            <a href="{{ url_for('public_profile', username=f.username) }}" class="text-decoration-none fw-bold">
-                                {{ f.username }}
-                            </a>
-                        </li>
-                    {% endfor %}
-                </ul>
+    {% if followers %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for f in followers %}
+          <li class="flex items-center gap-4 py-4">
+            {% if f.user.profile_image %}
+              <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
+                   alt="صورة"
+                   class="w-12 h-12 rounded-full object-cover shadow">
             {% else %}
-                <p class="text-muted text-center">لا يوجد متابعين حتى الآن.</p>
+              <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-lg font-bold shadow">
+                {{ f.username[0]|upper }}
+              </div>
             {% endif %}
-        </div>
-    </div>
+
+            <a href="{{ url_for('public_profile', username=f.username) }}"
+               class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition">
+              {{ f.username }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-center text-gray-500 mt-6">لا يوجد متابعين حتى الآن.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

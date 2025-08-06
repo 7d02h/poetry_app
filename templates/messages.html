@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="max-w-3xl mx-auto py-10 px-4">
-
   <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl overflow-hidden">
 
     <!-- الهيدر -->
@@ -29,30 +28,28 @@
       </div>
     </div>
 
-    <!-- قائمة الرسائل -->
+    <!-- الرسائل -->
     <div class="p-5 h-[500px] overflow-y-auto space-y-4 bg-gray-50 dark:bg-gray-900">
       {% for msg in messages %}
-        {% if msg.anonymous == anonymous_mode %}
-          <div class="flex {% if msg.sender == current_user %}justify-end{% else %}justify-start{% endif %}">
-            <div class="{% if msg.sender == current_user %}bg-blue-600 text-white{% else %}bg-white text-gray-900 border{% endif %} px-4 py-3 rounded-2xl shadow-md max-w-[75%]">
-              {% if msg.content %}
-                <p class="mb-1">{{ msg.content }}</p>
-              {% endif %}
-              {% if msg.file_path %}
-                <a href="{{ url_for('static', filename=msg.file_path) }}"
-                   class="block mt-1 underline {% if msg.sender == current_user %}text-blue-200{% else %}text-blue-600{% endif %}"
-                   target="_blank">📎 تحميل المرفق</a>
-              {% endif %}
-              <div class="text-end">
-                <small class="text-xs text-gray-300">{{ msg.timestamp.strftime('%H:%M') }}</small>
-              </div>
+        <div class="flex {% if msg.sender == current_user %}justify-end{% else %}justify-start{% endif %}">
+          <div class="{% if msg.sender == current_user %}bg-blue-600 text-white{% else %}bg-white text-gray-900 border{% endif %} px-4 py-3 rounded-2xl shadow-md max-w-[75%]">
+            {% if msg.content %}
+              <p class="mb-1">{{ msg.content }}</p>
+            {% endif %}
+            {% if msg.file_path %}
+              <a href="{{ url_for('static', filename=msg.file_path) }}"
+                 class="block mt-1 underline {% if msg.sender == current_user %}text-blue-200{% else %}text-blue-600{% endif %}"
+                 target="_blank">📎 تحميل المرفق</a>
+            {% endif %}
+            <div class="text-end">
+              <small class="text-xs text-gray-300">{{ msg.timestamp.strftime('%H:%M') }}</small>
             </div>
           </div>
-        {% endif %}
+        </div>
       {% endfor %}
     </div>
 
-    <!-- صندوق إرسال الرسائل -->
+    <!-- الإرسال -->
     {% if not is_blocked %}
       <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-5">
         <form action="{{ url_for('send_message', username=real_username) }}" method="post" enctype="multipart/form-data" class="space-y-4">
@@ -65,7 +62,7 @@
             <label for="anonymous" class="text-sm text-gray-600 dark:text-gray-300">إرسال كرسالة مجهولة</label>
           </div>
           <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm">
-            إرسال
+            📨 إرسال
           </button>
         </form>
       </div>
@@ -74,8 +71,6 @@
         لا يمكنك التحدث مع هذا المستخدم.
       </div>
     {% endif %}
-
   </div>
-
 </div>
 {% endblock %}

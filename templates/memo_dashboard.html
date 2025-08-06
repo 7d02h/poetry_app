@@ -1,89 +1,57 @@
 {% extends 'base.html' %}
-
 {% block title %}لوحة التحكم - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-4">
-    <div class="card-body">
-      <h3 class="mb-4 text-center text-primary">لوحة التحكم - ميمو</h3>
+<div class="container mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow rounded-3xl p-6">
+    <h3 class="text-2xl font-bold text-center text-blue-600 mb-8">لوحة التحكم - ميمو</h3>
 
-      {% if current_user.is_authenticated and current_user.is_admin %}
-      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% if current_user.is_authenticated and current_user.is_admin %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-        <!-- إدارة المستخدمين -->
-        <div class="col">
-          <a href="{{ url_for('memo_users') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">👥 إدارة المستخدمين</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- إدارة المستخدمين -->
+      <a href="{{ url_for('memo_users') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">👥 إدارة المستخدمين</h5>
+      </a>
 
-        <!-- إدارة الأبيات -->
-        <div class="col">
-          <a href="{{ url_for('memo_poems') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">📜 إدارة الأبيات</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- إدارة الأبيات -->
+      <a href="{{ url_for('memo_poems') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📜 إدارة الأبيات</h5>
+      </a>
 
-        <!-- لوحة الإحصائيات -->
-        <div class="col">
-          <a href="{{ url_for('memo_stats') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">📊 لوحة الإحصائيات</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- لوحة الإحصائيات -->
+      <a href="{{ url_for('memo_stats') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📊 لوحة الإحصائيات</h5>
+      </a>
 
-        <!-- الإعدادات العامة -->
-        <div class="col">
-          <a href="{{ url_for('memo_settings') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">⚙️ الإعدادات العامة</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- الإعدادات العامة -->
+      <a href="{{ url_for('memo_settings') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">⚙️ الإعدادات العامة</h5>
+      </a>
 
-        <!-- رسائل تواصل معنا -->
-        <div class="col">
-          <a href="{{ url_for('memo_contact_messages') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">📨 رسائل تواصل معنا</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- رسائل تواصل معنا -->
+      <a href="{{ url_for('memo_contact_messages') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📨 رسائل تواصل معنا</h5>
+      </a>
 
-        <!-- إدارة الحظر -->
-        <div class="col">
-          <a href="{{ url_for('memo_bans') }}" class="text-decoration-none">
-            <div class="card h-100 border-0 shadow-sm rounded-3 text-center hover-shadow">
-              <div class="card-body">
-                <h5 class="card-title">🚫 إدارة الحظر</h5>
-              </div>
-            </div>
-          </a>
-        </div>
+      <!-- إدارة الحظر -->
+      <a href="{{ url_for('memo_bans') }}"
+         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">🚫 إدارة الحظر</h5>
+      </a>
 
-      </div>
-      {% else %}
-        <div class="alert alert-danger text-center mt-4">
-          🚫 ليس لديك صلاحية للوصول إلى لوحة التحكم.
-        </div>
-      {% endif %}
     </div>
+
+    {% else %}
+      <div class="mt-6 bg-red-100 text-red-800 dark:bg-red-200 dark:text-red-900 text-center font-medium py-3 px-4 rounded-xl">
+        🚫 ليس لديك صلاحية للوصول إلى لوحة التحكم.
+      </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

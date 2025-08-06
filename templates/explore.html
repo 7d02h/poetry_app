@@ -2,13 +2,11 @@
 {% block title %}استكشاف{% endblock %}
 
 {% block content %}
+
 <div class="container mx-auto px-4 py-10">
-
-  <!-- عنوان رئيسي -->
-  <h2 class="text-center text-3xl font-bold text-blue-700 mb-10">🧭 استكشاف</h2>
-
-  <!-- ✅ الأبيات الأكثر إعجابًا -->
+  <h2 class="text-center text-3xl font-bold text-blue-700 mb-10">🧽 استكشاف</h2>
   <h4 class="text-lg font-semibold text-gray-700 mb-4">📝 الأبيات الأكثر إعجابًا</h4>
+
   {% if top_poems %}
     {% for poem in top_poems %}
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6" id="poem-{{ poem.id }}">
@@ -32,19 +30,23 @@
 
         <div class="flex flex-wrap gap-2 mt-4">
           <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm">{{ poem.views or 0 }} مشاهدة</span>
-          <a href="#" onclick="likePoem('{{ poem.id }}', this)"
+
+          <a href="#" onclick="likePoem('{{ poem.id }}', this); return false;"
              class="like-button btn-sm border border-red-500 text-red-500 px-3 py-1 rounded hover:bg-red-100 {% if poem.id in user_liked %}active bg-red-100{% endif %}">
             ❤️ {{ poem.likes }}
           </a>
+
           {% if poem.username == session['username'] %}
-            <a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}"
+            <a href="#" onclick="deletePoem('{{ poem.id }}'); return false;"
                class="btn-sm border border-gray-400 text-gray-600 px-3 py-1 rounded hover:bg-gray-100">🗑 حذف</a>
           {% endif %}
-          <a href="#" onclick="sharePoem(`{{ poem.text|e }}`); return false;"
+
+          <a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"
              class="btn-sm border border-blue-500 text-blue-500 px-3 py-1 rounded hover:bg-blue-100">📤 مشاركة</a>
+
           {% if poem.username != session['username'] %}
             <a href="{{ url_for('block_user', username=poem.username) }}"
-               class="btn-sm border border-yellow-500 text-yellow-600 px-3 py-1 rounded hover:bg-yellow-100">🚫 حظر</a>
+               class="btn-sm border border-yellow-500 text-yellow-600 px-3 py-1 rounded hover:bg-yellow-100">⛔️ حظر</a>
           {% endif %}
         </div>
       </div>
@@ -53,7 +55,6 @@
     <p class="text-gray-500">لا توجد أبيات حالياً.</p>
   {% endif %}
 
-  <!-- ✅ المستخدمون المقترحون -->
   <h4 class="text-lg font-semibold text-gray-700 mt-10 mb-4">👥 مستخدمون مقترحون</h4>
   {% if suggested_users %}
     {% for user in suggested_users %}
@@ -77,8 +78,7 @@
             </div>
           </div>
         </div>
-        <form action="{{ url_for('follow') }}" method="post">
-          <input type="hidden" name="target_user" value="{{ user.username }}">
+        <form onsubmit="followUser(event, this)" method="post" action="{{ url_for('follow') }}"><input type="hidden" name="target_user" value="{{ user.username }}">
           <button type="submit"
                   class="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-100">
             ➕ متابعة
@@ -89,7 +89,6 @@
   {% else %}
     <p class="text-gray-500">لا يوجد مستخدمون مقترحون حالياً.</p>
   {% endif %}
-
 </div>
 
 <script>
@@ -107,6 +106,14 @@ function likePoem(poemId, element) {
     });
 }
 
+function deletePoem(poemId) {
+  fetch(`/delete/${poemId}, { method: 'GET' }`)
+    .then(() => {
+      const poem = document.getElementById(`poem-${poemId}`);
+      if (poem) poem.remove();
+    });
+}
+
 function sharePoem(poemText) {
   if (navigator.share) {
     navigator.share({
@@ -118,5 +125,16 @@ function sharePoem(poemText) {
     alert("المشاركة غير مدعومة في هذا المتصفح.");
   }
 }
+
+function followUser(event, form) {
+  event.preventDefault();
+  const formData = new FormData(form);
+  fetch(form.action, {
+    method: 'POST',
+    body: formData
+  })
+    .then(res => res.ok && form.closest('div').remove());
+}
 </script>
+
 {% endblock %}

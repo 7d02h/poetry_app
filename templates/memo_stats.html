@@ -3,60 +3,47 @@
 {% block title %}📊 لوحة الإحصائيات - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg rounded-4">
-    <div class="card-body">
-      <h3 class="text-center text-primary mb-4">📊 لوحة الإحصائيات العامة</h3>
+<div class="max-w-6xl mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-6">
 
-      <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 text-center">
+    <h3 class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-10">
+      📊 لوحة الإحصائيات العامة
+    </h3>
 
-        <div class="col">
-          <div class="card border-0 shadow-sm rounded-3 bg-light">
-            <div class="card-body">
-              <h1 class="text-primary">{{ total_users }}</h1>
-              <p class="mb-0">المستخدمين</p>
-            </div>
-          </div>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
 
-        <div class="col">
-          <div class="card border-0 shadow-sm rounded-3 bg-light">
-            <div class="card-body">
-              <h1 class="text-success">{{ total_poems }}</h1>
-              <p class="mb-0">الأبيات المنشورة</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="col">
-          <div class="card border-0 shadow-sm rounded-3 bg-light">
-            <div class="card-body">
-              <h1 class="text-info">{{ total_messages }}</h1>
-              <p class="mb-0">الرسائل الخاصة</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="col">
-          <div class="card border-0 shadow-sm rounded-3 bg-light">
-            <div class="card-body">
-              <h1 class="text-danger">{{ total_bans }}</h1>
-              <p class="mb-0">الحسابات المبندة</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="col">
-          <div class="card border-0 shadow-sm rounded-3 bg-light">
-            <div class="card-body">
-              <h1 class="text-warning">{{ total_likes }}</h1>
-              <p class="mb-0">الإعجابات</p>
-            </div>
-          </div>
-        </div>
-
+      <!-- 👤 المستخدمين -->
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
+        <h1 class="text-4xl font-bold text-blue-600 dark:text-blue-300">{{ total_users }}</h1>
+        <p class="mt-2 text-gray-700 dark:text-gray-300">المستخدمين</p>
       </div>
+
+      <!-- 📝 الأبيات -->
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
+        <h1 class="text-4xl font-bold text-green-600 dark:text-green-300">{{ total_poems }}</h1>
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الأبيات المنشورة</p>
+      </div>
+
+      <!-- 💬 الرسائل -->
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
+        <h1 class="text-4xl font-bold text-cyan-600 dark:text-cyan-300">{{ total_messages }}</h1>
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الرسائل الخاصة</p>
+      </div>
+
+      <!-- 🔒 المبندين -->
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
+        <h1 class="text-4xl font-bold text-red-600 dark:text-red-400">{{ total_bans }}</h1>
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الحسابات المبندة</p>
+      </div>
+
+      <!-- ❤️ الإعجابات -->
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
+        <h1 class="text-4xl font-bold text-yellow-500 dark:text-yellow-300">{{ total_likes }}</h1>
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الإعجابات</p>
+      </div>
+
     </div>
+
   </div>
 </div>
 {% endblock %}

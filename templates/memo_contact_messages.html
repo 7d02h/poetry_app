@@ -1,37 +1,46 @@
 {% extends 'base.html' %}
 
-{% block title %}رسائل تواصل معنا - ميمو{% endblock %}
+{% block title %}📨 رسائل تواصل معنا - ميمو{% endblock %}
 
 {% block content %}
 <div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-4">
-    <div class="card-body">
-      <h3 class="mb-4 text-center text-primary">📨 رسائل تواصل معنا</h3>
+  <div class="card shadow rounded-4 border-0" style="background: var(--card-bg); backdrop-filter: blur(var(--blur));">
+    <div class="card-body px-4 py-5">
+      <h3 class="mb-4 text-center fw-bold text-primary">📨 رسائل تواصل معنا</h3>
 
       {% if messages %}
         <div class="table-responsive">
-          <table class="table table-bordered table-hover text-center align-middle">
-            <thead class="table-light">
-              <tr>
+          <table class="table table-hover table-borderless align-middle text-center shadow-sm rounded-3 overflow-hidden">
+            <thead class="table-primary text-dark">
+              <tr style="font-weight: 600;">
                 <th>📌 رقم</th>
                 <th>👤 الاسم</th>
                 <th>📧 البريد</th>
-                <th>💬 الرسالة</th>
+                <th class="text-start">💬 الرسالة</th>
                 <th>⏰ وقت الإرسال</th>
-                <th>🗑️ حذف</th>
+                <th>🗑️</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="bg-white">
               {% for msg in messages %}
-              <tr>
+              <tr class="border-bottom">
                 <td>{{ msg.id }}</td>
                 <td>{{ msg.name }}</td>
-                <td>{{ msg.email }}</td>
-                <td class="text-start">{{ msg.message }}</td>
-                <td>{{ msg.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>
-                  <form method="POST" action="{{ url_for('delete_contact_message', message_id=msg.id) }}" onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
-                    <button type="submit" class="btn btn-sm btn-danger">🗑️</button>
+                  <a href="mailto:{{ msg.email }}" class="text-decoration-none text-primary">
+                    {{ msg.email }}
+                  </a>
+                </td>
+                <td class="text-start" style="max-width: 400px;">
+                  <div class="text-muted small">{{ msg.message }}</div>
+                </td>
+                <td class="text-nowrap">{{ msg.sent_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('delete_contact_message', message_id=msg.id) }}"
+                        onsubmit="return confirm('هل أنت متأكد من الحذف؟')">
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-circle shadow-sm">
+                      🗑️
+                    </button>
                   </form>
                 </td>
               </tr>
@@ -40,11 +49,10 @@
           </table>
         </div>
       {% else %}
-        <div class="alert alert-info text-center">
+        <div class="alert alert-info text-center rounded-3 mt-4">
           لا توجد رسائل حالياً.
         </div>
       {% endif %}
-
     </div>
   </div>
 </div>
