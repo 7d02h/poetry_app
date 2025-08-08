@@ -25,14 +25,15 @@ class User(db.Model):
         lazy='dynamic'
     )
 
-
 class Poem(db.Model):
     __tablename__ = 'poems'
+
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     likes = db.Column(db.Integer, default=0)
     views = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=datetime.now)  # موجود مسبقًا
+    timestamp = db.Column(db.DateTime, default=datetime.now)   # ✅ العمود الجديد
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
 
 
@@ -112,14 +113,15 @@ class MessageReport(db.Model):
 
 class Notification(db.Model):
     __tablename__ = 'notifications'
+
     id = db.Column(db.Integer, primary_key=True)
     recipient = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     sender = db.Column(db.String(64), db.ForeignKey('users.username'))
     type = db.Column(db.String(64), nullable=False)
     content = db.Column(db.Text)
+    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'))  # العمود الجديد
     is_read = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
-
 
 class ContactMessage(db.Model):
     __tablename__ = 'contact_messages'

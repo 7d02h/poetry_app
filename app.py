@@ -2,12 +2,23 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_babel import Babel
 from models import db, User, Ban, Notification, Message, MessageReport, ContactMessage, Poem, Settings, Follower
-from user_utils import verify_user, get_user_by_username, get_user_by_id, create_user, promote_to_admin, get_all_users, delete_user, unverify_user_by_id, increase_followers_by_id
+# استيراد مُنظّم وواضح — عدّل الأسماء لتطابق الموجود فعلاً في user_utils.py
+from user_utils import (
+    verify_user,
+    get_user_by_username,
+    get_all_users,
+    delete_user,
+    unverify_user_by_id,
+    increase_followers_by_id
+)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_socketio import SocketIO, emit, join_room
 from flask import has_request_context
 from datetime import datetime, timedelta
+from flask import has_request_context, session
+from models import Notification, Message  # تأكد من استيراد الموديلات
+
 from notification_utils import send_notification  
 from models import Block, Like, Report
 from sqlalchemy import or_, and_, desc
@@ -15,6 +26,8 @@ from flask_migrate import Migrate
 from models import FollowRequest, Follower, User, Notification
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
+from flask import jsonify
+
 import os
 import json
 import eventlet
@@ -103,6 +116,13 @@ class SimpleUser(UserMixin):
     def is_active(self):
         return True
 
+
+ALLOWED_EXTENSIONS = {"png","jpg","jpeg","gif","pdf","mp4","webm","txt"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 @login_manager.user_loader
 def load_user(user_id):
     user = User.query.get(int(user_id))
@@ -115,22 +135,14 @@ def load_user(user_id):
 def inject_user():
     return dict(current_user=current_user)
 
-@app.context_processor
 def inject_blocked_users():
     if not has_request_context() or 'username' not in session:
         return {}
-
     blocked_entries = Block.query.filter_by(blocker=session['username']).all()
-    blocked_users = []
+    blocked_usernames = [entry.blocked for entry in blocked_entries]
+    return {'blocked_users_sidebar': blocked_usernames}
 
-    for entry in blocked_entries:
-        blocked_user = User.query.filter_by(username=entry.blocked).first()
-        if blocked_user:
-            blocked_users.append(blocked_user)
 
-    return {'blocked_users_sidebar': blocked_users}
-
-@app.context_processor
 def inject_navbar_counts():
     unread_messages_count = 0
     has_unread_notifications = False
@@ -155,22 +167,42 @@ def inject_navbar_counts():
         'has_unread_notifications': has_unread_notifications
     }
 
-@app.context_processor
 def inject_notifications():
     if not has_request_context() or 'username' not in session:
-        return {'notifications': []}
+        return {
+            'notifications': [],
+            'has_unread_notifications': False,
+            'unread_messages_count': 0
+        }
+
+    username = session['username']
 
     try:
         unread_notifications = Notification.query.filter_by(
-            recipient=session['username'],
+            recipient=username,
             is_read=False
         ).order_by(Notification.timestamp.desc()).all()
 
-        return {'notifications': unread_notifications}
+        unread_messages_count = (
+            db.session.query(Message.sender)
+            .filter_by(recipient=username, is_read=False)
+            .distinct()
+            .count()
+        )
+
+        return {
+            'notifications': unread_notifications,
+            'has_unread_notifications': len(unread_notifications) > 0,
+            'unread_messages_count': unread_messages_count
+        }
+
     except Exception as e:
-        print("❌ خطأ أثناء جلب الإشعارات:", e)
-        return {'notifications': []}
-    
+        print("❌ خطأ أثناء جلب الإشعارات أو الرسائل:", e)
+        return {
+            'notifications': [],
+            'has_unread_notifications': False,
+            'unread_messages_count': 0
+        }
 # ----------------------------- تنسيق التاريخ -----------------------------
 @app.template_filter('format_ar_date')
 def format_ar_date(value):
@@ -221,6 +253,8 @@ def check_user_ban():
         except Exception as e:
             print("خطأ أثناء التحقق من الحظر:", e)
             pass
+
+
 @app.route('/')
 def home():
     if 'username' not in session:
@@ -260,6 +294,7 @@ def home():
             "views": poem.views,
             "username": author.username,
             "profile_image": author.profile_image,
+            "verified": author.verified,  # ← إضافة عمود التوثيق
             "created_at": time_ago
         })
 
@@ -285,6 +320,7 @@ def home():
             "views": poem.views,
             "username": author.username,
             "profile_image": author.profile_image,
+            "verified": author.verified,  # ← إضافة عمود التوثيق
             "created_at": time_ago
         })
 
@@ -292,8 +328,7 @@ def home():
     liked = Like.query.filter_by(username=current_username).with_entities(Like.poem_id).all()
     user_liked = [row.poem_id for row in liked]
 
-
-# المحظورين للقائمة الجانبية
+    # المحظورين للقائمة الجانبية
     sidebar = Block.query.filter_by(blocker=current_username).all()
     blocked_users_sidebar = [{"username": b.blocked} for b in sidebar]
 
@@ -303,7 +338,6 @@ def home():
                            all_poems=all_poems,
                            user_liked=user_liked,
                            blocked_users_sidebar=blocked_users_sidebar)
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -655,9 +689,9 @@ from flask_login import login_required, current_user
 def explore_page():
     current_username = current_user.username  # استخدم Flask-Login
 
-    # ✅ الأبيات الأكثر إعجابًا
+    # ✅ الأبيات الأكثر إعجابًا (مع التحقق من حالة التوثيق)
     top_poems_query = (
-        db.session.query(Poem, User.profile_image)
+        db.session.query(Poem, User.profile_image, User.verified)
         .join(User, Poem.username == User.username)
         .order_by(Poem.likes.desc())
         .limit(10)
@@ -665,7 +699,7 @@ def explore_page():
     )
 
     top_poems = []
-    for poem, profile_image in top_poems_query:
+    for poem, profile_image, verified in top_poems_query:
         top_poems.append({
             'id': poem.id,
             'text': poem.text,
@@ -673,22 +707,33 @@ def explore_page():
             'views': poem.views,
             'username': poem.username,
             'profile_image': profile_image,
+            'verified': verified,  # ✅ إضافة حالة التوثيق
             'created_ago': time_ago(poem.created_at)
         })
 
-    # ✅ المستخدمون المقترحون
+    # ✅ المستخدمون المقترحون (مع التحقق من حالة التوثيق)
     followed_subquery = (
         db.session.query(Follower.followed_username)
         .filter(Follower.username == current_username)
     )
 
     suggested_users = (
-        db.session.query(User.username, User.first_name, User.last_name, User.profile_image)
+        db.session.query(User.username, User.first_name, User.last_name, User.profile_image, User.verified)
         .filter(User.username != current_username)
         .filter(~User.username.in_(followed_subquery))
         .limit(5)
         .all()
     )
+
+    suggested_users_list = []
+    for username, first_name, last_name, profile_image, verified in suggested_users:
+        suggested_users_list.append({
+            'username': username,
+            'first_name': first_name,
+            'last_name': last_name,
+            'profile_image': profile_image,
+            'verified': verified  # ✅ إضافة حالة التوثيق
+        })
 
     # ✅ الأبيات التي أعجب بها المستخدم
     liked_poems_ids = (
@@ -702,7 +747,7 @@ def explore_page():
     return render_template(
         'explore.html',
         top_poems=top_poems,
-        suggested_users=suggested_users,
+        suggested_users=suggested_users_list,
         user_liked=liked_poems_ids
     )
 
@@ -759,45 +804,6 @@ def submit():
     return redirect(url_for('home'))
 
 
-# ❤️ زر الإعجاب
-@app.route('/like/<int:poem_id>')
-def like(poem_id):
-    if 'username' not in session:
-        return jsonify({'success': False, 'redirect': url_for('login')})
-
-      # ✅
-
-    username = session['username']
-    poem = Poem.query.get(poem_id)
-    if not poem:
-        return jsonify({'success': False, 'message': 'البيت غير موجود'})
-
-    existing_like = Like.query.filter_by(username=username, poem_id=poem_id).first()
-
-    if existing_like:
-        db.session.delete(existing_like)
-        poem.likes -= 1
-    else:
-        new_like = Like(username=username, poem_id=poem_id)
-        db.session.add(new_like)
-        poem.likes += 1
-
-        # ✅ إشعار لحظي
-        if poem.username != username:
-            notification = Notification(
-                recipient=poem.username,
-                sender=username,
-                type="like",
-                content=f"{username} أعجب ببيتك!"
-            )
-            db.session.add(notification)
-
-            send_notification(poem.username, f"{username} أعجب ببيتك! ❤️")
-
-    db.session.commit()
-
-    return jsonify({'success': True, 'likes': poem.likes})
-
 
 # 🚩 إبلاغ عن بيت شعري
 @app.route('/report/<int:poem_id>')
@@ -850,7 +856,6 @@ def unblock_user(username):
 
     return redirect(request.referrer or url_for('home'))
 
-
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
@@ -859,30 +864,41 @@ def view_messages(username):
     current_user = session['username']
     anonymous_mode = request.args.get("anonymous", "0") == "1"
 
-    is_blocked = Block.query.filter(
+    # التحقق من الحظر بين المستخدمين (أي جهة حظرت الأخرى)
+    blocked_entry = Block.query.filter(
         or_(
             and_(Block.blocker == current_user, Block.blocked == username),
             and_(Block.blocker == username, Block.blocked == current_user)
         )
     ).first()
 
-    messages = Message.query.filter(
-        and_(
-            or_(
-                and_(Message.sender == current_user, Message.receiver == username),
-                and_(Message.sender == username, Message.receiver == current_user)
-            ),
-            Message.anonymous == anonymous_mode
-        )
-    ).order_by(Message.timestamp).all()
+    is_blocked = bool(blocked_entry)
+
+    if is_blocked:
+        # عندما يكون محظورًا، لا نعرض المحادثة الحقيقية
+        messages = []
+        display_name = "User is unavailable"
+        profile_visible = False
+    else:
+        messages = Message.query.filter(
+            and_(
+                or_(
+                    and_(Message.sender == current_user, Message.receiver == username),
+                    and_(Message.sender == username, Message.receiver == current_user)
+                ),
+                Message.anonymous == anonymous_mode
+            )
+        ).order_by(Message.timestamp).all()
+        display_name = username
+        profile_visible = True
 
     return render_template("messages.html",
                            messages=messages,
-                           other_user=username,
-                           real_username=username,
                            is_blocked=is_blocked,
                            current_user=current_user,
-                           anonymous_mode=anonymous_mode)
+                           anonymous_mode=anonymous_mode,
+                           display_name=display_name,
+                           profile_visible=profile_visible)
 
 # 📤 إرسال رسالة جديدة
 @app.route("/send_message/<username>", methods=["POST"])
@@ -906,6 +922,9 @@ def send_message(username):
 
     # ✅ قراءة خيار الإرسال كمجهول
     anonymous = 'anonymous' in request.form
+
+
+
 
     # ✅ إنشاء الرسالة مع خاصية المجهول
     message = Message(
@@ -1000,96 +1019,179 @@ def unfollow(username):
         return "حدث خطأ في السيرفر.", 500
 
 
+
+
+
+@app.route("/blocked_users")
+def blocked_users():
+    if "username" not in session:
+        return redirect(url_for("login"))
+
+    current_username = session["username"]
+    blocks = Block.query.filter_by(blocker=current_username).all()
+
+    blocked_users = []
+    for entry in blocks:
+        user = User.query.filter_by(username=entry.blocked).first()
+        if user:
+            blocked_users.append(user)
+
+    return render_template("blocked_users.html", users=blocked_users)
+
+
+
+
+from flask import (
+    Flask, render_template, session, redirect, url_for,
+    request, jsonify, flash
+)
+
+
+# ❤️ زر الإعجاب
+@app.route('/like/<int:poem_id>')
+def like(poem_id):
+    if 'username' not in session:
+        return jsonify({'success': False, 'redirect': url_for('login')})
+
+      # ✅
+
+    username = session['username']
+    poem = Poem.query.get(poem_id)
+    if not poem:
+        return jsonify({'success': False, 'message': 'البيت غير موجود'})
+
+    existing_like = Like.query.filter_by(username=username, poem_id=poem_id).first()
+
+    if existing_like:
+        db.session.delete(existing_like)
+        poem.likes -= 1
+    else:
+        new_like = Like(username=username, poem_id=poem_id)
+        db.session.add(new_like)
+        poem.likes += 1
+
+        # ✅ إشعار لحظي
+        if poem.username != username:
+            notification = Notification(
+                recipient=poem.username,
+                sender=username,
+                type="like",
+                content=f"{username} أعجب ببيتك!"
+            )
+            db.session.add(notification)
+
+            send_notification(poem.username, f"{username} أعجب ببيتك! ❤️")
+
+    db.session.commit()
+
+    return jsonify({'success': True, 'likes': poem.likes})
+
+@app.route('/handle_follow_request', methods=['POST'])
+@login_required
+def handle_follow_request():
+    notif_id = request.form.get('notif_id')
+    action = request.form.get('action')  # "accept" أو "reject"
+
+    # جلب الإشعار
+    notif = Notification.query.get_or_404(notif_id)
+
+    # التحقق من أن نوع الإشعار هو طلب متابعة
+    if notif.type != 'follow_request':
+        flash('نوع الإشعار غير صالح.', 'danger')
+        return redirect(url_for('notifications'))
+
+    # إذا تم قبول الطلب
+    if action == 'accept':
+        # التحقق من عدم وجود علاقة متابعة مسبقة
+        existing = Follower.query.filter_by(
+            username=notif.sender,
+            followed_username=notif.recipient
+        ).first()
+
+        if not existing:
+            new_follower = Follower(
+                username=notif.sender,            # المرسل
+                followed_username=notif.recipient # أنت
+            )
+            db.session.add(new_follower)
+            flash(f'✅ تم قبول طلب المتابعة من {notif.sender}.', 'success')
+        else:
+            flash(f'⚠️ {notif.sender} يتابعك بالفعل.', 'info')
+
+    elif action == 'reject':
+        flash(f'❌ تم رفض طلب المتابعة من {notif.sender}.', 'info')
+
+    # حذف الإشعار في كلتا الحالتين
+    db.session.delete(notif)
+    db.session.commit()
+
+    # إعادة التوجيه إلى بروفايل المرسل
+    return redirect(url_for('public_profile', username=notif.sender))
+# ----------------------------- حذف إشعار -----------------------------
+@app.route("/delete_notification/<int:notif_id>", methods=["POST"])
+def delete_notification(notif_id):
+    if "username" not in session:
+        return jsonify({"status": "unauthorized"}), 401
+
+    notif = Notification.query.get_or_404(notif_id)
+    if notif.recipient != session["username"]:
+        return jsonify({"status": "forbidden"}), 403
+
+    db.session.delete(notif)
+    db.session.commit()
+    return jsonify({"status": "deleted"}), 200
+
 @app.route("/notifications")
 def notifications():
     if "username" not in session:
         return redirect(url_for("login"))
 
-    notifs = Notification.query.filter_by(recipient=session["username"])\
-                               .order_by(Notification.timestamp.desc())\
-                               .limit(50).all()
+    username = session["username"]
+
+    notifs = Notification.query.filter_by(recipient=username) \
+        .order_by(Notification.timestamp.desc()) \
+        .limit(50).all()
 
     notifications = []
-    for n in notifs:
-        sender = User.query.filter_by(username=n.sender).first()
-        notif = {
-            "id": n.id,
-            "sender": n.sender,
-            "sender_image": sender.profile_image if sender and sender.profile_image else "default.png",
-            "type": n.type,
-            "is_read": n.is_read,
-            "time_ago": time_ago(n.timestamp)
-        }
 
-        # التعامل مع محتوى الإشعار
+    for n in notifs:
+        sender_user = User.query.filter_by(username=n.sender).first()
         content_data = {}
+
         if n.content:
             try:
                 content_data = json.loads(n.content)
             except json.JSONDecodeError:
-                pass
+                content_data = {}
 
-        # تحديد الرابط حسب نوع الإشعار
-        if n.type == "follow":
-            notif["link"] = url_for("public_profile", username=n.sender)
-        elif n.type == "follow_request":
-            notif["link"] = url_for("public_profile", username=n.sender)
-        elif n.type in ["like", "comment"]:
+        notif = {
+            "id": n.id,
+            "sender": n.sender,
+            "sender_image": sender_user.profile_image if sender_user and sender_user.profile_image else "default.png",
+            "type": n.type,
+            "is_read": n.is_read,
+            "status": getattr(n, 'status', None),
+            "time_ago": time_ago(n.timestamp),
+            "link": "#"  # سنعدله حسب النوع
+        }
+
+        # تحديد الرابط مباشرة
+        if n.type in ["like", "comment"]:
             poem_id = content_data.get("poem_id")
             if poem_id:
+                notif["poem_id"] = poem_id
                 notif["link"] = url_for("view_poem", poem_id=poem_id)
-            else:
-                notif["link"] = "#"
-        else:
-            notif["link"] = "#"
+
+        elif n.type == "follow":
+            notif["link"] = url_for("public_profile", username=n.sender)
+
+        elif n.type == "follow_request":
+            notif["link"] = url_for("notifications")
 
         notifications.append(notif)
 
     return render_template("notifications.html", notifications=notifications)
 
-@app.route("/notification/<int:notif_id>")
-def go_to_notification(notif_id):
-    if "username" not in session:
-        return redirect(url_for("login"))
-
-    notif = Notification.query.get_or_404(notif_id)
-
-    # التأكد أن الإشعار يخص المستخدم الحالي
-    if notif.recipient != session["username"]:
-        flash("❌ ليس لديك صلاحية للوصول لهذا الإشعار.", "danger")
-        return redirect(url_for("notifications"))
-
-    # تحديد الرابط المناسب
-    link = "#"
-    try:
-        content_data = json.loads(notif.content or "{}")
-    except:
-        content_data = {}
-
-    if notif.type == "follow" or notif.type == "follow_request":
-        link = url_for("public_profile", username=notif.sender)
-    elif notif.type in ["like", "comment"]:
-        poem_id = content_data.get("poem_id")
-        if poem_id:
-            link = url_for("view_poem", poem_id=poem_id)
-
-    # تعليم الإشعار كمقروء
-    if not notif.is_read:
-        notif.is_read = True
-        db.session.commit()
-
-    return redirect(link)
-
-# عرض بيت شعري مفرد
-@app.route("/poem/<int:poem_id>")
-@login_required
-def view_poem(poem_id):
-    from models import Poem, User
-
-    poem = Poem.query.get_or_404(poem_id)
-    user = User.query.filter_by(username=poem.username).first()
-
-    return render_template("view_poem.html", poem=poem, user=user)
 
 @app.route('/settings')
 def settings():
@@ -1098,7 +1200,18 @@ def settings():
     return render_template("settings.html")
 
 
-from werkzeug.security import check_password_hash, generate_password_hash
+# عرض بيت شعري مفرد
+@app.route("/poem/<int:poem_id>")
+@login_required
+def view_poem(poem_id):
+    from models import Poem, User
+
+    # جلب البيت الشعري
+    poem = Poem.query.get_or_404(poem_id)
+    # جلب المستخدم صاحب البيت
+    user = User.query.filter_by(username=poem.username).first()
+
+    return render_template("view_poem.html", poem=poem, user=user)
 
 @app.route('/change_password', methods=['GET', 'POST'])
 def change_password():
@@ -1608,80 +1721,8 @@ def handle_send_message(data):
         "text": message
     }, room=receiver)
 
-@app.route('/handle_follow_request', methods=['POST'])
-def handle_follow_request():
-    if "username" not in session:
-        return redirect(url_for("login"))
 
-    current_username = session["username"]
-    sender_username = request.form.get("sender_username")
-    action = request.form.get("action")  # "accept" or "reject"
 
-    # تحقق من وجود الطلب
-    request_entry = FollowRequest.query.filter_by(
-        sender_username=sender_username,
-        receiver_username=current_username,
-        status='pending'
-    ).first()
-
-    if not request_entry:
-        flash("❌ لم يتم العثور على طلب المتابعة.", "danger")
-        return redirect(url_for("notifications"))
-
-    if action == "accept":
-        # إضافة المتابع
-        new_follower = Follower(username=sender_username, followed_username=current_username)
-        db.session.add(new_follower)
-
-        # حذف الطلب
-        db.session.delete(request_entry)
-
-        # تعليم الإشعار كمقروء
-        notif = Notification.query.filter_by(
-            recipient=current_username,
-            sender=sender_username,
-            type='follow_request',
-            is_read=False
-        ).first()
-        if notif:
-            notif.is_read = True
-
-        flash("✅ تم قبول طلب المتابعة.", "success")
-
-    elif action == "reject":
-        # فقط حذف الطلب
-        db.session.delete(request_entry)
-
-        # تعليم الإشعار كمقروء
-        notif = Notification.query.filter_by(
-            recipient=current_username,
-            sender=sender_username,
-            type='follow_request',
-            is_read=False
-        ).first()
-        if notif:
-            notif.is_read = True
-
-        flash("❌ تم رفض طلب المتابعة.", "info")
-
-    db.session.commit()
-    return redirect(url_for("notifications"))
-
-@app.route("/blocked_users")
-def blocked_users():
-    if "username" not in session:
-        return redirect(url_for("login"))
-
-    current_username = session["username"]
-    blocks = Block.query.filter_by(blocker=current_username).all()
-
-    blocked_users = []
-    for entry in blocks:
-        user = User.query.filter_by(username=entry.blocked).first()
-        if user:
-            blocked_users.append(user)
-
-    return render_template("blocked_users.html", users=blocked_users)
 
 
 
@@ -1727,6 +1768,7 @@ def forgot_password():
             flash("هذا البريد الإلكتروني غير مسجل.", 'danger')
 
     return render_template('forgot_password.html')
+
 
 
 if __name__ == "__main__":

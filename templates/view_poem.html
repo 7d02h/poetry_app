@@ -1,26 +1,60 @@
 {% extends 'base.html' %}
-
-{% block title %}📖 عرض البيت الشعري{% endblock %}
+{% block title %}{{ poem.title or "بيت شعري" }}{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width: 750px;">
-  <div class="card shadow-lg border-0 rounded-4 p-4">
-    <h3 class="mb-4 text-center text-primary">✍️ البيت الشعري</h3>
+<div class="max-w-2xl mx-auto py-10 px-4">
 
-    <blockquote class="blockquote text-center fs-4 mb-4">
-      <p class="mb-0">{{ poem.content }}</p>
-    </blockquote>
-
-    <hr>
-
-    <div class="text-center text-muted">
-      <p>✒️ كتبه: <strong>{{ user.first_name }} {{ user.last_name }}</strong></p>
-      <p>🕒 بتاريخ: {{ poem.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
-    </div>
-
-    <div class="text-center mt-4">
-      <a href="{{ url_for('explore_page') }}" class="btn btn-outline-primary px-4">← العودة للاستكشاف</a>
+  <!-- اسم الكاتب وصورته -->
+  <div class="flex items-center mb-6">
+    <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image or 'default.png')) }}"
+         alt="صورة {{ user.username }}"
+         class="w-14 h-14 rounded-full object-cover shadow-sm border border-gray-300 dark:border-gray-600">
+    <div class="ml-4">
+      <h2 class="text-lg font-bold text-gray-800 dark:text-white">
+        <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
+      </h2>
+      <p class="text-sm text-gray-500 dark:text-gray-400">{{ time_ago(poem.timestamp) }}</p>
     </div>
   </div>
+
+  <!-- النص الشعري -->
+  <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+    <p class="text-xl text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-line">
+      {{ poem.content }}
+    </p>
+  </div>
+
+  <!-- أزرار التفاعل -->
+  <div class="flex items-center gap-4 mt-4">
+    <form method="POST" action="{{ url_for('like_poem', poem_id=poem.id) }}">
+      <button type="submit"
+              class="flex items-center gap-1 px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">
+        ❤️ أعجبني
+      </button>
+    </form>
+
+    <a href="#comments" class="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition">
+      💬 تعليق
+    </a>
+  </div>
+
+  <!-- قسم التعليقات -->
+  <div id="comments" class="mt-8">
+    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">التعليقات</h3>
+    {% if poem.comments %}
+      <div class="space-y-4">
+        {% for comment in poem.comments %}
+          <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
+            <strong>{{ comment.username }}</strong>
+            <p class="text-sm text-gray-700 dark:text-gray-300">{{ comment.content }}</p>
+            <span class="text-xs text-gray-500">{{ time_ago(comment.timestamp) }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-gray-500">لا توجد تعليقات بعد.</p>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}
