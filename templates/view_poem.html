@@ -1,59 +1,47 @@
 {% extends 'base.html' %}
-{% block title %}{{ poem.title or "بيت شعري" }}{% endblock %}
+{% block title %}{{ poem.title }}{% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto py-10 px-4">
+<div class="max-w-3xl mx-auto py-10 px-4">
+  
+  <!-- عنوان القصيدة -->
+  <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">{{ poem.title }}</h1>
 
-  <!-- اسم الكاتب وصورته -->
-  <div class="flex items-center mb-6">
-    <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image or 'default.png')) }}"
-         alt="صورة {{ user.username }}"
-         class="w-14 h-14 rounded-full object-cover shadow-sm border border-gray-300 dark:border-gray-600">
-    <div class="ml-4">
-      <h2 class="text-lg font-bold text-gray-800 dark:text-white">
-        <a href="{{ url_for('profile', username=user.username) }}">{{ user.username }}</a>
-      </h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400">{{ time_ago(poem.timestamp) }}</p>
-    </div>
-  </div>
-
-  <!-- النص الشعري -->
-  <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
-    <p class="text-xl text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-line">
-      {{ poem.content }}
-    </p>
-  </div>
-
-  <!-- أزرار التفاعل -->
-  <div class="flex items-center gap-4 mt-4">
-    <form method="POST" action="{{ url_for('like_poem', poem_id=poem.id) }}">
-      <button type="submit"
-              class="flex items-center gap-1 px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition">
-        ❤️ أعجبني
-      </button>
-    </form>
-
-    <a href="#comments" class="flex items-center gap-1 px-4 py-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition">
-      💬 تعليق
+  <!-- اسم الكاتب -->
+  <p class="text-gray-600 dark:text-gray-300 mb-8">
+    ✍️ بواسطة 
+    <a href="{{ url_for('profile', username=poem.author.username) }}"
+       class="text-blue-500 hover:underline">
+      {{ poem.author.username }}
     </a>
-  </div>
+    • {{ poem.timestamp.strftime('%Y-%m-%d %H:%M') }}
+  </p>
 
-  <!-- قسم التعليقات -->
-  <div id="comments" class="mt-8">
-    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">التعليقات</h3>
-    {% if poem.comments %}
-      <div class="space-y-4">
-        {% for comment in poem.comments %}
-          <div class="bg-gray-100 dark:bg-gray-800 p-3 rounded-lg">
-            <strong>{{ comment.username }}</strong>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ comment.content }}</p>
-            <span class="text-xs text-gray-500">{{ time_ago(comment.timestamp) }}</span>
-          </div>
-        {% endfor %}
+  <!-- عرض أبيات القصيدة -->
+  <div class="space-y-6">
+    {% for line in poem.lines %}
+    <div id="line-{{ line.id }}" 
+         class="p-4 rounded-lg shadow-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
+      <p class="text-lg text-gray-800 dark:text-gray-100">{{ line.text }}</p>
+
+      <!-- أزرار التفاعل -->
+      <div class="flex items-center space-x-4 rtl:space-x-reverse mt-3">
+        <!-- زر الإعجاب -->
+        <form method="POST" action="{{ url_for('like_line', line_id=line.id) }}">
+          <button type="submit" 
+                  class="flex items-center text-red-500 hover:text-red-600">
+            ❤️ <span class="ml-1">{{ line.likes|length }}</span>
+          </button>
+        </form>
+
+        <!-- زر التعليق -->
+        <a href="{{ url_for('comment_on_line', line_id=line.id) }}" 
+           class="flex items-center text-blue-500 hover:text-blue-600">
+          💬 <span class="ml-1">{{ line.comments|length }}</span>
+        </a>
       </div>
-    {% else %}
-      <p class="text-gray-500">لا توجد تعليقات بعد.</p>
-    {% endif %}
+    </div>
+    {% endfor %}
   </div>
 
 </div>

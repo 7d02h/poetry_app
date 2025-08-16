@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-4">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8 text-center">
+    <h1 class="text-4xl font-bold mb-6 text-green-600 dark:text-green-400">🎉 تم تفعيل عضويتك البريميوم!</h1>
+    <p class="text-lg mb-6 text-gray-700 dark:text-gray-300">
+      شكراً لك على دعمنا! الآن يمكنك الاستمتاع بجميع مميزات العضوية البريميوم.
+    </p>
+    <a href="{{ url_for('home') }}" 
+       class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition text-lg font-semibold">
+      العودة للرئيسية
+    </a>
+  </div>
+</div>
+{% endblock %}

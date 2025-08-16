@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-4">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">🌟 عضوية بريميوم</h1>
+    <p class="mb-4 text-gray-700 dark:text-gray-300">
+      انضم للبريميوم واستمتع بالمميزات التالية:
+    </p>
+    <ul class="list-disc list-inside mb-6 text-gray-700 dark:text-gray-300">
+      <li>✔️ استخدام أسماء مستخدمين أقل من 4 أحرف</li>
+      <li>✔️ معرفة هوية المرسل في الرسائل المجهولة</li>
+      <li>✔️ مميزات إضافية قادمة قريبًا...</li>
+    </ul>
+    <form action="{{ url_for('upgrade_premium') }}" method="post">
+      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition text-lg font-semibold">
+        قم بالترقية الآن
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

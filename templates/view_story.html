@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>عرض ستوري</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #progress-bar {
+      height: 3px;
+      background: linear-gradient(to right, #06b6d4, #3b82f6);
+      width: 0%;
+      transition: width linear;
+    }
+    .tap-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 50%;
+      z-index: 30;
+    }
+    .left-zone { left: 0; }
+    .right-zone { right: 0; }
+
+    /* قلوب الأنيميشن */
+    .heart {
+      position: absolute;
+      font-size: 14px;
+      animation: floatUp 1s ease-out forwards;
+      opacity: 0.8;
+      pointer-events: none;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-black text-white h-screen w-screen flex justify-center items-center overflow-hidden">
+
+  <div class="relative w-full h-full bg-black">
+
+    <!-- شريط التقدم -->
+    <div id="progress-bar"></div>
+
+    <!-- معلومات المستخدم -->
+    <div class="absolute top-3 left-3 flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm z-50">
+      <img src="{{ url_for('static', filename='profile_pics/' + (story.user.profile_image if story.user.profile_image else 'default.jpg')) }}"
+           alt="Profile" class="w-8 h-8 rounded-full border-2 border-white">
+      <div class="flex flex-col leading-none">
+        <span class="font-semibold text-sm">{{ story.user.username }}</span>
+        <span class="text-gray-300 text-xs">{{ time_ago_format(story.created_at) }}</span>
+      </div>
+    </div>
+
+    {% set media_file = story.media_path %}
+    {% if not media_file.startswith('uploads/stories/') %}
+      {% set media_file = 'uploads/stories/' + media_file %}
+    {% endif %}
+    {% set file_path = url_for('static', filename=media_file) %}
+
+    <!-- عرض الستوري -->
+    {% if story.media_type == 'image' %}
+      <img src="{{ file_path }}" class="w-full h-full object-contain bg-black">
+    {% elif story.media_type == 'video' %}
+      <video id="story-video" src="{{ file_path }}"
+             class="w-full h-full bg-black" autoplay muted playsinline></video>
+    {% endif %}
+
+    <!-- أزرار التفاعل -->
+    <div class="absolute bottom-5 left-0 w-full flex items-center gap-3 px-5 z-50">
+      
+      <!-- زر لايك -->
+      <button type="button"
+              class="like-story-btn text-3xl hover:scale-110 transition text-gray-500 relative"
+              data-story-id="{{ story.id }}">❤️</button>
+
+      <!-- فورم إرسال رسالة -->
+      <form id="sendMessageForm" class="flex-1 flex border border-gray-400 rounded-full bg-black/50 overflow-hidden">
+        <input type="text" id="messageInput" name="message" placeholder="أرسل رسالة..."
+               class="flex-1 bg-transparent text-white px-3 py-2 text-sm focus:outline-none">
+        <button type="submit" class="px-3 text-sm text-cyan-400 hover:text-cyan-300">إرسال</button>
+      </form>
+    </div>
+
+    <!-- مناطق التنقل -->
+    {% if prev_story_id %}
+      <a href="{{ url_for('view_story', story_id=prev_story_id) }}" class="tap-zone left-zone"></a>
+    {% endif %}
+    {% if next_story_id %}
+      <a href="{{ url_for('view_story', story_id=next_story_id) }}" class="tap-zone right-zone"></a>
+    {% endif %}
+
+  </div>
+
+<script>
+  // شريط التقدم
+  const bar = document.getElementById("progress-bar");
+  const video = document.getElementById("story-video");
+
+  if (video) {
+    video.onloadedmetadata = () => {
+      bar.style.transitionDuration = video.duration + "s";
+      setTimeout(() => bar.style.width = "100%", 50);
+    };
+  } else {
+    bar.style.transitionDuration = "5s";
+    setTimeout(() => bar.style.width = "100%", 50);
+  }
+
+  // زر اللايك مع الأنيميشن + AJAX
+  document.querySelectorAll('.like-story-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const storyId = this.dataset.storyId;
+      const isLiked = this.classList.contains('text-red-500');
+
+      fetch(`/like_story/${storyId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          if (isLiked) {
+            this.classList.remove('text-red-500');
+            this.classList.add('text-gray-500');
+          } else {
+            this.classList.remove('text-gray-500');
+            this.classList.add('text-red-500');
+            createHeartAnimation(this);
+          }
+        }
+      });
+    });
+  });
+
+  // أنيميشن القلوب
+  function createHeartAnimation(btn) {
+    for (let i = 0; i < 5; i++) {
+      const heart = document.createElement("span");
+      heart.textContent = "❤️";
+      heart.className = "heart";
+      heart.style.left = `${Math.random() * 20}px`;
+      heart.style.color = ["#ff4d4d", "#ff6666", "#ff9999"][Math.floor(Math.random()*3)];
+      btn.appendChild(heart);
+      setTimeout(() => heart.remove(), 1000);
+    }
+  }
+
+  // إرسال الرسائل AJAX
+  document.getElementById('sendMessageForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const message = document.getElementById('messageInput').value.trim();
+    if (!message) return;
+
+    fetch(`/send_message/{{ story.user.username }}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        document.getElementById('messageInput').value = '';
+        alert('تم إرسال الرسالة ✅');
+      } else {
+        alert('حدث خطأ أثناء الإرسال ❌');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

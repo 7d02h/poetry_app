@@ -25,6 +25,8 @@
                 <strong>{{ n.sender }}</strong>  
                 {% if n.type == 'like' %}  
                   <span class="text-red-500">أعجب</span> ببيتك الشعري  
+                {% elif n.type == 'like_story' %}  
+                  <span class="text-pink-500">أعجب</span> بقصتك ❤️
                 {% elif n.type == 'follow' %}  
                   <span class="text-blue-500">بدأ</span> بمتابعتك  
                 {% elif n.type == 'comment' %}  

@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 
 db = SQLAlchemy()
 
@@ -16,7 +16,12 @@ class User(db.Model):
     private = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
     verified = db.Column(db.Boolean, default=False)
-    allow_anonymous_messages = db.Column(db.Boolean, default=False)  # ✅ جديد
+    allow_anonymous_messages = db.Column(db.Boolean, default=False)
+
+    premium_until = db.Column(db.DateTime, nullable=True)
+
+    def is_premium(self):
+        return self.premium_until is not None and self.premium_until > datetime.utcnow()
 
     followers = db.relationship(
         'Follower',
@@ -25,15 +30,15 @@ class User(db.Model):
         lazy='dynamic'
     )
 
+
 class Poem(db.Model):
     __tablename__ = 'poems'
-
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     likes = db.Column(db.Integer, default=0)
     views = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.now)  # موجود مسبقًا
-    timestamp = db.Column(db.DateTime, default=datetime.now)   # ✅ العمود الجديد
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    timestamp = db.Column(db.DateTime, default=datetime.now)
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
 
 
@@ -45,13 +50,24 @@ class Follower(db.Model):
 
     user = db.relationship("User", foreign_keys=[username])
 
+class StoryLike(db.Model):
+    __tablename__ = 'story_likes'
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    username = db.Column(db.String(150), db.ForeignKey('users.username'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    story = db.relationship('Story', backref='likes', lazy=True)
+    user = db.relationship('User', lazy=True)
+
 
 class Like(db.Model):
     __tablename__ = 'likes'
     id = db.Column(db.Integer, primary_key=True)
-    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'), nullable=False)
+    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'))
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
 
+    
 
 class SavedPoem(db.Model):
     __tablename__ = 'saved_poems'
@@ -98,9 +114,10 @@ class Message(db.Model):
     message_type = db.Column(db.String(32), default='text')
     timestamp = db.Column(db.DateTime, default=datetime.now)
     is_read = db.Column(db.Boolean, default=False)
-    is_anonymous = db.Column(db.Boolean, default=False)  # ✅ جديد
+    is_anonymous = db.Column(db.Boolean, default=False)
     anonymous = db.Column(db.Boolean, default=False)
-    
+
+
 class MessageReport(db.Model):
     __tablename__ = 'message_reports'
     id = db.Column(db.Integer, primary_key=True)
@@ -113,15 +130,15 @@ class MessageReport(db.Model):
 
 class Notification(db.Model):
     __tablename__ = 'notifications'
-
     id = db.Column(db.Integer, primary_key=True)
     recipient = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     sender = db.Column(db.String(64), db.ForeignKey('users.username'))
     type = db.Column(db.String(64), nullable=False)
     content = db.Column(db.Text)
-    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'))  # العمود الجديد
+    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'))
     is_read = db.Column(db.Boolean, default=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
+
 
 class ContactMessage(db.Model):
     __tablename__ = 'contact_messages'
@@ -172,5 +189,32 @@ class FollowRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_username = db.Column(db.String(100), db.ForeignKey('users.username'), nullable=False)
     receiver_username = db.Column(db.String(100), db.ForeignKey('users.username'), nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending / accepted / rejected
+    status = db.Column(db.String(20), default='pending')
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# 🔹 جدول الستوري
+class Story(db.Model):
+    __tablename__ = 'stories'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    media_path = db.Column(db.String(255), nullable=False)  # صورة أو فيديو
+    media_type = db.Column(db.String(10), default='image')  # image / video
+    caption = db.Column(db.String(255))  # نص قصير اختياري
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(hours=24))
+    is_active = db.Column(db.Boolean, default=True)
+
+    user = db.relationship('User', backref='stories', lazy=True)
+
+
+# 🔹 جدول مشاهدات الستوري
+class StoryView(db.Model):
+    __tablename__ = 'story_views'
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    viewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    story = db.relationship('Story', backref='views', lazy=True)
+    viewer = db.relationship('User', lazy=True)

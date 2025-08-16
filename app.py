@@ -1,43 +1,40 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, has_request_context
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user, UserMixin
 from flask_babel import Babel
-from models import db, User, Ban, Notification, Message, MessageReport, ContactMessage, Poem, Settings, Follower
-# استيراد مُنظّم وواضح — عدّل الأسماء لتطابق الموجود فعلاً في user_utils.py
-from user_utils import (
-    verify_user,
-    get_user_by_username,
-    get_all_users,
-    delete_user,
-    unverify_user_by_id,
-    increase_followers_by_id
-)
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_socketio import SocketIO, emit, join_room
-from flask import has_request_context
-from datetime import datetime, timedelta
-from flask import has_request_context, session
-from models import Notification, Message  # تأكد من استيراد الموديلات
-
-from notification_utils import send_notification  
-from models import Block, Like, Report
-from sqlalchemy import or_, and_, desc
-from flask_migrate import Migrate
-from models import FollowRequest, Follower, User, Notification
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
-from flask import jsonify
+from flask_migrate import Migrate
+from models import Story, StoryView, Block
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import StoryLike
+from sqlalchemy import or_, and_, desc
 
+from datetime import datetime, timedelta
 import os
 import json
 import eventlet
 import humanize
 import re
-from user_utils import valid_username
+import stripe
+
+# استيراد الموديلات
+from models import (
+    db, User, Ban, Notification, Message, MessageReport, ContactMessage,
+    Poem, Settings, Follower, Story, Block, Like, Report, FollowRequest
+)
+
+# استيراد الدوال من user_utils.py
+from user_utils import (
+    verify_user, get_user_by_username, get_all_users, delete_user,
+    unverify_user_by_id, increase_followers_by_id, valid_username
+)
+
+# استيراد دوال الإشعارات
+from notification_utils import send_notification
 
 
 eventlet.monkey_patch()
-
 # ----------------------------- إعداد التطبيق -----------------------------
 app = Flask(__name__)
 
@@ -68,6 +65,10 @@ app.config["UPLOAD_FOLDER"] = os.path.join("static", "profile_pics")
 db.init_app(app)
 migrate = Migrate(app, db)
 
+stripe.api_key = "sk_test_your_secret_key_here"
+STRIPE_PUBLIC_KEY = "pk_test_your_public_key_here"
+
+
 # ----------------------------- اللغة -----------------------------
 babel = Babel(app)
 
@@ -88,6 +89,15 @@ def handle_join(data):
     if room:
         join_room(room)
         print(f"✅ انضم المستخدم للغرفة: {room}")
+
+# السماح فقط بالصور والفيديوهات
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi'}
+UPLOAD_FOLDER = 'static/stories'
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
 
 
 def send_notification(to_username, message, notif_type='general'):
@@ -123,6 +133,18 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def time_ago_format(timestamp):
+    diff = datetime.now() - timestamp
+    seconds = diff.total_seconds()
+    if seconds < 60:
+        return "الآن"
+    elif seconds < 3600:
+        return f"{int(seconds//60)} دقيقة"
+    elif seconds < 86400:
+        return f"{int(seconds//3600)} ساعة"
+    else:
+        return f"{int(seconds//86400)} يوم"
+
 @login_manager.user_loader
 def load_user(user_id):
     user = User.query.get(int(user_id))
@@ -143,52 +165,30 @@ def inject_blocked_users():
     return {'blocked_users_sidebar': blocked_usernames}
 
 
-def inject_navbar_counts():
-    unread_messages_count = 0
-    has_unread_notifications = False
-
-    if current_user.is_authenticated:
-        try:
-            unread_messages_count = Message.query.filter_by(
-                receiver=current_user.username,
-                is_read=False
-            ).count()
-
-            has_unread_notifications = Notification.query.filter_by(
-                recipient=current_user.username,
-                is_read=False
-            ).first() is not None
-        except Exception as e:
-            # لتفادي كسر الواجهة إذا حصلت مشكلة
-            print("خطأ أثناء جلب عدد الإشعارات أو الرسائل:", e)
-
-    return {
-        'unread_messages_count': unread_messages_count,
-        'has_unread_notifications': has_unread_notifications
-    }
-
-def inject_notifications():
-    if not has_request_context() or 'username' not in session:
+@app.context_processor
+def inject_counts():
+    if not has_request_context() or not current_user.is_authenticated:
         return {
             'notifications': [],
             'has_unread_notifications': False,
             'unread_messages_count': 0
         }
 
-    username = session['username']
+    username = current_user.username
 
     try:
+        # ✅ حساب عدد المحادثات غير المقروءة (distinct senders)
+        unread_messages_count = (
+            db.session.query(Message.sender)
+            .filter(Message.receiver == username, Message.is_read == False)
+            .distinct()
+            .count()
+        )
+
         unread_notifications = Notification.query.filter_by(
             recipient=username,
             is_read=False
         ).order_by(Notification.timestamp.desc()).all()
-
-        unread_messages_count = (
-            db.session.query(Message.sender)
-            .filter_by(recipient=username, is_read=False)
-            .distinct()
-            .count()
-        )
 
         return {
             'notifications': unread_notifications,
@@ -254,7 +254,6 @@ def check_user_ban():
             print("خطأ أثناء التحقق من الحظر:", e)
             pass
 
-
 @app.route('/')
 def home():
     if 'username' not in session:
@@ -294,7 +293,7 @@ def home():
             "views": poem.views,
             "username": author.username,
             "profile_image": author.profile_image,
-            "verified": author.verified,  # ← إضافة عمود التوثيق
+            "verified": author.verified,
             "created_at": time_ago
         })
 
@@ -320,7 +319,7 @@ def home():
             "views": poem.views,
             "username": author.username,
             "profile_image": author.profile_image,
-            "verified": author.verified,  # ← إضافة عمود التوثيق
+            "verified": author.verified,
             "created_at": time_ago
         })
 
@@ -332,12 +331,73 @@ def home():
     sidebar = Block.query.filter_by(blocker=current_username).all()
     blocked_users_sidebar = [{"username": b.blocked} for b in sidebar]
 
+    # ===================== جلب الستوريات =====================
+    # جلب قائمة المتابعين (بدون إضافة المستخدم الحالي)
+    following_users = db.session.query(Follower.followed_username)\
+        .filter_by(username=current_username).all()
+    following_list = [f.followed_username for f in following_users]
+
+    # جلب الستوريات من المتابعين فقط والتي لم تنتهي بعد
+    stories_raw = (
+        db.session.query(Story, User)
+        .join(User, Story.user_id == User.id)
+        .filter(User.username.in_(following_list))
+        .filter(Story.expires_at > datetime.utcnow())
+        .order_by(Story.created_at.desc())
+        .all()
+    )
+
+    # 📌 تجميع الستوريات حسب المستخدم
+    stories_dict = {}
+    for story, author in stories_raw:
+        if author.username not in stories_dict:
+            stories_dict[author.username] = {
+                "username": author.username,
+                "profile_image": author.profile_image,
+                "stories": []
+            }
+        stories_dict[author.username]["stories"].append({
+            "id": story.id,
+            "media_path": story.media_path,
+            "media_type": story.media_type,
+            "created_at": story.created_at
+        })
+
+    # تحويل القاموس إلى قائمة
+    stories = list(stories_dict.values())
+
+    # ✅ إضافة ستوري المستخدم الحالي بشكل منفصل
+    current_user_obj = User.query.filter_by(username=current_username).first()
+
+    has_story_flag = Story.query.filter_by(user_id=current_user_obj.id)\
+        .filter(Story.expires_at > datetime.utcnow())\
+        .count() > 0
+
+    user_story = Story.query.filter_by(user_id=current_user_obj.id)\
+        .filter(Story.expires_at > datetime.utcnow())\
+        .order_by(Story.created_at.desc())\
+        .first()
+
+    # 📌 تعديل my_story ليحتوي على الكائن user
+    my_story = {
+        "user": current_user_obj,  # الكائن User نفسه
+        "id": user_story.id if user_story else None,
+        "has_story": has_story_flag
+    }
+
+    has_stories = len(stories) > 0
+    # ==========================================================
+
     return render_template('index.html',
                            username=current_username,
                            top_poems=top_poems,
                            all_poems=all_poems,
                            user_liked=user_liked,
-                           blocked_users_sidebar=blocked_users_sidebar)
+                           blocked_users_sidebar=blocked_users_sidebar,
+                           stories=stories,
+                           my_story=my_story,
+                           has_stories=has_stories)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -375,7 +435,7 @@ def login():
 
     return render_template("login.html")
 
-# تسجيل مستخدم جديد
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
@@ -384,23 +444,30 @@ def signup():
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
 
-        # التحقق من صحة اسم المستخدم
-        if not re.match("^[A-Za-z0-9_]{4,}$", username):
-            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل وباللغة الإنجليزية فقط.")
+        # --- ⚠️ تحديد إذا هو بريميوم (حالياً False)
+        is_premium = False  # أو True لو عندك نظام تفعيل مخصص
+
+        # --- ✅ التحقق من صلاحية اسم المستخدم حسب حالة البريميوم
+        if not re.match("^[A-Za-z0-9_]+$", username):
+            flash("⚠️ اسم المستخدم يجب أن يحتوي فقط على أحرف إنجليزية أو أرقام أو شرطة سفلية.")
             return render_template("signup.html")
 
-        # التحقق من طول كلمة المرور
+        if len(username) < 4 and not is_premium:
+            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل، أو اشترك بريميوم لاستخدام اسم أقصر.")
+            return render_template("signup.html")
+
+        # --- كلمة المرور
         if len(password) < 8:
             flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
             return render_template("signup.html")
 
-        # التحقق من عدم تكرار اسم المستخدم
+        # --- هل الاسم مستخدم مسبقًا؟
         existing = User.query.filter_by(username=username).first()
         if existing:
             flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
             return render_template("signup.html")
 
-        # إنشاء المستخدم
+        # --- إنشاء الحساب
         hashed_password = generate_password_hash(password)
         user = User(
             username=username,
@@ -408,25 +475,27 @@ def signup():
             first_name=first_name,
             last_name=last_name
         )
+
+        # ✅ تفعيل البريميوم تلقائيًا لو عندك منطق لذلك
+        if is_premium:
+            user.premium_until = datetime.utcnow() + timedelta(days=30)
+
         db.session.add(user)
         db.session.commit()
 
-        # تسجيل الدخول تلقائيًا بعد التسجيل
         session["username"] = username
         flash("✅ تم إنشاء الحساب بنجاح! مرحبًا بك 🌟")
-        return redirect(url_for("home"))  # أو أي صفحة رئيسية عندك
+        return redirect(url_for("home"))
 
     return render_template("signup.html")
 
 
-
-
-# تسجيل الخروج
+# 📌 تسجيل الخروج
 @app.route("/logout")
 def logout():
-    session.pop("username", None)
+    session.clear()  # 🟢 يمسح كل بيانات الجلسة (username + أي متغيرات ثانية)
     flash("تم تسجيل الخروج.")
-    return redirect("/login")
+    return redirect(url_for("login"))
 
 @app.route("/profile/<username>", methods=["GET", "POST"])
 def public_profile(username):
@@ -556,7 +625,6 @@ def my_profile():
     return redirect(url_for("public_profile", username=session["username"]))
 
 
-# تعديل الملف الشخصي
 @app.route("/edit_profile", methods=["GET", "POST"])
 def edit_profile():
     if "username" not in session:
@@ -582,6 +650,12 @@ def edit_profile():
             if len(parts) > 1:
                 last_name = parts[1]
 
+        # 🔐 تحقق خاص بأسماء أقل من 4 أحرف
+        if len(new_username) < 4 and not user.is_premium():
+            flash("⚠️ لا يمكن استخدام اسم مستخدم أقل من 4 أحرف إلا إذا كنت مشتركًا بريميوم.")
+            return redirect(url_for("edit_profile"))
+
+        # تحقق عام لصلاحية الاسم
         if not valid_username(new_username):
             flash("⚠️ اسم المستخدم غير صالح.")
             return redirect(url_for("edit_profile"))
@@ -856,92 +930,123 @@ def unblock_user(username):
 
     return redirect(request.referrer or url_for('home'))
 
+
+
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    current_user = session['username']
+    current_user = session['username']  # نص، ليس كائن User
     anonymous_mode = request.args.get("anonymous", "0") == "1"
 
-    # التحقق من الحظر بين المستخدمين (أي جهة حظرت الأخرى)
+    # التحقق من الحظر بين المستخدمين
     blocked_entry = Block.query.filter(
         or_(
             and_(Block.blocker == current_user, Block.blocked == username),
             and_(Block.blocker == username, Block.blocked == current_user)
         )
     ).first()
-
     is_blocked = bool(blocked_entry)
 
     if is_blocked:
-        # عندما يكون محظورًا، لا نعرض المحادثة الحقيقية
         messages = []
         display_name = "User is unavailable"
         profile_visible = False
     else:
-        messages = Message.query.filter(
+        # جلب الرسائل
+        msgs = Message.query.filter(
             and_(
                 or_(
                     and_(Message.sender == current_user, Message.receiver == username),
                     and_(Message.sender == username, Message.receiver == current_user)
                 ),
-                Message.anonymous == anonymous_mode
+                Message.is_anonymous == anonymous_mode
             )
         ).order_by(Message.timestamp).all()
+
+        messages = []
+        for msg in msgs:
+            show_sender = True
+            if msg.is_anonymous:
+                sender_user = User.query.filter_by(username=msg.sender).first()
+                if sender_user and not sender_user.is_premium():
+                    show_sender = False
+            messages.append({'msg': msg, 'show_sender': show_sender})
+
         display_name = username
         profile_visible = True
 
-    return render_template("messages.html",
-                           messages=messages,
-                           is_blocked=is_blocked,
-                           current_user=current_user,
-                           anonymous_mode=anonymous_mode,
-                           display_name=display_name,
-                           profile_visible=profile_visible)
+    # 🛑 حساب عدد المحادثات غير المقروءة بدل الرسائل
+    unread_conversations_count = (
+        db.session.query(Message.sender)
+        .filter(Message.receiver == current_user, Message.is_read == False)
+        .distinct()
+        .count()
+    )
 
+    unread_notifications_count = Notification.query.filter_by(
+        recipient=current_user, is_read=False
+    ).count()
+
+    return render_template(
+        "messages.html",
+        messages=messages,
+        is_blocked=is_blocked,
+        current_user=current_user,
+        anonymous_mode=anonymous_mode,
+        display_name=display_name,
+        profile_visible=profile_visible,
+        real_username=username,  # كما طلبت
+        unread_messages_count=unread_conversations_count,  # ← صار يعرض عدد المحادثات
+        unread_notifications_count=unread_notifications_count,
+        has_unread_messages=(unread_conversations_count > 0),
+        has_unread_notifications=(unread_notifications_count > 0)
+    )
 # 📤 إرسال رسالة جديدة
 @app.route("/send_message/<username>", methods=["POST"])
 def send_message(username):
     if 'username' not in session:
         return redirect(url_for("login"))
 
-    # ✅ استدعاء دالة الإشعارات
-
     sender = session['username']
     content = request.form.get("content")
     file_path = None
 
+    # التعامل مع الملف (اختياري)
     file = request.files.get("file")
     if file and file.filename != '':
         filename = secure_filename(file.filename)
         upload_folder = os.path.join('static', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
-        file.save(os.path.join(upload_folder, filename))
+        full_path = os.path.join(upload_folder, filename)
+        file.save(full_path)
+        # نخزن المسار بالنسبة لـ static
         file_path = f"uploads/{filename}"
 
-    # ✅ قراءة خيار الإرسال كمجهول
+    # هل المستخدم أرسل الرسالة كمجهول؟
     anonymous = 'anonymous' in request.form
 
+    # جلب حساب المرسل من قاعدة البيانات
+    sender_user = User.query.filter_by(username=sender).first()
 
-
-
-    # ✅ إنشاء الرسالة مع خاصية المجهول
+    # إنشاء الرسالة
     message = Message(
         sender=sender,
         receiver=username,
         content=content,
         file_path=file_path,
-        anonymous=anonymous
+        is_anonymous=anonymous   # عمود واحد فقط بدون تكرار
     )
     db.session.add(message)
     db.session.commit()
 
-    # ✅ إرسال إشعار لحظي للمستلم
+    # إرسال إشعار للمستلم
     if username != sender:
         send_notification(username, "📨 وصلك رسالة جديدة!")
 
-    return redirect(url_for("view_messages", username=username, anonymous=int(anonymous)))
+    # نعيد التوجيه وعرض الرسائل
+    return redirect(url_for("view_messages", username=username))
 
 
 # 🚨 كود البلاغ عن محادثة
@@ -989,10 +1094,20 @@ def inbox():
         user = User.query.filter_by(username=username).first()
         if user:
             display_name = "مجهول" if anonymous else (user.first_name or user.username)
+
+            # 🔹 حساب عدد الرسائل غير المقروءة من هذا المستخدم
+            unread_count = Message.query.filter_by(
+                sender=username,
+                receiver=current_user_name,
+                is_read=False,
+                anonymous=anonymous
+            ).count()
+
             users.append({
                 "username": user.username,
                 "display_name": display_name,
-                "profile_image": user.profile_image or "default.jpg"
+                "profile_image": user.profile_image or "default.jpg",
+                "unread_count": unread_count
             })
 
     return render_template('inbox.html', users=users, anonymous=anonymous)
@@ -1141,57 +1256,67 @@ def delete_notification(notif_id):
     db.session.commit()
     return jsonify({"status": "deleted"}), 200
 
+
 @app.route("/notifications")
+@login_required
 def notifications():
-    if "username" not in session:
-        return redirect(url_for("login"))
+    notifs = Notification.query.filter_by(recipient=current_user.username)\
+                .order_by(Notification.timestamp.desc()).all()
 
-    username = session["username"]
-
-    notifs = Notification.query.filter_by(recipient=username) \
-        .order_by(Notification.timestamp.desc()) \
-        .limit(50).all()
-
-    notifications = []
-
+    notif_data = []
     for n in notifs:
         sender_user = User.query.filter_by(username=n.sender).first()
-        content_data = {}
+        sender_image = sender_user.profile_image if sender_user and sender_user.profile_image else "default.jpg"
 
-        if n.content:
-            try:
-                content_data = json.loads(n.content)
-            except json.JSONDecodeError:
-                content_data = {}
+        # تحديد الرابط حسب النوع
+        if n.type in ["like", "comment"] and n.poem_id:
+            # لو فيه line_id في content، نضيفه للرابط
+            if n.content:
+                link = url_for("poem", poem_id=n.poem_id) + f"#line-{n.content}"
+            else:
+                link = url_for("view_poem", poem_id=n.poem_id)
+        elif n.type in ["follow", "follow_request"]:
+            link = url_for("public_profile", username=n.sender)
+        else:
+            link = url_for("notifications")
 
-        notif = {
+        notif_data.append({
             "id": n.id,
             "sender": n.sender,
-            "sender_image": sender_user.profile_image if sender_user and sender_user.profile_image else "default.png",
+            "sender_image": sender_image,
             "type": n.type,
             "is_read": n.is_read,
-            "status": getattr(n, 'status', None),
-            "time_ago": time_ago(n.timestamp),
-            "link": "#"  # سنعدله حسب النوع
-        }
+            "time_ago": time_ago_format(n.timestamp),
+            "link": url_for("mark_notification_read", notif_id=n.id, next_url=link)
+        })
 
-        # تحديد الرابط مباشرة
-        if n.type in ["like", "comment"]:
-            poem_id = content_data.get("poem_id")
-            if poem_id:
-                notif["poem_id"] = poem_id
-                notif["link"] = url_for("view_poem", poem_id=poem_id)
+    return render_template("notifications.html", notifications=notif_data)
 
-        elif n.type == "follow":
-            notif["link"] = url_for("public_profile", username=n.sender)
+@app.route("/notification/read/<int:notif_id>")
+@login_required
+def mark_notification_read(notif_id):
+    notif = Notification.query.get_or_404(notif_id)
 
-        elif n.type == "follow_request":
-            notif["link"] = url_for("notifications")
+    # التحقق من ملكية الإشعار
+    if notif.recipient != current_user.username:
+        return redirect(url_for("notifications"))
 
-        notifications.append(notif)
+    # تحديث حالة القراءة
+    notif.is_read = True
+    db.session.commit()
 
-    return render_template("notifications.html", notifications=notifications)
+    # تحديد الرابط المناسب
+    if notif.type in ["like", "comment"] and notif.poem_id:
+        # لو الإشعار يخص بيت معين، نضيف line_id للعنوان
+        next_url = url_for("poem", poem_id=notif.poem_id, line_id=notif.content or None)  # نفترض notif.content فيه line_id
+        if notif.content:
+            next_url += f"#line-{notif.content}"  # عشان ينزل مباشرة للبيت
+    elif notif.type in ["follow", "follow_request"]:
+        next_url = url_for("public_profile", username=notif.sender)
+    else:
+        next_url = url_for("notifications")
 
+    return redirect(next_url)
 
 @app.route('/settings')
 def settings():
@@ -1204,14 +1329,27 @@ def settings():
 @app.route("/poem/<int:poem_id>")
 @login_required
 def view_poem(poem_id):
-    from models import Poem, User
+    from models import Poem, User, Line  # تأكد أن الموديل Line موجود
 
-    # جلب البيت الشعري
+    # جلب القصيدة
     poem = Poem.query.get_or_404(poem_id)
-    # جلب المستخدم صاحب البيت
+
+    # جلب كاتب القصيدة
     user = User.query.filter_by(username=poem.username).first()
 
-    return render_template("view_poem.html", poem=poem, user=user)
+    # جلب الأبيات المرتبطة وترتيبها
+    lines = Line.query.filter_by(poem_id=poem.id).order_by(Line.id.asc()).all()
+
+    # لو جاي من إشعار، ناخذ line_id من الرابط
+    line_id = request.args.get("line_id", type=int)
+
+    return render_template(
+        "view_poem.html",
+        poem=poem,
+        user=user,
+        lines=lines,
+        highlight_line_id=line_id  # نرسله للقالب لو نحتاج تمييز البيت
+    )
 
 @app.route('/change_password', methods=['GET', 'POST'])
 def change_password():
@@ -1769,7 +1907,295 @@ def forgot_password():
 
     return render_template('forgot_password.html')
 
+@app.route("/premium")
+def premium():
+    # تحقق إذا المستخدم مسجل دخول
+    if "username" not in session:
+        flash("يجب تسجيل الدخول أولاً.")
+        return redirect(url_for("login"))
+    
+    return render_template("premium.html")
 
+
+
+
+
+@app.route('/premium', methods=['GET', 'POST'])
+def upgrade_premium():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        try:
+            # إنشاء جلسة دفع Stripe
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'product_data': {
+                            'name': 'عضوية بريميوم',
+                            'description': 'ترقية عضوية لتفعيل مميزات البريميوم',
+                        },
+                        'unit_amount': 500,  # السعر بالسنت (5 دولار)
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=url_for('premium_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=url_for('upgrade_premium', _external=True),
+                client_reference_id=session['username'],  # نربط الدفع بالمستخدم
+            )
+            return redirect(checkout_session.url)
+        except Exception as e:
+            return str(e)
+
+    # إذا GET نعرض صفحة الاشتراك (اللي عملتها)
+    return render_template('premium.html')
+
+@app.route('/premium/success')
+def premium_success():
+    session_id = request.args.get('session_id')
+
+    if not session_id:
+        return redirect(url_for('upgrade_premium'))
+
+    # تحقق من حالة الدفع من Stripe إذا حبيت (اختياري)
+    checkout_session = stripe.checkout.Session.retrieve(session_id)
+
+    if checkout_session.payment_status == 'paid':
+        # هنا حدث بيانات العضوية في قاعدة البيانات مثلاً
+        # user = User.query.filter_by(username=session['username']).first()
+        # user.is_premium = True
+        # db.session.commit()
+
+        return render_template('premium_success.html')
+
+    return redirect(url_for('upgrade_premium'))
+
+
+# 🟢 تحديد مجلد رفع الستوري داخل static/stories
+
+
+@app.route('/upload_story', methods=['GET', 'POST'])
+@login_required
+def upload_story():
+    if request.method == 'POST':
+        file = request.files.get('file')
+
+        # التحقق من الملف
+        if not file or file.filename.strip() == "":
+            flash("⚠️ الرجاء اختيار ملف قبل الرفع", "error")
+            return redirect(url_for('upload_story'))
+
+        if not allowed_file(file.filename):
+            flash("⚠️ صيغة الملف غير مدعومة", "error")
+            return redirect(url_for('upload_story'))
+
+        # تجهيز اسم الملف والمسار
+        filename = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        filename = f"{current_user.username}_{timestamp}_{filename}"
+
+        upload_path = os.path.join(app.root_path, 'static', 'uploads', 'stories')
+        os.makedirs(upload_path, exist_ok=True)
+
+        file_path = os.path.join(upload_path, filename)
+        file.save(file_path)
+
+        # تحديد نوع الميديا
+        ext = filename.rsplit('.', 1)[-1].lower()
+        media_type = 'video' if ext in ['mp4', 'mov', 'avi', 'mkv'] else 'image'
+
+        # حفظ البيانات في قاعدة البيانات
+        new_story = Story(
+            user_id=current_user.id,
+            media_path=f"uploads/stories/{filename}",
+            media_type=media_type,
+            created_at=datetime.utcnow(),
+            expires_at=datetime.utcnow() + timedelta(hours=24)
+        )
+        db.session.add(new_story)
+        db.session.commit()
+
+        flash("✅ تم رفع الستوري بنجاح", "success")
+        return redirect(url_for('my_story', story_id=new_story.id))
+
+    return render_template('upload_story.html')
+
+
+@app.route('/story/<int:story_id>')
+@login_required
+def view_story(story_id):
+    # جلب الستوري المطلوب
+    story = Story.query.get_or_404(story_id)
+
+    # جلب قائمة الأشخاص اللي المستخدم الحالي يتابعهم
+    following_users = Follower.query.filter_by(username=current_user.username).all()
+    following_list = [f.followed_username for f in following_users]
+
+    # إضافة المستخدم الحالي لقائمة المسموحين
+    allowed_users = following_list + [current_user.username]
+
+    # التحقق أن صاحب الستوري مسموح عرضه
+    story_owner = User.query.get(story.user_id)
+    if story_owner.username not in allowed_users:
+        abort(403)
+
+    # ✅ تسجيل المشاهدة إذا لم يتم تسجيلها من قبل
+    if current_user.id != story.user_id:  # ما نسجل إذا صاحب الستوري نفسه
+        with db.session.no_autoflush:
+            existing_view = StoryView.query.filter_by(
+                story_id=story.id,
+                viewer_id=current_user.id
+            ).first()
+        if not existing_view:
+            new_view = StoryView(story_id=story.id, viewer_id=current_user.id)
+            db.session.add(new_view)
+            db.session.commit()
+
+    # جلب جميع الستوريات النشطة لصاحب الستوري الحالي
+    user_stories = (
+        Story.query.filter_by(user_id=story.user_id, is_active=True)
+        .filter(Story.expires_at > datetime.utcnow())
+        .order_by(Story.created_at.asc())
+        .all()
+    )
+
+    # استخراج ترتيب الستوري الحالي لتحديد السابق والتالي
+    story_ids = [s.id for s in user_stories]
+    current_index = story_ids.index(story.id)
+
+    prev_story_id = story_ids[current_index - 1] if current_index > 0 else None
+    next_story_id = story_ids[current_index + 1] if current_index < len(story_ids) - 1 else None
+
+    # تمرير البيانات إلى القالب
+    return render_template(
+        "view_story.html",
+        story=story,
+        prev_story_id=prev_story_id,
+        next_story_id=next_story_id,
+        time_ago_format=time_ago_format
+    )
+
+@app.route("/my_story/<int:story_id>")
+@login_required
+def my_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    # السماح فقط إذا الستوري للمستخدم الحالي
+    if story.user_id != current_user.id:
+        abort(403)
+
+    # جلب المشاهدات مع بيانات المستخدم وصورته
+    views_data = []
+    views = (
+        StoryView.query
+        .filter_by(story_id=story.id)
+        .join(User, StoryView.viewer_id == User.id)
+        .add_columns(
+            User.username.label("viewer_username"),
+            User.profile_image.label("viewer_profile_image"),
+            StoryView.viewed_at
+        )
+        .all()
+    )
+
+    for view in views:
+        viewer_username = view.viewer_username
+        viewer_profile_image = view.viewer_profile_image
+        viewed_at = view.viewed_at
+
+        # التحقق إذا المشاهد عامل لايك
+        has_liked = StoryLike.query.filter_by(
+            story_id=story.id,
+            username=viewer_username
+        ).first() is not None
+
+        views_data.append({
+            "username": viewer_username,
+            "profile_image": viewer_profile_image,
+            "viewed_at": viewed_at,
+            "has_liked": has_liked
+        })
+
+    return render_template(
+        "my_story.html",
+        story=story,
+        views_data=views_data,
+        time_since=time_ago_format(story.created_at),
+        timestamp=lambda dt: dt.strftime("%Y-%m-%d %H:%M")
+    )
+
+
+# حذف الستوري
+@app.route("/delete_story/<int:story_id>")
+@login_required
+def delete_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    if story.user_id != current_user.id:
+        abort(403)
+
+    # حذف المشاهدات المرتبطة بالستوري
+    StoryView.query.filter_by(story_id=story.id).delete()
+
+    # حذف الستوري نفسه
+    db.session.delete(story)
+    db.session.commit()
+
+    return redirect(url_for("home"))
+
+
+# حفظ الستوري
+@app.route("/save_story/<int:story_id>")
+@login_required
+def save_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    if story.user_id != current_user.id:
+        abort(403)
+
+    # هنا تحط كود الحفظ/التحميل إذا تبيه
+    return redirect(url_for("my_story", story_id=story_id))
+
+# ❤️ زر الإعجاب للستوري
+@app.route('/like_story/<int:story_id>', methods=['POST'])
+@login_required
+def like_story(story_id):
+    story = Story.query.get_or_404(story_id)
+    username = current_user.username
+
+    # تأكد أن الستوري ما انتهى
+    if story.expires_at < datetime.utcnow():
+        return jsonify({'success': False, 'message': 'انتهت صلاحية الستوري'})
+
+    # تحقق من وجود الإعجاب سابقاً باستخدام جدول StoryLike
+    existing_like = StoryLike.query.filter_by(username=username, story_id=story_id).first()
+
+    if existing_like:
+        db.session.delete(existing_like)
+    else:
+        new_like = StoryLike(username=username, story_id=story_id)
+        db.session.add(new_like)
+
+        # إشعار لحظي
+        if story.user.username != username:
+            notification = Notification(
+                recipient=story.user.username,
+                sender=username,
+                type="like_story",
+                content=f"{username} أعجب قصتك! ❤️"
+            )
+            db.session.add(notification)
+            send_notification(story.user.username, f"{username} أعجب قصتك! ❤️")
+
+    db.session.commit()
+
+    # حساب عدد اللايكات الحالي
+    total_likes = StoryLike.query.filter_by(story_id=story_id).count()
+
+    return jsonify({'success': True, 'likes': total_likes})
 
 if __name__ == "__main__":
  with app.app_context():

@@ -23,10 +23,22 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow divide-y divide-gray-200 dark:divide-gray-700">
       {% for user in users %}
         <a href="{{ url_for('view_messages', username=user.username, anonymous=anonymous|int) }}"
-           class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200">
-          <img src="{{ url_for('static', filename=user.profile_image or 'default.jpg') }}"
-               alt="صورة المستخدم"
-               class="w-12 h-12 rounded-full object-cover">
+           class="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-200 relative">
+          
+          <!-- صورة المستخدم -->
+          <div class="relative">
+            <img src="{{ url_for('static', filename=user.profile_image or 'default.jpg') }}"
+                 alt="صورة المستخدم"
+                 class="w-12 h-12 rounded-full object-cover">
+            
+            {% if user.unread_count and user.unread_count > 0 %}
+              <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">
+                {{ user.unread_count }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- اسم المستخدم -->
           <div>
             <p class="text-base font-medium dark:text-white">
               {{ user.display_name }}

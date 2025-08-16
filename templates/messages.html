@@ -30,17 +30,24 @@
 
     <!-- الرسائل -->
     <div class="p-5 h-[500px] overflow-y-auto space-y-4 bg-gray-50 dark:bg-gray-900">
-      {% for msg in messages %}
+      {% for item in messages %}
+        {% set msg = item.msg %}
         <div class="flex {% if msg.sender == current_user %}justify-end{% else %}justify-start{% endif %}">
           <div class="{% if msg.sender == current_user %}bg-blue-600 text-white{% else %}bg-white text-gray-900 border{% endif %} px-4 py-3 rounded-2xl shadow-md max-w-[75%]">
-            {% if msg.content %}
-              <p class="mb-1">{{ msg.content }}</p>
+
+            {% if msg.anonymous and not item.show_sender %}
+              <p class="mb-1 italic text-gray-400">رسالة مجهولة</p>
+            {% else %}
+              {% if msg.content %}
+                <p class="mb-1">{{ msg.content }}</p>
+              {% endif %}
+              {% if msg.file_path %}
+                <a href="{{ url_for('static', filename=msg.file_path) }}"
+                   class="block mt-1 underline {% if msg.sender == current_user %}text-blue-200{% else %}text-blue-600{% endif %}"
+                   target="_blank">📎 تحميل المرفق</a>
+              {% endif %}
             {% endif %}
-            {% if msg.file_path %}
-              <a href="{{ url_for('static', filename=msg.file_path) }}"
-                 class="block mt-1 underline {% if msg.sender == current_user %}text-blue-200{% else %}text-blue-600{% endif %}"
-                 target="_blank">📎 تحميل المرفق</a>
-            {% endif %}
+
             <div class="text-end">
               <small class="text-xs text-gray-300">{{ msg.timestamp.strftime('%H:%M') }}</small>
             </div>

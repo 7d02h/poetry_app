@@ -2,7 +2,59 @@
 {% block title %}الصفحة الرئيسية - جزيرة العرب{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 mt-10">
+
+<div class="container mx-auto px-4 mt-6">
+
+  <!-- 🔥 قسم الستوريات -->
+  <div class="flex items-center space-x-4 space-x-reverse overflow-x-auto pb-4 mb-6 border-b border-gray-300 dark:border-gray-700">
+
+    <!-- ستوري المستخدم (يظهر دائمًا) -->
+    <div class="flex flex-col items-center flex-shrink-0">
+      <div class="relative">
+        {% if my_story and my_story.has_story %}
+          <a href="{{ url_for('my_story', story_id=my_story.id) }}">
+            <div class="w-16 h-16 rounded-full p-1" style="background: linear-gradient(45deg, gold, goldenrod);">
+              <img src="{{ url_for('static', filename='profile_pics/' + (my_story.user.profile_image if my_story.user.profile_image else 'default.jpg')) }}"
+                   alt="صورة ملفك"
+                   class="w-full h-full rounded-full object-cover border-2 border-white">
+            </div>
+          </a>
+        {% else %}
+          <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_image if current_user.profile_image else 'default.jpg')) }}"
+               alt="صورة ملفك"
+               class="w-16 h-16 rounded-full border-2 border-green-500 object-cover">
+        {% endif %}
+        <!-- زر إضافة ستوري -->
+        <button onclick="document.getElementById('storyUpload').click()"
+                class="absolute bottom-0 right-0 bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm border-2 border-white">+</button>
+      </div>
+      <span class="text-xs mt-1">قصتك</span>
+    </div> 
+
+    <!-- ستوريات المتابعين (تظهر فقط إذا فيه ستوري) -->
+    {% if stories %}
+      {% for user_story in stories %}
+        {% if user_story.stories and user_story.stories[0] %}
+          <div class="flex flex-col items-center flex-shrink-0">
+            <a href="{{ url_for('view_story', story_id=user_story.stories[0].id) }}">
+              <div class="w-16 h-16 rounded-full p-1" style="background: linear-gradient(45deg, gold, goldenrod);">
+                <img src="{{ url_for('static', filename='profile_pics/' + (user_story.profile_image if user_story.profile_image else 'default.jpg')) }}"
+                     alt="{{ user_story.username }}"
+                     class="w-full h-full rounded-full object-cover border-2 border-white">
+              </div>
+            </a>
+            <span class="text-xs mt-1 truncate w-16 text-center">{{ user_story.username }}</span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+
+  </div>
+
+  <!-- رفع ستوري -->
+  <form id="storyForm" action="{{ url_for('upload_story') }}" method="POST" enctype="multipart/form-data" class="hidden">
+    <input type="file" name="story_media" id="storyUpload" accept="image/*,video/*" onchange="document.getElementById('storyForm').submit()">
+  </form>
 
   <!-- أفضل ٣ أبيات اليوم -->
   <h2 class="text-2xl font-bold text-center mb-6">🌟 أفضل ٣ أبيات اليوم</h2>
@@ -12,7 +64,7 @@
         <p class="text-lg whitespace-pre-wrap">{{ poem.text }}</p>
         <p class="text-sm text-gray-500 mt-2">{{ poem.created_at }}</p>
         <div class="flex items-center gap-2 mt-4">
-          <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"
+          <img src="{{ url_for('static', filename='profile_pics/' + (poem.profile_image if poem.profile_image else 'default.jpg')) }}"
                alt="صورة المستخدم"
                class="rounded-full w-9 h-9">
           <a href="{{ url_for('public_profile', username=poem.username) }}" class="hover:underline flex items-center gap-1">
@@ -60,7 +112,7 @@
         <p class="text-lg whitespace-pre-wrap">{{ poem.text }}</p>
         <p class="text-sm text-gray-500 mt-2">{{ poem.created_at }}</p>
         <div class="flex items-center gap-2 mt-4">
-          <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"
+          <img src="{{ url_for('static', filename='profile_pics/' + (poem.profile_image if poem.profile_image else 'default.jpg')) }}"
                alt="صورة المستخدم"
                class="rounded-full w-9 h-9">
           <a href="{{ url_for('public_profile', username=poem.username) }}" class="hover:underline flex items-center gap-1">{{ poem.username }}
@@ -75,7 +127,8 @@
           <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded">{{ poem.views or 0 }} مشاهدة</span>
           <button class="px-2 py-1 border rounded hover:bg-red-100 text-red-600 {% if poem.id in user_liked %}bg-red-100{% endif %}"
                   onclick="likePoem('{{ poem.id }}', this)">❤️ {{ poem.likes }}</button>
-          {% if poem.username == username %}<a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}" class="px-2 py-1 border rounded hover:bg-gray-100">🗑 حذف</a>
+          {% if poem.username == username %}
+            <a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}" class="px-2 py-1 border rounded hover:bg-gray-100">🗑 حذف</a>
           {% endif %}
           <button onclick="sharePoem(`{{ poem.text|tojson }}`); return false;" class="px-2 py-1 border rounded hover:bg-blue-100">📤 مشاركة</button>
           {% if poem.username != username %}
@@ -87,6 +140,7 @@
   {% else %}
     <p class="text-center text-gray-500">لا توجد أبيات منشورة بعد.</p>
   {% endif %}
+
 </div>
 
 <script>
@@ -116,4 +170,5 @@
     }
   }
 </script>
+
 {% endblock %}
