@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}قائمة الأدمن والمشرفين{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-2xl p-6">
+  <h2 class="text-2xl font-bold mb-4">🛡️ لوحة التحكم</h2>
+
+  <!-- ✅ قسم الأدمن -->
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-2">الأدمن</h3>
+    <ul class="space-y-3">
+      {% for admin in admins %}
+        <li class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+          <div class="flex items-center space-x-3 space-x-reverse">
+            <img src="{{ url_for('static', filename='uploads/' + admin.profile_image) }}"
+                 alt="profile" class="w-10 h-10 rounded-full">
+            <span class="font-semibold">{{ admin.username }}</span>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- ✅ قسم المشرفين -->
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-2">المشرفين</h3>
+    {% if moderators %}
+      <ul class="space-y-3">
+        {% for mod in moderators %}
+          <li class="flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+            <div class="flex items-center space-x-3 space-x-reverse">
+              <img src="{{ url_for('static', filename='uploads/' + mod.profile_image) }}"
+                   alt="profile" class="w-10 h-10 rounded-full">
+              <span class="font-semibold">{{ mod.username }}</span>
+            </div>
+            <!-- زر إزالة مشرف -->
+            <form method="POST" action="{{ url_for('remove_moderator', username=mod.username) }}">
+              <button type="submit"
+                class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm">
+                ❌ إزالة
+              </button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-gray-500">لا يوجد مشرفين حاليًا</p>
+    {% endif %}
+  </div>
+
+  <!-- ✅ بحث لإضافة مشرف -->
+  <div>
+    <h3 class="text-xl font-semibold mb-2">➕ إضافة مشرف</h3>
+    <form method="POST" action="{{ url_for('add_moderator') }}" class="flex space-x-2 space-x-reverse">
+      <input type="text" name="username" placeholder="أدخل اسم المستخدم"
+             class="flex-1 p-2 border rounded-lg dark:bg-gray-700 dark:text-white" required>
+      <button type="submit"
+              class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg">
+        إضافة
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

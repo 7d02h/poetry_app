@@ -9,22 +9,24 @@
     {% if followers %}
       <ul class="divide-y divide-gray-200 dark:divide-gray-700">
         {% for f in followers %}
-          <li class="flex items-center gap-4 py-4">
-            {% if f.user.profile_image %}
-              <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
-                   alt="صورة"
-                   class="w-12 h-12 rounded-full object-cover shadow">
-            {% else %}
-              <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-lg font-bold shadow">
-                {{ f.username[0]|upper }}
-              </div>
-            {% endif %}
+          {% if f.username not in blocked_users_sidebar %}  {# ✅ تحقق من الحظر #}
+            <li class="flex items-center gap-4 py-4">
+              {% if f.user.profile_image %}
+                <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
+                     alt="صورة"
+                     class="w-12 h-12 rounded-full object-cover shadow">
+              {% else %}
+                <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-lg font-bold shadow">
+                  {{ f.username[0]|upper }}
+                </div>
+              {% endif %}
 
-            <a href="{{ url_for('public_profile', username=f.username) }}"
-               class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition">
-              {{ f.username }}
-            </a>
-          </li>
+              <a href="{{ url_for('public_profile', username=f.username) }}"
+                 class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition">
+                {{ f.username }}
+              </a>
+            </li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% else %}

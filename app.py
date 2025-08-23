@@ -9,7 +9,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import StoryLike
 from sqlalchemy import or_, and_, desc
-
+from flask_login import login_required, current_user
 from datetime import datetime, timedelta
 import os
 import json
@@ -61,6 +61,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'po
 app.config["UPLOAD_FOLDER"] = "static/profile_pics"
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2MB
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "profile_pics")
+
+
+
 # ----------------------------- قاعدة البيانات -----------------------------
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -70,6 +73,16 @@ STRIPE_PUBLIC_KEY = "pk_test_your_public_key_here"
 
 
 # ----------------------------- اللغة -----------------------------
+@app.cli.command("archive_stories")
+def archive_stories():
+    expiration_time = datetime.utcnow() - timedelta(hours=24)
+    stories = Story.query.filter(Story.created_at < expiration_time, Story.is_archived == False).all()
+    for s in stories:
+        s.is_archived = True
+    db.session.commit()
+    print("✅ تم أرشفة الستوريات المنتهية")
+
+
 babel = Babel(app)
 
 @babel.localeselector
@@ -96,7 +109,6 @@ UPLOAD_FOLDER = 'static/stories'
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 
 
@@ -164,6 +176,13 @@ def inject_blocked_users():
     blocked_usernames = [entry.blocked for entry in blocked_entries]
     return {'blocked_users_sidebar': blocked_usernames}
 
+
+def is_blocked(user1, user2):
+    """يتأكد إذا في حظر بين شخصين"""
+    return Block.query.filter(
+        ((Block.blocker == user1) & (Block.blocked == user2)) |
+        ((Block.blocker == user2) & (Block.blocked == user1))
+    ).first() is not None
 
 @app.context_processor
 def inject_counts():
@@ -337,19 +356,31 @@ def home():
         .filter_by(username=current_username).all()
     following_list = [f.followed_username for f in following_users]
 
-    # جلب الستوريات من المتابعين فقط والتي لم تنتهي بعد
+    # جلب الستوريات من المتابعين فقط والتي لم تنتهي بعد (مع استثناء المحظورين)
     stories_raw = (
         db.session.query(Story, User)
         .join(User, Story.user_id == User.id)
         .filter(User.username.in_(following_list))
         .filter(Story.expires_at > datetime.utcnow())
+        .filter(~User.username.in_(
+            db.session.query(Block.blocked).filter(Block.blocker == current_username)
+        ))
+        .filter(~User.username.in_(
+            db.session.query(Block.blocker).filter(Block.blocked == current_username)
+        ))
         .order_by(Story.created_at.desc())
         .all()
     )
 
-    # 📌 تجميع الستوريات حسب المستخدم
+    # 📌 تجميع الستوريات حسب المستخدم + حالة المشاهدة
+    current_user_obj = User.query.filter_by(username=current_username).first()
     stories_dict = {}
     for story, author in stories_raw:
+        viewed = StoryView.query.filter_by(
+            story_id=story.id,
+            viewer_id=current_user_obj.id
+        ).first() is not None
+
         if author.username not in stories_dict:
             stories_dict[author.username] = {
                 "username": author.username,
@@ -360,15 +391,14 @@ def home():
             "id": story.id,
             "media_path": story.media_path,
             "media_type": story.media_type,
-            "created_at": story.created_at
+            "created_at": story.created_at,
+            "is_viewed": viewed
         })
 
     # تحويل القاموس إلى قائمة
     stories = list(stories_dict.values())
 
     # ✅ إضافة ستوري المستخدم الحالي بشكل منفصل
-    current_user_obj = User.query.filter_by(username=current_username).first()
-
     has_story_flag = Story.query.filter_by(user_id=current_user_obj.id)\
         .filter(Story.expires_at > datetime.utcnow())\
         .count() > 0
@@ -378,11 +408,19 @@ def home():
         .order_by(Story.created_at.desc())\
         .first()
 
-    # 📌 تعديل my_story ليحتوي على الكائن user
+    viewed = None
+    if user_story:
+        viewed = StoryView.query.filter_by(
+            story_id=user_story.id,
+            viewer_id=current_user_obj.id
+        ).first() is not None
+
+    # 📌 تعديل my_story ليحتوي على حالة المشاهدة
     my_story = {
-        "user": current_user_obj,  # الكائن User نفسه
+        "user": current_user_obj,
         "id": user_story.id if user_story else None,
-        "has_story": has_story_flag
+        "has_story": has_story_flag,
+        "is_viewed": viewed
     }
 
     has_stories = len(stories) > 0
@@ -497,6 +535,7 @@ def logout():
     flash("تم تسجيل الخروج.")
     return redirect(url_for("login"))
 
+
 @app.route("/profile/<username>", methods=["GET", "POST"])
 def public_profile(username):
     current_user = session.get("username")
@@ -608,15 +647,26 @@ def public_profile(username):
     total_likes = db.session.query(db.func.sum(Poem.likes))\
                             .filter_by(username=username).scalar() or 0
 
+    # ===================== جلب ستوري المستخدم =====================
+    current_user_obj = User.query.filter_by(username=username).first()
+    profile_story_obj = Story.query.filter_by(user_id=current_user_obj.id)\
+                                   .filter(Story.expires_at > datetime.utcnow())\
+                                   .order_by(Story.created_at.desc())\
+                                   .first()
+    has_story = profile_story_obj is not None
+
     return render_template("profile.html",
-                           user=user,user_poems=user_poems,
+                           user=user,
+                           user_poems=user_poems,
                            total_likes=total_likes,
                            followers_count=followers_count,
                            followers=followers,
                            is_following=is_following,
                            current_user=current_user,
                            blocked=blocked,
-                           follow_request_sent=follow_request_sent)
+                           follow_request_sent=follow_request_sent,
+                           has_story=has_story,
+                           profile_story=profile_story_obj)
 
 @app.route("/profile")
 def my_profile():
@@ -696,42 +746,8 @@ def edit_profile():
                            profile_pic=user.profile_image or "default.jpg")
 
 
-# ✅ متابعة مستخدم
-@app.route('/follow', methods=['POST'])
-@login_required
-def follow():
-    target_user = request.form.get('target_user')
-    current_username = current_user.username  # استخدم Flask-Login بدلًا من session مباشرة
 
-    # التأكد من أن المستخدم لا يتابع نفسه
-    if target_user and target_user != current_username:
-        exists = Follower.query.filter_by(username=current_username, followed_username=target_user).first()
 
-        if not exists:
-            # إنشاء علاقة المتابعة
-            follow_relation = Follower(username=current_username, followed_username=target_user)
-            db.session.add(follow_relation)
-
-            # إنشاء إشعار في قاعدة البيانات
-            notification = Notification(
-                recipient=target_user,
-                sender=current_username,
-                type="follow",
-                content=f"{current_username} بدأ متابعتك!"
-            )
-            db.session.add(notification)
-
-            # إرسال الإشعار اللحظي عبر Socket.IO
-            send_notification(target_user, f"{current_username} بدأ متابعتك! 👥")
-
-            db.session.commit()
-            flash(f'تمت متابعة {target_user} بنجاح ✅', 'success')
-        else:
-            flash(f'أنت تتابع {target_user} بالفعل.', 'info')
-    else:
-        flash('❌ لا يمكن متابعة نفسك أو مدخل غير صالح.', 'danger')
-
-    return redirect(request.referrer or url_for('search'))
 
 # البحث عن مستخدمين
 @app.route('/search', methods=['GET', 'POST'])
@@ -740,8 +756,14 @@ def search():
         flash('يجب تسجيل الدخول أولاً', 'warning')
         return redirect(url_for('login'))
 
+    current_username = session['username']
     results = None
     keyword = ''
+
+    # 📌 جيب المحظورين
+    blocked_by_me = db.session.query(Block.blocked).filter_by(blocker=current_username).all()
+    blocked_me = db.session.query(Block.blocker).filter_by(blocked=current_username).all()
+    blocked_users = [u for (u,) in blocked_by_me] + [u for (u,) in blocked_me]
 
     if request.method == 'POST':
         keyword = request.form.get('keyword', '').strip()
@@ -752,21 +774,52 @@ def search():
                     User.first_name.ilike(f"%{keyword}%"),
                     User.last_name.ilike(f"%{keyword}%")
                 )
-            ).all()
+            ).filter(~User.username.in_(blocked_users))  # 🚫 استثناء المحظورين
+            results = results.all()
 
-    return render_template('search.html', results=results, current_user=session.get('username'))
+            # ✅ أضف is_following لكل مستخدم
+            final_results = []
+            for user in results:
+                is_following = Follower.query.filter_by(
+                    username=current_username,
+                    followed_username=user.username
+                ).first() is not None
 
-from flask_login import login_required, current_user
+                final_results.append({
+                    "username": user.username,
+                    "first_name": user.first_name,
+                    "last_name": user.last_name,
+                    "profile_image": user.profile_image,
+                    "verified": user.verified,
+                    "is_following": is_following
+                })
+            results = final_results
+
+    return render_template(
+        'search.html',
+        results=results,
+        current_user=current_username,
+        blocked_users_sidebar=blocked_users
+    )
+
 
 @app.route('/explore')
 @login_required
 def explore_page():
-    current_username = current_user.username  # استخدم Flask-Login
+    current_username = current_user.username  # Flask-Login
 
-    # ✅ الأبيات الأكثر إعجابًا (مع التحقق من حالة التوثيق)
+    # 📌 جيب المحظورين (أنا حاظرهم + هم حاجزيني)
+    blocked_by_me = db.session.query(Block.blocked).filter_by(blocker=current_username).all()
+    blocked_me = db.session.query(Block.blocker).filter_by(blocked=current_username).all()
+
+    # حوّل الـ tuples لقائمة أسماء
+    blocked_users = [u for (u,) in blocked_by_me] + [u for (u,) in blocked_me]
+
+    # ✅ الأبيات الأكثر إعجابًا (مع التحقق من حالة التوثيق) مع فلترة المحظورين
     top_poems_query = (
         db.session.query(Poem, User.profile_image, User.verified)
         .join(User, Poem.username == User.username)
+        .filter(~Poem.username.in_(blocked_users))   # 🚫 استثناء المحظورين
         .order_by(Poem.likes.desc())
         .limit(10)
         .all()
@@ -781,11 +834,11 @@ def explore_page():
             'views': poem.views,
             'username': poem.username,
             'profile_image': profile_image,
-            'verified': verified,  # ✅ إضافة حالة التوثيق
+            'verified': verified,
             'created_ago': time_ago(poem.created_at)
         })
 
-    # ✅ المستخدمون المقترحون (مع التحقق من حالة التوثيق)
+    # ✅ المستخدمون المقترحون (مع التحقق من حالة التوثيق) مع فلترة المحظورين
     followed_subquery = (
         db.session.query(Follower.followed_username)
         .filter(Follower.username == current_username)
@@ -795,6 +848,7 @@ def explore_page():
         db.session.query(User.username, User.first_name, User.last_name, User.profile_image, User.verified)
         .filter(User.username != current_username)
         .filter(~User.username.in_(followed_subquery))
+        .filter(~User.username.in_(blocked_users))   # 🚫 استثناء المحظورين
         .limit(5)
         .all()
     )
@@ -806,7 +860,7 @@ def explore_page():
             'first_name': first_name,
             'last_name': last_name,
             'profile_image': profile_image,
-            'verified': verified  # ✅ إضافة حالة التوثيق
+            'verified': verified
         })
 
     # ✅ الأبيات التي أعجب بها المستخدم
@@ -822,7 +876,8 @@ def explore_page():
         'explore.html',
         top_poems=top_poems,
         suggested_users=suggested_users_list,
-        user_liked=liked_poems_ids
+        user_liked=liked_poems_ids,
+        blocked_users_sidebar=blocked_users  # 🔑 عشان كمان القالب يستعمله
     )
 
 # ✅ تعديل عدد اللايكات (للمسؤول فقط)
@@ -908,6 +963,7 @@ def block_user(username):
         flash("❌ لا يمكنك حظر نفسك.", "danger")
         return redirect(request.referrer or url_for('explore_page'))
 
+    # تحقق إذا فيه حظر سابق
     block = Block.query.filter_by(blocker=current_user, blocked=username).first()
     if not block:
         db.session.add(Block(blocker=current_user, blocked=username))
@@ -915,6 +971,7 @@ def block_user(username):
 
     flash(f"🚫 تم حظر {username}.", "info")
     return redirect(request.referrer or url_for('explore_page'))
+
 
 # 🔓 إلغاء الحظر
 @app.route('/unblock/<username>', methods=['POST'])
@@ -927,8 +984,9 @@ def unblock_user(username):
     if block:
         db.session.delete(block)
         db.session.commit()
+        flash(f"✅ تم إلغاء الحظر عن {username}.", "success")
 
-    return redirect(request.referrer or url_for('home'))
+    return redirect(request.referrer or url_for('blocked_users'))
 
 
 
@@ -1112,46 +1170,68 @@ def inbox():
 
     return render_template('inbox.html', users=users, anonymous=anonymous)
 
-@app.route("/unfollow/<username>")
-def unfollow(username):
-    if "username" not in session:
-        flash("يجب تسجيل الدخول أولاً.")
-        return redirect("/login")
+@app.route('/follow', methods=['POST'])
+@login_required
+def follow():
+    target_user = request.form.get('target_user')
+    current_username = current_user.username
 
-    from models import Follower
-    try:
-        Follower.query.filter_by(
-            username=session["username"],
-            followed_username=username
-        ).delete()
-        db.session.commit()
-        flash("تم إلغاء المتابعة.")
-        return redirect(url_for("public_profile", username=username))
+    if target_user and target_user != current_username:
+        blocked = Block.query.filter(
+            or_(
+                (Block.blocker == current_username) & (Block.blocked == target_user),
+                (Block.blocker == target_user) & (Block.blocked == current_username)
+            )
+        ).first()
 
-    except Exception as e:
-        db.session.rollback()
-        print("Error in /unfollow route:", e)
-        return "حدث خطأ في السيرفر.", 500
+        if blocked:
+            exists = Follower.query.filter_by(username=current_username, followed_username=target_user).first()
+            if exists:
+                db.session.delete(exists)
+                db.session.commit()
+            if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": False, "blocked": True})
+            flash("❌ لا يمكنك متابعة هذا المستخدم (محظور).", "danger")
+            return redirect(request.referrer or url_for('search'))
+
+        exists = Follower.query.filter_by(username=current_username, followed_username=target_user).first()
+
+        if exists:
+            db.session.delete(exists)
+            db.session.commit()
+            if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": True, "following": False})
+            flash(f'🚫 ألغيت متابعة {target_user}.', 'warning')
+        else:
+            follow_relation = Follower(username=current_username, followed_username=target_user)
+            db.session.add(follow_relation)
+
+            notification = Notification(
+                recipient=target_user,
+                sender=current_username,
+                type="follow",
+                content=f"{current_username} بدأ متابعتك!"
+            )
+            db.session.add(notification)
+
+            send_notification(target_user, f"{current_username} بدأ متابعتك! 👥")
+
+            db.session.commit()
+            if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return jsonify({"success": True, "following": True})
+            flash(f'تمت متابعة {target_user} بنجاح ✅', 'success')
+    else:
+        if request.is_json or request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({"success": False, "error": "invalid"})
+        flash('❌ لا يمكن متابعة نفسك أو مدخل غير صالح.', 'danger')
+
+    return redirect(request.referrer or url_for('search'))
 
 
 
 
 
-@app.route("/blocked_users")
-def blocked_users():
-    if "username" not in session:
-        return redirect(url_for("login"))
 
-    current_username = session["username"]
-    blocks = Block.query.filter_by(blocker=current_username).all()
-
-    blocked_users = []
-    for entry in blocks:
-        user = User.query.filter_by(username=entry.blocked).first()
-        if user:
-            blocked_users.append(user)
-
-    return render_template("blocked_users.html", users=blocked_users)
 
 
 
@@ -1830,11 +1910,6 @@ def accept_terms():
         return redirect(url_for("home"))
     return render_template("terms.html")
 
-@app.route("/followers/<username>")
-def followers_page(username):
-    user = User.query.filter_by(username=username).first_or_404()
-    followers = Follower.query.filter_by(followed_username=username).all()
-    return render_template("followers_page.html", user=user, followers=followers)
 
 
 @app.route("/report/<username>")
@@ -1842,7 +1917,32 @@ def report_user(username):
     flash(f"تم إرسال بلاغ ضد المستخدم {username}", "warning")
     return redirect(url_for("public_profile", username=username))
 
+@app.route("/followers/<username>")
+def followers_page(username):
+    user = User.query.filter_by(username=username).first_or_404()
 
+    current_username = session.get("username")
+
+    # جلب كل المتابعين
+    followers_raw = (
+        db.session.query(Follower, User)
+        .join(User, Follower.username == User.username)
+        .filter(Follower.followed_username == username)
+        .all()
+    )
+
+    followers = []
+    for follower, follower_user in followers_raw:
+        blocked = Block.query.filter(
+            or_(
+                (Block.blocker == current_username) & (Block.blocked == follower_user.username),
+                (Block.blocker == follower_user.username) & (Block.blocked == current_username)
+            )
+        ).first()
+        if not blocked:
+            followers.append(follower)
+
+    return render_template("followers_page.html", user=user, followers=followers)
 
 
 # لما أحد يرسل رسالة:
@@ -1860,7 +1960,81 @@ def handle_send_message(data):
     }, room=receiver)
 
 
+# ✅ إزالة أدمن
+@app.route('/remove_admin/<username>', methods=['POST'])
+@login_required
+def remove_admin(username):
+    if not current_user.is_admin:
+        flash("❌ غير مسموح لك.", "danger")
+        return redirect(url_for("home"))
 
+    user = User.query.filter_by(username=username, is_admin=True).first()
+    if user:
+        if user.username != current_user.username:  # ما تزيل نفسك
+            user.is_admin = False
+            db.session.commit()
+            flash(f"تم إزالة {username} من الأدمن ✅", "success")
+        else:
+            flash("❌ لا يمكنك إزالة نفسك", "danger")
+    else:
+        flash("❌ المستخدم غير موجود أو مش أدمن", "danger")
+
+    return redirect(url_for("admin_list"))
+
+
+# ✅ قائمة الأدمن + المشرفين
+@app.route('/admin_list')
+@login_required
+def admin_list():
+    if not current_user.is_admin:
+        flash("❌ غير مسموح لك بالدخول هنا", "danger")
+        return redirect(url_for("home"))
+
+    admins = User.query.filter_by(is_admin=True).all()
+    moderators = User.query.filter_by(is_moderator=True).all()
+
+    return render_template("admin_list.html", admins=admins, moderators=moderators)
+
+
+@app.route('/add_moderator', methods=['POST'])
+@login_required
+def add_moderator():
+    if not current_user.is_admin:
+        flash("❌ غير مسموح لك.", "danger")
+        return redirect(url_for("home"))
+
+    username = request.form.get("username")
+    user = User.query.filter_by(username=username).first()
+    if user:
+        if not user.is_admin and not user.is_moderator:
+            user.is_moderator = True
+            db.session.commit()
+            flash(f"تمت إضافة {username} كمشرف ✅", "success")
+        else:
+            flash("❌ هذا المستخدم أدمن أو مشرف بالفعل", "danger")
+    else:
+        flash("❌ المستخدم غير موجود", "danger")
+
+    return redirect(url_for("admin_list"))
+
+
+# ✅ إزالة مشرف
+@app.route('/remove_moderator/<username>', methods=['POST'])
+@login_required
+def remove_moderator(username):
+    if not current_user.is_admin:
+        flash("❌ غير مسموح لك.", "danger")
+        return redirect(url_for("home"))
+
+    user = User.query.filter_by(username=username, is_moderator=True).first()
+    if user:
+        user.is_moderator = False
+        db.session.commit()
+        flash(f"تمت إزالة {username} من المشرفين ✅", "success")
+    else:
+        flash("❌ المستخدم غير موجود أو مش مشرف", "danger")
+
+    return redirect(url_for("admin_list"))
 
 
 
@@ -2019,7 +2193,7 @@ def upload_story():
         db.session.commit()
 
         flash("✅ تم رفع الستوري بنجاح", "success")
-        return redirect(url_for('my_story', story_id=new_story.id))
+        return redirect(url_for('my_stories', story_id=new_story.id))
 
     return render_template('upload_story.html')
 
@@ -2062,89 +2236,89 @@ def view_story(story_id):
         .all()
     )
 
-    # استخراج ترتيب الستوري الحالي لتحديد السابق والتالي
+    # استخراج ترتيب الستوري الحالي
     story_ids = [s.id for s in user_stories]
     current_index = story_ids.index(story.id)
 
-    prev_story_id = story_ids[current_index - 1] if current_index > 0 else None
-    next_story_id = story_ids[current_index + 1] if current_index < len(story_ids) - 1 else None
-
-    # تمرير البيانات إلى القالب
     return render_template(
         "view_story.html",
-        story=story,
-        prev_story_id=prev_story_id,
-        next_story_id=next_story_id,
+        stories=user_stories,   # ✅ بدال story واحد، نرسل كل ستورياته
+        current_index=current_index,  # عشان يبدأ من الستوري اللي اختاره
         time_ago_format=time_ago_format
     )
 
-@app.route("/my_story/<int:story_id>")
+@app.route("/my_stories")
 @login_required
-def my_story(story_id):
-    story = Story.query.get_or_404(story_id)
-
-    # السماح فقط إذا الستوري للمستخدم الحالي
-    if story.user_id != current_user.id:
-        abort(403)
-
-    # جلب المشاهدات مع بيانات المستخدم وصورته
-    views_data = []
-    views = (
-        StoryView.query
-        .filter_by(story_id=story.id)
-        .join(User, StoryView.viewer_id == User.id)
-        .add_columns(
-            User.username.label("viewer_username"),
-            User.profile_image.label("viewer_profile_image"),
-            StoryView.viewed_at
+def my_stories():
+    # فلترة: ستوري غير منتهية + فعالة + مش مؤرشفة
+    stories = (
+        Story.query
+        .filter(
+            Story.user_id == current_user.id,
+            Story.is_active == True,
+            Story.is_archived == False,
+            Story.expires_at > datetime.utcnow()
         )
+        .order_by(Story.created_at.asc())
         .all()
     )
 
-    for view in views:
-        viewer_username = view.viewer_username
-        viewer_profile_image = view.viewer_profile_image
-        viewed_at = view.viewed_at
+    stories_data = []
+    for story in stories:
+        # كل المشاهدين
+        views = (
+            StoryView.query
+            .filter_by(story_id=story.id)
+            .join(User, StoryView.viewer_id == User.id)
+            .add_columns(
+                User.username.label("viewer_username"),
+                User.profile_image.label("viewer_profile_image"),
+                StoryView.viewed_at
+            )
+            .all()
+        )
 
-        # التحقق إذا المشاهد عامل لايك
-        has_liked = StoryLike.query.filter_by(
+        views_data = []
+        for view in views:
+            has_liked = StoryLike.query.filter_by(
+                story_id=story.id,
+                username=view.viewer_username
+            ).first() is not None
+
+            views_data.append({
+                "username": view.viewer_username,
+                "profile_image": view.viewer_profile_image,
+                "viewed_at": view.viewed_at,
+                "has_liked": has_liked
+            })
+
+        # 👇 إضافة فلاغ هل المستخدم الحالي شاف أو عمل لايك على الستوري
+        is_viewed = StoryView.query.filter_by(
             story_id=story.id,
-            username=viewer_username
+            viewer_id=current_user.id
         ).first() is not None
 
-        views_data.append({
-            "username": viewer_username,
-            "profile_image": viewer_profile_image,
-            "viewed_at": viewed_at,
-            "has_liked": has_liked
+        is_liked = StoryLike.query.filter_by(
+            story_id=story.id,
+            username=current_user.username
+        ).first() is not None
+
+        stories_data.append({
+            "story": story,
+            "views": views_data,
+            "likes_count": StoryLike.query.filter_by(story_id=story.id).count(),
+            "is_viewed": is_viewed,   # ✅ جديد
+            "is_liked": is_liked      # ✅ جديد
         })
 
     return render_template(
         "my_story.html",
-        story=story,
-        views_data=views_data,
-        time_since=time_ago_format(story.created_at),
-        timestamp=lambda dt: dt.strftime("%Y-%m-%d %H:%M")
+        stories_data=stories_data,
+        time_since=time_ago_format
     )
 
 
-# حذف الستوري
-@app.route("/delete_story/<int:story_id>")
-@login_required
-def delete_story(story_id):
-    story = Story.query.get_or_404(story_id)
 
-    if story.user_id != current_user.id:
-        abort(403)
-
-    # حذف المشاهدات المرتبطة بالستوري
-    StoryView.query.filter_by(story_id=story.id).delete()
-
-    # حذف الستوري نفسه
-    db.session.delete(story)
-    db.session.commit()
-
-    return redirect(url_for("home"))
 
 
 # حفظ الستوري
@@ -2196,6 +2370,143 @@ def like_story(story_id):
     total_likes = StoryLike.query.filter_by(story_id=story_id).count()
 
     return jsonify({'success': True, 'likes': total_likes})
+
+@app.route("/blocked_users")
+@login_required
+def blocked_users():
+    # نجيب كل السجلات من جدول Block للمستخدم الحالي
+    blocked_records = Block.query.filter_by(blocker=current_user.username).all()
+
+    # نستخرج معلومات الأشخاص المحظورين من جدول users
+    blocked_users_list = []
+    for record in blocked_records:
+        user = User.query.filter_by(username=record.blocked).first()
+        if user:
+            blocked_users_list.append(user)
+
+    return render_template("blocked_users.html", users=blocked_users_list)
+
+# ♻️ استرجاع بيت
+@app.route("/restore/poem/<int:poem_id>", methods=["POST"])
+@login_required
+def restore_poem(poem_id):
+    poem = Poem.query.get_or_404(poem_id)
+
+    if poem.username != current_user.username:
+        return "❌ غير مسموح", 403
+
+    poem.is_archived = False
+    poem.archived_at = None
+    db.session.commit()
+
+    return redirect(url_for("archive_page"))
+
+
+# 🗑️ حذف بيت
+@app.route("/delete/poem/<int:poem_id>", methods=["POST"])
+@login_required
+def delete_poem(poem_id):
+    poem = Poem.query.get_or_404(poem_id)
+
+    if poem.username != current_user.username:
+        return "❌ غير مسموح", 403
+
+    db.session.delete(poem)
+    db.session.commit()
+
+    return redirect(url_for("archive_page"))
+
+
+# ♻️ استرجاع ستوري
+@app.route("/restore/story/<int:story_id>", methods=["POST"])
+@login_required
+def restore_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    if story.user_id != current_user.id:
+        return "❌ غير مسموح", 403
+
+    story.is_archived = False
+    story.archived_at = None
+    db.session.commit()
+
+    return redirect(url_for("archive_page"))
+
+
+# 🗑️ حذف ستوري
+@app.route("/delete/story/<int:story_id>", methods=["POST"])
+@login_required
+def delete_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    if story.user_id != current_user.id:
+        return "❌ غير مسموح", 403
+
+    db.session.delete(story)
+    db.session.commit()
+
+    return redirect(url_for("archive_page"))
+
+# 📜 أرشفة بيت
+@app.route("/archive/poem/<int:poem_id>", methods=["POST"])
+@login_required
+def archive_poem(poem_id):
+    poem = Poem.query.get_or_404(poem_id)
+
+    # التحقق إن البيت للمستخدم الحالي
+    if poem.username != current_user.username:
+        return "❌ غير مسموح", 403
+
+    poem.is_archived = True
+    poem.archived_at = datetime.utcnow()  # وقت الأرشفة
+    db.session.commit()
+
+    return redirect(url_for("public_profile", username=current_user.username))
+
+
+
+# 🎥 أرشفة ستوري
+@app.route("/archive/story/<int:story_id>", methods=["POST"])
+@login_required
+def archive_story(story_id):
+    story = Story.query.get_or_404(story_id)
+
+    # التحقق إن الستوري للمستخدم الحالي
+    if story.user_id != current_user.id:
+        return "❌ غير مسموح", 403
+
+    story.is_archived = True
+    story.archived_at = datetime.utcnow()  # وقت الأرشفة
+    db.session.commit()
+
+    return redirect(url_for("archive_page"))
+
+# 📦 صفحة الأرشيف
+@app.route("/archive")
+@login_required
+def archive_page():
+    # الأبيات المؤرشفة
+    archived_poems = Poem.query.filter_by(
+        username=current_user.username, is_archived=True
+    ).all()
+
+    # الستوري المؤرشفة
+    archived_stories = Story.query.filter_by(
+        user_id=current_user.id, is_archived=True
+    ).all()
+
+    return render_template(
+        "archive.html",
+        poems=archived_poems,
+        stories=archived_stories
+    )
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
  with app.app_context():

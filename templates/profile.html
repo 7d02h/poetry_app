@@ -25,18 +25,58 @@
       </div>
     {% endif %}
 
-    <!-- صورة المستخدم -->
+    <!-- صورة المستخدم + الستوري -->
     <div class="flex justify-center">
-      {% if user.profile_image %}
-        <img src="{{ url_for('static', filename='profile_pics/' + user.profile_image) }}"
-             class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
-             alt="الصورة الشخصية">
-      {% else %}
-        <div class="w-28 h-28 rounded-full bg-gray-300 dark:bg-gray-700 text-white flex items-center justify-center text-4xl font-bold shadow">
-          {{ user.username[0]|upper }}
-        </div>
-      {% endif %}
+      <div class="relative">
+        {% if has_story %}
+          {% if is_my_profile %}
+            <!-- ✅ لو على ملفي الشخصي يفتح ماي ستوريز -->
+            <a href="{{ url_for('my_stories') }}">
+              <div class="w-28 h-28 rounded-full p-1"
+                   style="background: linear-gradient(45deg, gold, goldenrod);">
+                <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user.profile_image else 'default.jpg')) }}"
+                     class="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
+                     alt="الصورة الشخصية">
+              </div>
+            </a>
+          {% else %}
+            <!-- ✅ لو على ملف شخص ثاني يفتح فيو ستوري -->
+            <a href="{{ url_for('view_story', story_id=profile_story.id) }}">
+              <div class="w-28 h-28 rounded-full p-1"
+                   style="background: linear-gradient(45deg, gold, goldenrod);">
+                <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user.profile_image else 'default.jpg')) }}"
+                     class="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
+                     alt="الصورة الشخصية">
+              </div>
+            </a>
+          {% endif %}
+        {% else %}
+          <!-- ما عنده ستوري -->
+          {% if user.profile_image %}
+            <img src="{{ url_for('static', filename='profile_pics/' + user.profile_image) }}"
+                 class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
+                 alt="الصورة الشخصية">
+          {% else %}
+            <div class="w-28 h-28 rounded-full bg-gray-300 dark:bg-gray-700 text-white flex items-center justify-center text-4xl font-bold shadow">
+              {{ user.username[0]|upper }}
+            </div>
+          {% endif %}
+        {% endif %}
+
+        {% if is_my_profile %}
+          <!-- زر إضافة ستوري -->
+          <button onclick="document.getElementById('storyUpload').click()"
+                  class="absolute bottom-0 right-0 bg-green-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm border-2 border-white">+</button>
+        {% endif %}
+      </div>
     </div>
+    {% if is_my_profile %}
+      <!-- رفع ستوري (مخفي) -->
+      <form id="storyForm" action="{{ url_for('upload_story') }}" method="POST" enctype="multipart/form-data" class="hidden">
+        <input type="file" name="story_media" id="storyUpload" accept="image/*,video/*"
+               onchange="document.getElementById('storyForm').submit()">
+      </form>
+    {% endif %}
 
     <!-- الاسم و التوثيق -->
     <div class="text-center mt-4">
@@ -78,7 +118,7 @@
       {% if user.private and not is_following and not is_my_profile %}
         <div class="text-yellow-600 font-medium">🔒 هذا الحساب خاص</div>
         
-{% if not follow_request_sent %}
+        {% if not follow_request_sent %}
           <form method="POST">
             <button type="submit" name="action" value="follow" class="mt-3 bg-yellow-500 text-white px-5 py-2 rounded-full hover:bg-yellow-600 transition">
               طلب متابعة
@@ -114,6 +154,5 @@
       </div>
     {% endif %}
 
-  </div>
-</div>
+
 {% endblock %}

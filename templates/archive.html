@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-3xl mx-auto mt-10 p-6 bg-white dark:bg-gray-900 rounded-2xl shadow">
+  <h2 class="text-2xl font-bold mb-6">📦 أرشيفي</h2>
+
+  <!-- قسم الأبيات -->
+  <h3 class="text-xl font-semibold mb-3">📜 الأبيات</h3>
+  {% if poems %}
+    <ul class="space-y-3">
+      {% for poem in poems %}
+        <li class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          {{ poem.content }}
+
+          <!-- زر استرجاع -->
+          <form method="POST" action="{{ url_for('restore_poem', poem_id=poem.id) }}" class="inline">
+            <button type="submit" class="ml-2 text-green-600">♻️ استرجاع</button>
+          </form>
+
+          <!-- زر حذف -->
+          <form method="POST" action="{{ url_for('delete_poem', poem_id=poem.id) }}" class="inline">
+            <button type="submit" class="ml-2 text-red-600">🗑️ حذف</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">لا توجد أبيات مؤرشفة.</p>
+  {% endif %}
+
+  <!-- قسم الستوريات -->
+  <h3 class="text-xl font-semibold mb-3 mt-6">📖 الستوريات</h3>
+  {% if stories %}
+    <ul class="space-y-3">
+      {% for story in stories %}
+        <li class="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          {{ story.content }}
+
+          <!-- زر استرجاع -->
+          <form method="POST" action="{{ url_for('restore_story', story_id=story.id) }}" class="inline">
+            <button type="submit" class="ml-2 text-green-600">♻️ استرجاع</button>
+          </form>
+
+          <!-- زر حذف -->
+          <form method="POST" action="{{ url_for('delete_story', story_id=story.id) }}" class="inline">
+            <button type="submit" class="ml-2 text-red-600">🗑️ حذف</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-gray-500">لا توجد ستوريات مؤرشفة.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,55 +1,109 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto py-10 px-4">
 
+<div class="max-w-4xl mx-auto py-10 px-4">
   <!-- عنوان البحث -->
-  <div class="text-center mb-8">
-    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">🔍 البحث عن المستخدمين</h2>
-    <form method="POST" class="mt-6 flex flex-col sm:flex-row justify-center items-center gap-3">
-      <input type="text" name="keyword" class="w-full sm:w-2/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white" placeholder="اكتب اسم المستخدم أو الاسم" required>
-      <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">بحث</button>
-    </form>
-  </div>
+  <div class="text-center mb-8">  
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">🔍 البحث عن المستخدمين</h2>  
+    <form method="POST" class="mt-6 flex flex-col sm:flex-row justify-center items-center gap-3">  
+      <input type="text" name="keyword" class="w-full sm:w-2/3 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white" placeholder="اكتب اسم المستخدم أو الاسم" required>  
+      <button type="submit" class="bg-blue-600 text-white px-5 py-2 rounded-lg hover:bg-blue-700 transition">بحث</button>  
+    </form>  
+  </div>    
 
   <!-- نتائج البحث -->
   {% if results %}
-    <h3 class="text-center text-lg font-semibold text-gray-700 mb-6 dark:text-white">نتائج البحث:</h3>
-    <div class="space-y-4">
-      {% for user in results %}
-        <div class="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl px-4 py-3">
-          <div class="flex items-center gap-4">
-            <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}"
-                 alt="الصورة"
-                 class="w-14 h-14 rounded-full object-cover border border-gray-300">
-            <div>
-              <a href="{{ url_for('public_profile', username=user['username']) }}"
-                 class="text-lg font-bold text-gray-800 hover:text-blue-600 dark:text-white">
-                {{ user['username'] }}
-              </a>
-              <p class="text-sm text-gray-500 dark:text-gray-400">{{ user['first_name'] or '' }} {{ user['last_name'] or '' }}</p>
-            </div>
-          </div>
-          <div>
-            {% if session.username != user['username'] %}
-              <form action="{{ url_for('follow') }}" method="POST">
-                <input type="hidden" name="username" value="{{ user['username'] }}">
-                <button type="submit"
-                        class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg transition">
-                  ➕ متابعة
-                </button>
-              </form>
-            {% else %}
-              <span class="text-sm text-gray-500 dark:text-gray-300">أنت</span>
-            {% endif %}
-          </div>
+  <h3 class="text-center text-lg font-semibold text-gray-700 mb-6 dark:text-white">نتائج البحث:</h3>
+  <div class="space-y-4">
+    {% for user in results %}
+    {% if user['username'] not in blocked_users_sidebar %}
+    <div class="flex items-center justify-between bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-xl px-4 py-3">
+      <div class="flex items-center gap-4">
+        {% if user['profile_image'] %}
+        <img src="{{ url_for('static', filename='profile_pics/' + user['profile_image']) }}"  
+             alt="الصورة"  
+             class="w-14 h-14 rounded-full object-cover border border-gray-300">
+        {% else %}
+        <div class="w-14 h-14 rounded-full bg-gray-400 text-white flex items-center justify-center font-bold">
+          {{ user['username'][0]|upper }}
         </div>
-      {% endfor %}
+        {% endif %}
+        <div>
+          <!-- ✅ يفتح صفحة البروفايل الصحيحة -->
+          <a href="{{ url_for('public_profile', username=user['username']) }}"  
+             class="text-lg font-bold text-gray-800 hover:text-blue-600 dark:text-white flex items-center gap-1">
+            {{ user['username'] }}
+            {% if user['verified'] %}
+            <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">
+              <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>
+            </svg>
+            {% endif %}
+          </a>
+          <p class="text-sm text-gray-500 dark:text-gray-400">{{ user['first_name'] or '' }} {{ user['last_name'] or '' }}</p>
+        </div>
+      </div>
+      <div>
+        {% if current_user != user['username'] %}
+        <form action="{{ url_for('follow') }}" method="POST" onsubmit="followUser(event, this)">
+          <input type="hidden" name="target_user" value="{{ user['username'] }}">
+          <button type="submit"  
+                  class="text-sm px-4 py-1.5 rounded-lg transition   
+                  {% if user['is_following'] %}  
+                  bg-gray-300 text-gray-800 hover:bg-gray-400  
+                  {% else %}  
+                  bg-green-500 text-white hover:bg-green-600  
+                  {% endif %}">
+            {% if user['is_following'] %}
+            ✔️ متابع
+            {% else %}
+            ➕ متابعة
+            {% endif %}
+          </button>
+        </form>
+        {% else %}
+        <span class="text-sm text-gray-500 dark:text-gray-300">أنت</span>
+        {% endif %}
+      </div>
     </div>
+    {% endif %}
+    {% endfor %}
+  </div>
 
   {% elif results is not none %}
-    <p class="text-center text-red-500 mt-10 text-lg">🚫 لا توجد نتائج مطابقة.</p>
+  <p class="text-center text-red-500 mt-10 text-lg">🚫 لا توجد نتائج مطابقة.</p>
   {% endif %}
 
-</div>
+</div>  
+
+<script>  
+  async function followUser(event, form) {  
+    event.preventDefault();  
+    const button = form.querySelector("button");  
+    const formData = new FormData(form);  
+  
+    try {  
+      const response = await fetch(form.action, {  
+        method: "POST",  
+        body: formData  
+      });  
+  
+      if (response.ok) {  
+        // ✅ تبديل النص والستايل  
+        if (button.textContent.includes("متابعة")) {  
+          button.textContent = "✔️ متابع";  
+          button.classList.remove("bg-green-500", "hover:bg-green-600", "text-white");  
+          button.classList.add("bg-gray-300", "hover:bg-gray-400", "text-gray-800");  
+        } else {  
+          button.textContent = "➕ متابعة";  
+          button.classList.remove("bg-gray-300", "hover:bg-gray-400", "text-gray-800");  
+          button.classList.add("bg-green-500", "hover:bg-green-600", "text-white");  
+        }  
+      }  
+    } catch (err) {  
+      console.error("Error:", err);  
+    }  
+  }  
+</script>  
+
 {% endblock %}

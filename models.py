@@ -17,17 +17,17 @@ class User(db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     verified = db.Column(db.Boolean, default=False)
     allow_anonymous_messages = db.Column(db.Boolean, default=False)
+    is_moderator = db.Column(db.Boolean, default=False)
+    premium_until = db.Column(db.DateTime, nullable=True)  
 
-    premium_until = db.Column(db.DateTime, nullable=True)
+    def is_premium(self):  
+        return self.premium_until is not None and self.premium_until > datetime.utcnow()  
 
-    def is_premium(self):
-        return self.premium_until is not None and self.premium_until > datetime.utcnow()
-
-    followers = db.relationship(
-        'Follower',
-        foreign_keys='Follower.followed_username',
-        primaryjoin='User.username == Follower.followed_username',
-        lazy='dynamic'
+    followers = db.relationship(  
+        'Follower',  
+        foreign_keys='Follower.followed_username',  
+        primaryjoin='User.username == Follower.followed_username',  
+        lazy='dynamic'  
     )
 
 
@@ -40,7 +40,8 @@ class Poem(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     timestamp = db.Column(db.DateTime, default=datetime.now)
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
-
+    is_archived = db.Column(db.Boolean, default=False)  # ✅ جديد
+    archived_at = db.Column(db.DateTime)
 
 class Follower(db.Model):
     __tablename__ = 'followers'
@@ -204,7 +205,8 @@ class Story(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(hours=24))
     is_active = db.Column(db.Boolean, default=True)
-
+    is_archived = db.Column(db.Boolean, default=False)  # ✅ جديد
+    archived_at = db.Column(db.DateTime)
     user = db.relationship('User', backref='stories', lazy=True)
 
 
