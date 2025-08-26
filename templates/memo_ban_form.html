@@ -3,54 +3,77 @@
 {% block title %}📛 حظر مستخدم - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-4 mx-auto" style="max-width: 600px;">
-    <div class="card-body">
-      <h4 class="text-center text-danger mb-4">
-        📛 {% if user %} حظر المستخدم <strong>{{ user.username }}</strong>
-        {% else %} حظر مستخدم جديد {% endif %}
-      </h4>
+<div class="max-w-xl mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+    <!-- 🔹 العنوان -->
+    <h3 class="text-2xl font-bold text-center text-red-600 dark:text-red-400 mb-6">
+      📛 {% if user %} حظر المستخدم <span class="text-gray-800 dark:text-white">{{ user.username }}</span>
+      {% else %} حظر مستخدم جديد {% endif %}
+    </h3>
+
+    <!-- ✅ رسائل فلاش -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="space-y-3 mb-6">
           {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            <div class="p-3 rounded-lg text-sm font-medium
+                        {% if category == 'success' %} bg-green-100 text-green-700 border border-green-300
+                        {% elif category == 'danger' %} bg-red-100 text-red-700 border border-red-300
+                        {% else %} bg-gray-100 text-gray-700 border border-gray-300 {% endif %}">
               {{ message }}
-              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <form method="POST" action="{{ url_for('memo_ban_form') }}">
-        <div class="mb-3">
-          <label for="username" class="form-label">👤 اسم المستخدم</label>
-          <input type="text" class="form-control" id="username" name="username"
-                 placeholder="أدخل اسم المستخدم" value="{{ request.form.username or '' }}" required>
         </div>
+      {% endif %}
+    {% endwith %}
 
-        <div class="mb-3">
-          <label for="duration" class="form-label">⏰ مدة الحظر</label>
-          <select name="duration" id="duration" class="form-select" required>
-            <option value="1">يوم واحد</option>
-            <option value="7">7 أيام</option>
-            <option value="30">30 يومًا</option>
-            <option value="9999">حظر دائم</option>
-          </select>
-        </div>
+    <!-- 📝 النموذج -->
+    <form method="POST" action="{{ url_for('memo_ban_form') }}" class="space-y-5">
+      
+      <!-- 🧑‍💻 اسم المستخدم -->
+      <div>
+        <label for="username" class="block text-gray-700 dark:text-gray-300 font-semibold mb-2">👤 اسم المستخدم</label>
+        <input type="text" id="username" name="username"
+               value="{{ request.form.username or '' }}"
+               placeholder="أدخل اسم المستخدم"
+               required
+               class="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-red-400 focus:outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white">
+      </div>
 
-        <div class="mb-3">
-          <label for="reason" class="form-label">📄 سبب الحظر</label>
-          <textarea name="reason" id="reason" class="form-control" rows="3"
-                    placeholder="اكتب السبب هنا..." required>{{ request.form.reason or '' }}</textarea>
-        </div>
+      <!-- ⏰ مدة الحظر -->
+      <div>
+        <label for="duration" class="block text-gray-700 dark:text-gray-300 font-semibold mb-2">⏰ مدة الحظر</label>
+        <select id="duration" name="duration" required
+                class="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-red-400 focus:outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white">
+          <option value="1">يوم واحد</option>
+          <option value="7">7 أيام</option>
+          <option value="30">30 يومًا</option>
+          <option value="9999">🚫 حظر دائم</option>
+        </select>
+      </div>
 
-        <div class="d-flex justify-content-center gap-3 mt-4">
-          <button type="submit" class="btn btn-danger px-4">📛 تنفيذ الحظر</button>
-          <a href="{{ url_for('memo_users') }}" class="btn btn-secondary px-4">رجوع</a>
-        </div>
-      </form>
-    </div>
+      <!-- 📄 سبب الحظر -->
+      <div>
+        <label for="reason" class="block text-gray-700 dark:text-gray-300 font-semibold mb-2">📄 سبب الحظر</label>
+        <textarea id="reason" name="reason" rows="3" required
+                  placeholder="اكتب السبب هنا..."
+                  class="w-full px-4 py-2 border rounded-xl shadow-sm focus:ring-2 focus:ring-red-400 focus:outline-none dark:bg-gray-900 dark:border-gray-700 dark:text-white">{{ request.form.reason or '' }}</textarea>
+      </div>
+
+      <!-- 🚀 الأزرار -->
+      <div class="flex justify-center gap-4 pt-4">
+        <button type="submit"
+                class="bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-2 rounded-xl shadow transition">
+          📛 تنفيذ الحظر
+        </button>
+        <a href="{{ url_for('memo_users') }}"
+           class="bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-semibold px-6 py-2 rounded-xl shadow transition">
+          ⬅️ رجوع
+        </a>
+      </div>
+    </form>
+
   </div>
 </div>
 {% endblock %}

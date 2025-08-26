@@ -3,52 +3,62 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-10">
-  <div class="bg-white dark:bg-gray-800 shadow rounded-3xl p-6">
-    <h3 class="text-2xl font-bold text-center text-blue-600 mb-8">لوحة التحكم - ميمو</h3>
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
+    
+    <!-- العنوان -->
+    <h3 class="text-3xl font-extrabold text-center text-blue-600 dark:text-blue-400 mb-10 tracking-wide">
+      🛠️ لوحة التحكم
+    </h3>
 
     {% if current_user.is_authenticated and current_user.is_admin %}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
 
       <!-- إدارة المستخدمين -->
       <a href="{{ url_for('memo_users') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">👥 إدارة المستخدمين</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">👥</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">إدارة المستخدمين</h5>
       </a>
 
       <!-- إدارة الأبيات -->
       <a href="{{ url_for('memo_poems') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📜 إدارة الأبيات</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">📜</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">إدارة الأبيات</h5>
       </a>
 
       <!-- لوحة الإحصائيات -->
       <a href="{{ url_for('memo_stats') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📊 لوحة الإحصائيات</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">📊</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">لوحة الإحصائيات</h5>
       </a>
 
       <!-- الإعدادات العامة -->
       <a href="{{ url_for('memo_settings') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">⚙️ الإعدادات العامة</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">⚙️</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">الإعدادات العامة</h5>
       </a>
 
       <!-- رسائل تواصل معنا -->
       <a href="{{ url_for('memo_contact_messages') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">📨 رسائل تواصل معنا</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">📨</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">رسائل تواصل معنا</h5>
       </a>
 
       <!-- إدارة الحظر -->
       <a href="{{ url_for('memo_bans') }}"
-         class="block rounded-2xl shadow hover:shadow-lg transition p-6 text-center bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600">
-        <h5 class="text-lg font-semibold text-gray-800 dark:text-white">🚫 إدارة الحظر</h5>
+         class="group block rounded-2xl shadow-md hover:shadow-xl transition transform hover:-translate-y-1 bg-gray-50 dark:bg-gray-700 p-6 text-center">
+        <div class="text-4xl mb-3">🚫</div>
+        <h5 class="text-lg font-semibold text-gray-800 dark:text-white group-hover:text-blue-600">إدارة الحظر</h5>
       </a>
 
     </div>
 
     {% else %}
-      <div class="mt-6 bg-red-100 text-red-800 dark:bg-red-200 dark:text-red-900 text-center font-medium py-3 px-4 rounded-xl">
+      <div class="mt-6 bg-red-100 text-red-800 dark:bg-red-200 dark:text-red-900 text-center font-bold py-4 px-6 rounded-xl">
         🚫 ليس لديك صلاحية للوصول إلى لوحة التحكم.
       </div>
     {% endif %}

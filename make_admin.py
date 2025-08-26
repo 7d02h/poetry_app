@@ -1,18 +1,22 @@
 # make_admin.py
 
-from app import app
-from models import db, User
+import smtplib
 
-def make_admin():
-    with app.app_context():
-        username = "admin"
-        user = User.query.filter_by(username=username).first()
-        if user:
-            user.is_admin = True
-            db.session.commit()
-            print(f"✅ تم تفعيل لوحة admin للمستخدم: {username}")
-        else:
-            print(f"❌ المستخدم {username} غير موجود في قاعدة البيانات.")
+sender = "hzft92925@gmail.com"   # بريدك
+password = "yssr eyrj pefb sefq"     # كلمة مرور التطبيق (16 خانة)
+receiver = "mohamadiaui@gmail.com"   # بريد للتجربة
 
-if __name__ == "__main__":
-    make_admin()
+try:
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()  # تفعيل التشفير
+        server.login(sender, password)  # تسجيل الدخول
+        subject = "Test"
+        body = "Hello, this is a test email."
+        msg = f"Subject: {subject}\n\n{body}"
+        server.sendmail(sender, receiver, msg)
+
+    print("✅ تم إرسال البريد بنجاح!")
+
+except Exception as e:
+    print("❌ خطأ:", e)
+

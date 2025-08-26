@@ -3,34 +3,63 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-10 max-w-xl">
-  <div class="bg-white dark:bg-gray-800 shadow-lg rounded-3xl p-6">
-    <h2 class="text-xl font-bold text-center mb-6 text-blue-600">👥 متابعو {{ user.username }}</h2>
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
+    <!-- العنوان -->
+    <h2 class="text-2xl font-extrabold text-center mb-8 text-blue-600 dark:text-blue-400">
+      👥 متابعو {{ user.username }}
+    </h2>
 
     {% if followers %}
-      <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-        {% for f in followers %}
-          {% if f.username not in blocked_users_sidebar %}  {# ✅ تحقق من الحظر #}
-            <li class="flex items-center gap-4 py-4">
-              {% if f.user.profile_image %}
-                <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
-                     alt="صورة"
-                     class="w-12 h-12 rounded-full object-cover shadow">
-              {% else %}
-                <div class="w-12 h-12 rounded-full bg-gray-400 text-white flex items-center justify-center text-lg font-bold shadow">
-                  {{ f.username[0]|upper }}
-                </div>
-              {% endif %}
+      <!-- ℹ️ تنبيه -->
+      <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-6">
+        بعض المتابعين قد لا يظهرون هنا بناءً على إعدادات خصوصية صاحب الحساب.
+      </p>
 
-              <a href="{{ url_for('public_profile', username=f.username) }}"
-                 class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition">
-                {{ f.username }}
+      <ul class="space-y-4">
+        {% for f in followers %}
+          {% if f.username not in blocked_users_sidebar %}
+            <li class="flex items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-gray-700 hover:shadow-md hover:scale-[1.02] transition">
+              
+              <!-- ✅ البروفايل + الاسم -->
+              <div class="flex items-center gap-4">
+                {% if f.user.profile_image %}
+                  <img src="{{ url_for('static', filename='profile_pics/' + f.user.profile_image) }}"
+                       alt="صورة"
+                       class="w-14 h-14 rounded-full object-cover border-2 border-transparent hover:border-blue-500 transition">
+                {% else %}
+                  <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white flex items-center justify-center text-lg font-bold shadow">
+                    {{ f.username[0]|upper }}
+                  </div>
+                {% endif %}
+
+                <a href="{{ url_for('public_profile', username=f.username) }}"
+                   class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition text-lg">
+                  {{ f.username }}
+                </a>
+              </div>
+
+              <!-- ✅ زر الرسالة -->
+              <a href="{{ url_for('view_messages', username=user.username) }}" 
+                 class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition"
+                 title="إرسال رسالة">
+                <!-- أيقونة رسالة (SVG) -->
+                <svg xmlns="http://www.w3.org/2000/svg" 
+                     fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" 
+                     class="w-7 h-7">
+                  <path stroke-linecap="round" stroke-linejoin="round" 
+                        d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0l-7.5-4.615A2.25 2.25 0 013.75 6.993V6.75" />
+                </svg>
               </a>
+
             </li>
           {% endif %}
         {% endfor %}
       </ul>
     {% else %}
-      <p class="text-center text-gray-500 mt-6">لا يوجد متابعين حتى الآن.</p>
+      <div class="text-center text-gray-500 mt-10">
+        <p class="text-6xl mb-3">😔</p>
+        <p class="text-lg font-medium">لا يوجد متابعين حتى الآن.</p>
+      </div>
     {% endif %}
   </div>
 </div>

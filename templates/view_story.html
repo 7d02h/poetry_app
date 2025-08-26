@@ -13,34 +13,76 @@
       top: 0;
       left: 0;
       right: 0;
-      padding: 6px;
+      padding: 6px 10px;
       z-index: 50;
     }
     .progress {
       flex: 1;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.25);
       height: 3px;
-      border-radius: 2px;
+      border-radius: 999px;
       overflow: hidden;
     }
-    .progress-bar { height: 100%; width: 0%; background: white; transition: width linear; }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: white;
+      transition: width linear;
+    }
     .story-slide { display: none; }
     .story-slide.active { display: block; }
 
-    .tap-zone { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 30; }
+    .tap-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 50%;
+      z-index: 30;
+    }
     .left-zone { left: 0; }
     .right-zone { right: 0; }
 
-    .heart {
+    /* ❤️ زر لايك (SVG) */
+    .like-btn svg {
+      width: 36px;
+      height: 36px;
+      fill: none;
+      stroke: #aaa;
+      stroke-width: 2;
+      transition: transform 0.3s ease, stroke 0.3s ease, fill 0.3s ease;
+    }
+    .like-btn.liked svg {
+      fill: #ef4444;
+      stroke: #ef4444;
+      transform: scale(1.3);
+    }
+
+    /* ✨ burst effect */
+    .like-btn.liked::after {
+      content: "";
       position: absolute;
-      font-size: 14px;
-      animation: floatUp 1s ease-out forwards;
-      opacity: 0.8;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      box-shadow:
+        0 -20px 0 2px #ef4444,
+        14px -14px 0 2px #f87171,
+        20px 0 0 2px #ef4444,
+        14px 14px 0 2px #fca5a5,
+        0 20px 0 2px #ef4444,
+        -14px 14px 0 2px #f87171,
+        -20px 0 0 2px #ef4444,
+        -14px -14px 0 2px #fca5a5;
+      animation: burst 0.6s ease-out forwards;
+      transform: translate(-50%, -50%);
       pointer-events: none;
     }
-    @keyframes floatUp {
-      0% { transform: translateY(0) scale(1); opacity: 1; }
-      100% { transform: translateY(-30px) scale(1.5); opacity: 0; }
+    @keyframes burst {
+      0%   { transform: translate(-50%, -50%) scale(0.3); opacity: 1; }
+      80%  { transform: translate(-50%, -50%) scale(1.4); opacity: 0.7; }
+      100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
     }
   </style>
 </head>
@@ -48,59 +90,68 @@
 
 {% set valid_stories = stories|selectattr("is_archived", "equalto", False)|list %}
 {% if valid_stories and valid_stories|length > 0 %}
-  <!-- ✅ كونتينر شبيه بالموبايل -->
-  <div class="relative bg-black rounded-2xl shadow-xl overflow-hidden"
+  <!-- ✅ كونتينر الستوري -->
+  <div class="relative bg-black rounded-3xl shadow-2xl overflow-hidden border border-gray-800"
        style="width: 380px; height: 600px;">
 
-    <!-- ✅ شريط التقدم لكل ستوري -->
+    <!-- ✅ شريط التقدم -->
     <div class="progress-container">
       {% for s in valid_stories %}
         <div class="progress"><div class="progress-bar" id="progress-{{ loop.index0 }}"></div></div>
       {% endfor %}
     </div>
 
-    <!-- ✅ كل ستوري -->
+    <!-- ✅ ستوري -->
     {% for s in valid_stories %}
-    <div class="story-slide {% if loop.first %}active{% endif %} w-full h-full">
-      <!-- معلومات المستخدم -->
-      <div class="absolute top-3 left-3 flex items-center gap-2 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm z-50">
+    <div class="story-slide {% if loop.first %}active{% endif %} w-full h-full relative">
+
+      <!-- ✅ معلومات المستخدم -->
+      <div class="absolute top-4 left-4 flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full backdrop-blur-md shadow-lg z-50">
         <img src="{{ url_for('static', filename='profile_pics/' + (s.user.profile_image if s.user.profile_image else 'default.jpg')) }}"
-             alt="Profile" class="w-8 h-8 rounded-full border-2 border-white">
-        <div class="flex flex-col leading-none">
+             alt="Profile" class="w-9 h-9 rounded-full border-2 border-cyan-400 shadow-md">
+        <div class="flex flex-col leading-tight">
           <span class="font-semibold text-sm">{{ s.user.username }}</span>
-          <span class="text-gray-300 text-xs">{{ time_ago_format(s.created_at) }}</span>
+          <span class="text-gray-300 text-[11px]">{{ time_ago_format(s.created_at) }}</span>
         </div>
       </div>
 
+      <!-- ✅ المحتوى -->
       {% set media_file = s.media_path %}
       {% if not media_file.startswith('uploads/stories/') %}
         {% set media_file = 'uploads/stories/' + media_file %}
       {% endif %}
       {% set file_path = url_for('static', filename=media_file) %}
 
-      <!-- المحتوى -->
       {% if s.media_type == 'image' %}
         <img src="{{ file_path }}" class="w-full h-full object-contain bg-black storyMedia">
       {% elif s.media_type == 'video' %}
         <video class="w-full h-full object-contain bg-black storyMedia" src="{{ file_path }}" playsinline></video>
       {% endif %}
 
-      <!-- أزرار التفاعل -->
+      <!-- ✅ أزرار التفاعل -->
       <div class="absolute bottom-5 left-0 w-full flex items-center gap-3 px-5 z-50">
+        <!-- ❤️ زر لايك (SVG) -->
         <button type="button"
-                class="like-story-btn text-3xl hover:scale-110 transition text-gray-500 relative"
-                data-story-id="{{ s.id }}">❤️</button>
+                class="like-btn like-story-btn relative flex items-center justify-center"
+                data-story-id="{{ s.id }}">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 21s-6.5-4.3-9.5-7.6C.6 11.6.2 8.5 2.1 6.6c1.8-1.8 4.7-1.8 6.5 0L12 9l3.4-2.4c1.8-1.8 4.7-1.8 6.5 0 1.9 1.9 1.5 5-0.4 6.8C18.5 16.7 12 21 12 21z"/>
+          </svg>
+        </button>
 
-        <form id="sendMessageForm" class="flex-1 flex border border-gray-400 rounded-full bg-black/50 overflow-hidden">
-          <input type="text" id="messageInput" name="message" placeholder="أرسل رسالة..."
-                 class="flex-1 bg-transparent text-white px-3 py-2 text-sm focus:outline-none">
-          <button type="submit" class="px-3 text-sm text-cyan-400 hover:text-cyan-300">إرسال</button>
+        <!-- ✉️ فورم الرسائل -->
+        <form id="sendMessageForm"
+              class="flex-1 flex items-center border border-gray-600 rounded-full bg-black/40 backdrop-blur-md overflow-hidden shadow-sm">
+          <input type="text" id="messageInput" name="message" placeholder="✍️ أرسل رسالة..."
+                 class="flex-1 bg-transparent text-white px-4 py-2 text-sm focus:outline-none placeholder-gray-400">
+          <button type="submit"
+                  class="px-4 text-sm text-cyan-400 font-medium hover:text-cyan-300">إرسال</button>
         </form>
       </div>
     </div>
     {% endfor %}
 
-    <!-- مناطق التنقل -->
+    <!-- ✅ مناطق التنقل -->
     <div id="left-zone" class="tap-zone left-zone"></div>
     <div id="right-zone" class="tap-zone right-zone"></div>
   </div>
@@ -144,7 +195,7 @@
       currentIndex++;
       showSlide(currentIndex);
     } else {
-      window.location.href = "/"; // خلصت الستوريهات
+      window.location.href = "/"; 
     }
   }
 
@@ -162,6 +213,28 @@
   document.getElementById("right-zone").addEventListener("click", nextSlide);
 
   document.addEventListener("DOMContentLoaded", () => { showSlide(currentIndex); });
+
+  // ❤️ منطق زر اللايك
+  document.querySelectorAll(".like-story-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("liked");
+    });
+  });
+
+  // ✉️ إيقاف التايمر عند الكتابة واستئنافه بعد الخروج
+  const messageInput = document.getElementById("messageInput");
+  messageInput.addEventListener("focus", () => {
+    clearTimeout(timer);
+    if (slides[currentIndex].querySelector("video")) {
+      slides[currentIndex].querySelector("video").pause();
+    }
+  });
+  messageInput.addEventListener("blur", () => {
+    if (slides[currentIndex].querySelector("video")) {
+      slides[currentIndex].querySelector("video").play();
+    }
+    showSlide(currentIndex); // يكمل من نفس الستوري
+  });
 </script>
 {% else %}
   <script>window.location.href = "/";</script>

@@ -1,83 +1,99 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>رفع ستوري</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background: linear-gradient(to right, #f9d423, #ff4e50);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        form {
-            background: white;
-            padding: 30px 40px;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-            text-align: center;
-            width: 350px;
-        }
-        h2 {
-            margin-bottom: 20px;
-            color: #ff4e50;
-        }
-        input[type="file"] {
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        button {
-            background: #ff4e50;
-            color: white;
-            padding: 12px 25px;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
-        }
-        button:hover {
-            background: #dbba26;
-        }
-        .flash {
-            padding: 10px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            font-size: 14px;
-        }
-        .flash.error {
-            background: #ffe5e5;
-            color: #b30000;
-        }
-        .flash.success {
-            background: #e8ffe8;
-            color: #007a00;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>رفع ستوري</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: linear-gradient(135deg, #ff4e50, #f9d423);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    /* ✅ أنيميشنات مخصصة */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0px rgba(255, 78, 80, 0.6); }
+      50% { box-shadow: 0 0 20px rgba(255, 78, 80, 0.9); }
+      100% { box-shadow: 0 0 0px rgba(255, 78, 80, 0.6); }
+    }
+    .animate-fadeInUp {
+      animation: fadeInUp 0.8s ease forwards;
+    }
+    .animate-pulseGlow {
+      animation: pulseGlow 2s infinite;
+    }
+  </style>
 </head>
 <body>
 
-    <form action="{{ url_for('upload_story') }}" method="post" enctype="multipart/form-data">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, msg in messages %}
-                    <div class="flash {{ category }}">{{ msg }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+  <div class="w-full max-w-md px-6">
+    <form action="{{ url_for('upload_story') }}" method="post" enctype="multipart/form-data"
+          class="bg-white rounded-2xl shadow-2xl p-8 text-center animate-fadeInUp">
+      
+      <!-- ✅ عرض الرسائل -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="flash {{ category }} mb-4 py-2 px-3 rounded-lg text-sm 
+                        {% if category == 'error' %} bg-red-100 text-red-600 
+                        {% elif category == 'success' %} bg-green-100 text-green-600 {% endif %}">
+              {{ msg }}
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
 
-        <h2>📸 ارفع ستوري جديد</h2>
-        <input type="file" name="file" accept="image/*,video/*" required>
-        <br>
-        <button type="submit">رفع الآن 🚀</button>
+      <!-- ✅ العنوان -->
+      <h2 class="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500">
+        📸 ارفع ستوري جديد
+      </h2>
+
+      <!-- ✅ اختيار الملف -->
+      <label class="block mb-6">
+        <input type="file" name="file" accept="image/*,video/*" required
+               class="w-full border border-gray-300 rounded-xl p-3 cursor-pointer text-sm focus:ring-2 focus:ring-red-400 transition">
+      </label>
+
+      <!-- ✅ زر الرفع -->
+      <button type="submit"
+              class="w-full bg-gradient-to-r from-red-500 to-yellow-500 text-white font-bold py-3 rounded-xl text-lg shadow-lg transition transform hover:scale-105 animate-pulseGlow">
+        🚀 رفع الآن
+      </button>
     </form>
+
+    <!-- ✅ واجهة إرسال القصة بعد الضغط -->
+    <div id="story-sent" 
+         class="hidden bg-white mt-6 rounded-2xl shadow-xl p-6 text-center animate-fadeInUp">
+      <h3 class="text-xl font-bold text-green-600 mb-3">✅ تم إرسال قصتك بنجاح</h3>
+      <p class="text-gray-600">قصتك ستظهر الآن للمتابعين.</p>
+    </div>
+  </div>
+
+  <script>
+    // ✅ عرض واجهة "تم إرسال القصة" بعد الضغط على الزر
+    const form = document.querySelector("form");
+    const storySent = document.getElementById("story-sent");
+
+    form.addEventListener("submit", (e) => {
+      setTimeout(() => {
+        storySent.classList.remove("hidden");
+      }, 800); // بعد نص ثانية من الإرسال
+    });
+  </script>
 
 </body>
 </html>

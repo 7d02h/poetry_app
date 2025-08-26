@@ -3,34 +3,65 @@
 {% block title %}تسجيل دخول ميمو{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-lg p-4">
-            <h3 class="text-center mb-4">تسجيل الدخول إلى لوحة ميمو 🛠️</h3>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST">
-                <div class="mb-3">
-                    <label for="username" class="form-label">اسم المستخدم</label>
-                    <input type="text" class="form-control" id="username" name="username" placeholder="أدخل اسم ميمو" required>
-                </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">كلمة المرور</label>
-                    <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required>
-                </div>
-                <button type="submit" class="btn btn-dark w-100">تسجيل الدخول</button>
-            </form>
+<div class="d-flex justify-content-center align-items-center min-vh-100 bg-light">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-lg border-0 rounded-4 p-5 text-center">
+      
+      <!-- 👤 الأيقونة -->
+      <div class="mb-3">
+        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center"
+             style="width:60px; height:60px; font-size:28px;">
+          🔑
         </div>
+      </div>
+
+      <!-- العنوان -->
+      <h4 class="fw-bold text-dark mb-4">تسجيل الدخول إلى ميمو</h4>
+
+      <!-- رسائل النظام -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- النموذج -->
+      <form method="POST" class="text-start mt-4">
+        <div class="mb-3">
+          <label for="username" class="form-label">اسم المستخدم</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-person"></i></span>
+            <input type="text" class="form-control rounded-end" id="username" name="username"
+                   placeholder="أدخل اسمك" required>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label for="password" class="form-label">كلمة المرور</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-lock"></i></span>
+            <input type="password" class="form-control rounded-end" id="password" name="password"
+                   placeholder="••••••••" required>
+          </div>
+        </div>
+        
+        <!-- زر الدخول -->
+        <button type="submit" class="btn btn-primary btn-lg w-100 mt-3 rounded-3 shadow-sm">
+          تسجيل الدخول
+        </button>
+      </form>
+
+      <!-- روابط مساعدة -->
+      <div class="mt-4 text-muted small">
+        <a href="{{ url_for('forgot_password') }}" class="text-decoration-none">نسيت كلمة المرور؟</a> · 
+        <a href="{{ url_for('register') }}" class="text-decoration-none">إنشاء حساب جديد</a>
+      </div>
+
     </div>
+  </div>
 </div>
 {% endblock %}

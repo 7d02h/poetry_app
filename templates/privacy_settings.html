@@ -3,34 +3,73 @@
 {% block title %}🔐 إعدادات الخصوصية - ميمو{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width: 600px;">
-  <div class="card shadow-lg border-0 rounded-4 p-4">
-    <h3 class="mb-4 text-center text-primary">🔐 إعدادات الخصوصية</h3>
+<div class="flex justify-center items-center py-10 px-4">
+  <div class="w-full max-w-lg bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8">
 
+    <!-- العنوان -->
+    <div class="text-center mb-6">
+      <h3 class="text-2xl font-bold text-primary">🔐 إعدادات الخصوصية</h3>
+      <p class="text-gray-500 dark:text-gray-400 text-sm">قم بتخصيص إعدادات حسابك بما يناسبك.</p>
+    </div>
+
+    <!-- التنبيهات -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium
+            {% if category == 'danger' %} bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200
+            {% elif category == 'success' %} bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200
+            {% else %} bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 {% endif %}">
             {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
           </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <form method="POST">
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" name="is_private" id="is_private" {% if user.private %}checked{% endif %}>
-        <label class="form-check-label fw-bold" for="is_private">🔒 اجعل حسابي خاصًا</label>
+    <!-- النموذج -->
+    <form method="POST" class="space-y-8">
+
+      <!-- اجعل حسابي خاصًا -->
+      <div>
+        <div class="flex items-center justify-between">
+          <span class="font-medium text-gray-800 dark:text-gray-200">🔒 اجعل حسابي خاصًا</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="is_private" id="is_private" class="sr-only peer" {% if user.private %}checked{% endif %}>
+            <div class="w-11 h-6 bg-gray-300 rounded-full peer-focus:outline-none transition 
+                        peer-checked:bg-green-600"></div>
+            <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md
+                        peer-checked:translate-x-5 transform transition"></div>
+          </label>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          إذا كان حسابك خاصًا، فقط المتابعين الذين توافق عليهم يمكنهم رؤية منشوراتك.
+        </p>
       </div>
 
-      <div class="form-check form-switch mb-4">
-        <input class="form-check-input" type="checkbox" name="allow_anonymous_messages" id="allow_anonymous_messages" {% if user.allow_anonymous_messages %}checked{% endif %}>
-        <label class="form-check-label fw-bold" for="allow_anonymous_messages">👤 السماح بالرسائل المجهولة</label>
+      <!-- السماح بالرسائل المجهولة -->
+      <div>
+        <div class="flex items-center justify-between">
+          <span class="font-medium text-gray-800 dark:text-gray-200">👤 السماح بالرسائل المجهولة</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" name="allow_anonymous_messages" id="allow_anonymous_messages" class="sr-only peer" {% if user.allow_anonymous_messages %}checked{% endif %}>
+            <div class="w-11 h-6 bg-gray-300 rounded-full peer-focus:outline-none transition 
+                        peer-checked:bg-green-600"></div>
+            <div class="absolute left-0.5 top-0.5 bg-white w-5 h-5 rounded-full shadow-md
+                        peer-checked:translate-x-5 transform transition"></div>
+          </label>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          عند تفعيل هذا الخيار يمكن للمستخدمين إرسال رسائل لك دون الكشف عن هويتهم.
+        </p>
       </div>
 
+      <!-- زر الحفظ -->
       <div class="text-center">
-        <button type="submit" class="btn btn-dark px-5 py-2">💾 حفظ التغييرات</button>
+        <button type="submit"
+          class="w-full bg-primary text-red hover:bg-primary-dark transition px-6 py-3 
+                 rounded-xl text-lg font-semibold shadow-md">
+          💾 حفظ التغييرات
+        </button>
       </div>
     </form>
   </div>

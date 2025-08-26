@@ -1,21 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-3xl mx-auto py-10 px-4">
-  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
-    <h1 class="text-3xl font-bold mb-6 text-gray-900 dark:text-white">🌟 عضوية بريميوم</h1>
-    <p class="mb-4 text-gray-700 dark:text-gray-300">
-      انضم للبريميوم واستمتع بالمميزات التالية:
-    </p>
-    <ul class="list-disc list-inside mb-6 text-gray-700 dark:text-gray-300">
-      <li>✔️ استخدام أسماء مستخدمين أقل من 4 أحرف</li>
-      <li>✔️ معرفة هوية المرسل في الرسائل المجهولة</li>
-      <li>✔️ مميزات إضافية قادمة قريبًا...</li>
-    </ul>
-    <form action="{{ url_for('upgrade_premium') }}" method="post">
-      <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition text-lg font-semibold">
-        قم بالترقية الآن
-      </button>
-    </form>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-16">
+
+  <div class="max-w-5xl w-full">
+
+    <!-- ✨ الهيدر -->
+    <div class="text-center mb-12">
+      <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-lg mb-6">
+        <i class="bi bi-gem text-4xl"></i>
+      </div>
+      <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white">🌟 عضوية بريميوم</h1>
+      <p class="text-gray-600 dark:text-gray-300 mt-2 text-lg">
+        اختر الخطة المناسبة لك واستمتع بالمميزات الحصرية 💎
+      </p>
+    </div>
+
+    <!-- ✅ المميزات -->
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-12">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">🚀 ماذا ستحصل عليه؟</h2>
+      <ul class="grid sm:grid-cols-2 gap-4 text-gray-800 dark:text-gray-200">
+        <li class="flex items-center space-x-2 space-x-reverse">
+          <i class="bi bi-check-circle-fill text-green-500"></i>
+          <span>استخدام أسماء مستخدمين أقل من 4 أحرف</span>
+        </li>
+        <li class="flex items-center space-x-2 space-x-reverse">
+          <i class="bi bi-check-circle-fill text-green-500"></i>
+          <span>معرفة هوية المرسل في الرسائل المجهولة</span>
+        </li>
+        <li class="flex items-center space-x-2 space-x-reverse">
+          <i class="bi bi-check-circle-fill text-green-500"></i>
+          <span>تجربة خالية من الإعلانات</span>
+        </li>
+        <li class="flex items-center space-x-2 space-x-reverse">
+          <i class="bi bi-check-circle-fill text-green-500"></i>
+          <span>مميزات إضافية قادمة قريبًا...</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- 💳 الباقات -->
+    <div class="grid md:grid-cols-2 gap-8">
+      
+      <!-- 📅 الخطة الشهرية -->
+      <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-gray-200 dark:border-gray-700 hover:scale-105 transition transform duration-200">
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">📅 الخطة الشهرية</h3>
+        <p class="text-5xl font-extrabold text-green-600 dark:text-green-400 mb-2">$4.99</p>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">ادفع شهريًا، يمكنك الإلغاء في أي وقت</p>
+        <form action="{{ url_for('upgrade_premium') }}" method="post">
+          <input type="hidden" name="plan" value="monthly">
+          <button type="submit" 
+                  class="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-lg hover:opacity-90 transition">
+            🚀 اختر الشهري
+          </button>
+        </form>
+      </div>
+
+      <!-- 📆 الخطة السنوية -->
+      <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-3xl shadow-xl p-8 border-2 border-yellow-400 dark:border-yellow-500 hover:scale-105 transition transform duration-200 relative">
+        
+        <!-- تاج التوصية -->
+        <span class="absolute top-0 right-0 -mt-4 -mr-4 bg-yellow-400 text-white text-sm font-bold px-4 py-1 rounded-full shadow">
+          ⭐ الأكثر شعبية
+        </span>
+
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">📆 الخطة السنوية</h3>
+        <p class="text-5xl font-extrabold text-yellow-500 mb-2">$49.99</p>
+        <p class="text-gray-600 dark:text-gray-400 mb-6">ادفع مرة واحدة ووفر أكثر من <span class="font-bold text-green-600">15%</span></p>
+        <form action="{{ url_for('upgrade_premium') }}" method="post">
+          <input type="hidden" name="plan" value="yearly">
+          <button type="submit" 
+                  class="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold shadow-lg hover:opacity-90 transition">
+            💎 اختر السنوي
+          </button>
+        </form>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

@@ -3,48 +3,105 @@
 {% block title %}📜 الشروط والأحكام - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 750px;">
-  <div class="card shadow border-0 rounded-4 p-4">
-    <h2 class="text-center text-primary mb-4">📜 الشروط والأحكام لاستخدام تطبيق ميمو</h2>
+<div class="container mx-auto px-3 py-10 max-w-5xl">
 
-    <ul class="list-group list-group-flush mb-4">
-      <li class="list-group-item">
-        <strong>1. قبول الشروط:</strong> بدخولك إلى هذا التطبيق فإنك توافق على الالتزام بهذه الشروط.
-      </li>
-      <li class="list-group-item">
-        <strong>2. السلوك العام:</strong> يُمنع أي محتوى مسيء، مهين، أو محرض. الرجاء احترام الآخرين.
-      </li>
-      <li class="list-group-item">
-        <strong>3. المحتوى:</strong> كل ما تنشره هو تحت مسؤوليتك الكاملة. يحق للإدارة حذفه أو تعديله.
-      </li>
-      <li class="list-group-item">
-        <strong>4. الخصوصية:</strong> لا تتم مشاركة بياناتك مع أي طرف ثالث.
-      </li>
-      <li class="list-group-item">
-        <strong>5. الحظر:</strong> من حقنا حظر الحسابات المخالفة مؤقتاً أو دائماً.
-      </li>
-      <li class="list-group-item">
-        <strong>6. الملكية الفكرية:</strong> يمنع نسخ أو إعادة استخدام محتوى التطبيق دون إذن مسبق.
-      </li>
-      <li class="list-group-item">
-        <strong>7. التحديثات:</strong> قد نقوم بتحديث الشروط في أي وقت. استمرارك في استخدام التطبيق يعد موافقة عليها.
-      </li>
-      <li class="list-group-item">
-        <strong>8. الإبلاغ:</strong> يمكنك الإبلاغ عن أي مخالفة من خلال صفحة التواصل أو الرسائل الخاصة.
-      </li>
-      <li class="list-group-item">
-        <strong>9. المحتوى الممنوع:</strong> مثل المحتوى الجنسي، التحريضي، التهديد، التضليل، أو انتحال الشخصية.
-      </li>
-      <li class="list-group-item">
-        <strong>10. الاستخدام الشخصي:</strong> لا يُسمح باستخدام التطبيق لأغراض تجارية بدون إذن.
-      </li>
-    </ul>
-
-    <form method="POST" action="{{ url_for('accept_terms') }}">
-      <div class="text-center">
-        <button class="btn btn-success px-5 py-2 fs-5 rounded-3">✅ أوافق على الشروط</button>
-      </div>
-    </form>
+  <!-- ✨ الهيدر -->
+  <div class="relative bg-gradient-to-r from-blue-900 via-blue-800 to-gray-900 rounded-2xl p-8 shadow-xl text-center mb-12">
+    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide">📜 الشروط والأحكام</h1>
+    <p class="text-gray-300 mt-2 text-xs md:text-sm">لتطبيق <span class="font-semibold">ميمو</span> - موجه لجميع المستخدمين حول العالم</p>
+    <div class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 bg-white dark:bg-gray-900 px-4 py-1 rounded-full shadow text-[11px] text-gray-600 dark:text-gray-400">
+      آخر تحديث: {{ today }}
+    </div>
   </div>
+
+  <!-- ✅ الأقسام -->
+  <div class="space-y-10 text-xs md:text-sm leading-5 text-gray-700 dark:text-gray-300">
+
+    <!-- 👤 الحساب -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        👤 الحساب
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">يجب تقديم بيانات صحيحة وكاملة عند إنشاء الحساب.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">لا يسمح باستخدام بيانات مزيفة أو انتحال شخصية.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">المستخدم مسؤول عن أنشطة حسابه وكلمة مروره.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">الحد الأدنى للعمر هو 13 سنة أو وفق القوانين المحلية.</div>
+      </div>
+    </div>
+
+    <!-- 📱 الاستخدام -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        📱 الاستخدام
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">التطبيق للاستخدام الشخصي فقط، لا للاستخدام التجاري دون إذن.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">ممنوع نشر محتوى مسيء، عنيف، تحريضي، أو مخالف للقوانين.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">يحظر مشاركة محتوى جنسي أو غير لائق.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">يحظر نشر الأخبار الكاذبة أو التضليل.</div>
+      </div>
+    </div>
+
+    <!-- 🔒 الأمان -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        🔒 الأمان
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">يجب الحفاظ على سرية بيانات تسجيل الدخول.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">محاولات الاختراق أو تعطيل النظام تؤدي للحظر الفوري.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">نلتزم بتطبيق أعلى معايير الأمان لحماية بياناتك.</div>
+      </div>
+    </div>
+
+    <!-- 🛡️ الخصوصية -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        🛡️ الخصوصية
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">نحترم خصوصيتك ونلتزم بعدم مشاركة بياناتك مع أطراف ثالثة.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">قد نقوم بتخزين بيانات الاستخدام لتحسين الخدمة.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">لا نضمن حفظ جميع البيانات، ويُنصح بأخذ نسخة احتياطية.</div>
+      </div>
+    </div>
+
+    <!-- ⚖️ القوانين -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        ⚖️ القوانين والمسؤولية
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">نحتفظ بحقنا في إزالة أي محتوى مخالف دون إشعار مسبق.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">لا نتحمل أي أضرار مباشرة أو غير مباشرة ناتجة عن سوء الاستخدام.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">تخضع هذه الشروط لقوانين وتشريعات الدولة.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">أي نزاع يخضع لإجراءات التحكيم وفق القوانين السارية.</div>
+      </div>
+    </div>
+
+    <!-- 🛠️ الدعم والتغييرات -->
+    <div>
+      <h2 class="flex items-center text-blue-800 dark:text-blue-400 font-bold text-sm mb-4">
+        🛠️ الدعم والتغييرات
+      </h2>
+      <div class="space-y-3">
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">الدعم الفني يتم عبر القنوات الرسمية فقط.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">يحق لنا تعديل الشروط في أي وقت وسيتم نشرها هنا.</div>
+        <div class="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-sm border">استمرارك في استخدام التطبيق بعد التحديث يعني الموافقة عليه.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ✅ زر الموافقة -->
+  <form method="POST" action="{{ url_for('accept_terms') }}" class="mt-12">
+    <div class="text-center">
+      <button class="bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-gray-900 
+                     text-white font-semibold text-sm px-8 py-2 rounded-lg shadow-md transform hover:scale-105 transition">
+        ✅ أوافق على الشروط والأحكام
+      </button>
+    </div>
+  </form>
 </div>
 {% endblock %}

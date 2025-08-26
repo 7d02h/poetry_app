@@ -1,83 +1,141 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="max-w-3xl mx-auto py-10 px-4">
-  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl overflow-hidden">
 
-    <!-- الهيدر -->
-    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
-      <div class="flex items-center justify-between mb-3">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white">💬 المحادثات</h2>
-        {% if not anonymous_mode %}
-          <a href="{{ url_for('public_profile', username=real_username) }}"
-             class="text-sm text-blue-600 border border-blue-600 px-3 py-1 rounded hover:bg-blue-50 transition">
-            👤 الملف الشخصي
-          </a>
-        {% endif %}
-      </div>
+<div class="container mx-auto px-4 py-8 max-w-2xl">
 
-      <!-- أزرار التبديل -->
-      <div class="flex space-x-2 rtl:space-x-reverse">
-        <a href="{{ url_for('view_messages', username=real_username, anonymous=0) }}"
-           class="px-4 py-2 rounded-t-lg text-sm font-medium {% if not anonymous_mode %}bg-blue-100 text-blue-800{% else %}text-gray-500 hover:text-blue-600{% endif %}">
-          📩 الرسائل الخاصة
-        </a>
-        <a href="{{ url_for('view_messages', username=real_username, anonymous=1) }}"
-           class="px-4 py-2 rounded-t-lg text-sm font-medium {% if anonymous_mode %}bg-blue-100 text-blue-800{% else %}text-gray-500 hover:text-blue-600{% endif %}">
-          👤 الرسائل المجهولة
-        </a>
-      </div>
+  <!-- ✨ الهيدر -->
+  <div class="flex items-center justify-between mb-8">
+    <a href="javascript:history.back()"
+       class="p-2 rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg hover:scale-110 transform transition">
+      ⬅
+    </a>
+    <div class="flex items-center gap-3">
+      <!-- صورة الحساب الحقيقي -->
+      <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user and user.profile_image else 'default.jpg')) }}"
+           alt="profile"
+           class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md">
+      <h3 class="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-400 drop-shadow">
+        {{ user.username if user else 'مستخدم غير متاح' }}
+      </h3>
     </div>
+  </div>
+
+  <!-- ✨ التبويبات -->
+  <div class="flex justify-center gap-4 mb-6">
+    <a href="{{ url_for('view_messages', username=user.username if user else '', anonymous=0) }}"
+       class="px-6 py-2 rounded-full text-sm font-bold tracking-wide transition-all transform hover:scale-105
+              bg-gradient-to-r from-green-500 to-emerald-400 text-white shadow-lg">
+      📩 الخاصة
+    </a>
+  </div>
+
+  <!-- ✨ صندوق المحادثة -->
+  <div class="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-green-500/20">
 
     <!-- الرسائل -->
-    <div class="p-5 h-[500px] overflow-y-auto space-y-4 bg-gray-50 dark:bg-gray-900">
+    <div class="flex-1 p-6 h-[500px] overflow-y-auto space-y-5 relative">
       {% for item in messages %}
-        {% set msg = item.msg %}
-        <div class="flex {% if msg.sender == current_user %}justify-end{% else %}justify-start{% endif %}">
-          <div class="{% if msg.sender == current_user %}bg-blue-600 text-white{% else %}bg-white text-gray-900 border{% endif %} px-4 py-3 rounded-2xl shadow-md max-w-[75%]">
+        <div class="flex {% if item.is_sender %}justify-end{% else %}justify-start{% endif %} items-end gap-2">
 
-            {% if msg.anonymous and not item.show_sender %}
-              <p class="mb-1 italic text-gray-400">رسالة مجهولة</p>
-            {% else %}
-              {% if msg.content %}
-                <p class="mb-1">{{ msg.content }}</p>
-              {% endif %}
-              {% if msg.file_path %}
-                <a href="{{ url_for('static', filename=msg.file_path) }}"
-                   class="block mt-1 underline {% if msg.sender == current_user %}text-blue-200{% else %}text-blue-600{% endif %}"
-                   target="_blank">📎 تحميل المرفق</a>
-              {% endif %}
+          {% if not item.is_sender %}
+            <!-- صورة المرسل (الحقيقي) -->
+            <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user and user.profile_image else 'default.jpg')) }}"
+                 alt="profile"
+                 class="w-8 h-8 rounded-full object-cover border-2 border-white shadow-md">
+          {% endif %}
+
+          <!-- فقاعة الرسالة -->
+          <div class="px-4 py-3 rounded-2xl text-sm max-w-[70%] relative backdrop-blur-md border
+                      {% if item.is_sender %}
+                        bg-green-500/90 text-white border-green-400/40 shadow-lg shadow-green-500/30 rounded-br-none
+                      {% else %}
+                        bg-white/10 dark:bg-gray-700/40 text-gray-100 border-gray-500/20 shadow-md rounded-bl-none
+                      {% endif %}">
+
+            <!-- نوع الرسالة -->
+            {% if item.message_type == "text" and item.content %}
+              <p class="leading-relaxed">{{ item.content }}</p>
+            {% elif item.message_type == "image" and item.file_path %}
+              <img src="{{ url_for('static', filename='uploads/' + item.file_path) }}"
+                   alt="📷 صورة" class="rounded-lg shadow mt-1 max-h-64">
+            {% elif item.message_type == "video" and item.file_path %}
+              <video controls class="rounded-lg shadow mt-1 max-h-64">
+                <source src="{{ url_for('static', filename='uploads/' + item.file_path) }}" type="video/mp4">
+              </video>
+            {% elif item.message_type == "audio" and item.file_path %}
+              <audio controls class="mt-1 w-full">
+                <source src="{{ url_for('static', filename='uploads/' + item.file_path) }}" type="audio/mpeg">
+              </audio>
+            {% elif item.file_path %}
+              <a href="{{ url_for('static', filename='uploads/' + item.file_path) }}"
+                 class="block mt-2 underline text-xs font-semibold
+                        {% if item.is_sender %}text-green-100{% else %}text-green-300{% endif %}"
+                 target="_blank">📎 مرفق</a>
             {% endif %}
 
-            <div class="text-end">
-              <small class="text-xs text-gray-300">{{ msg.timestamp.strftime('%H:%M') }}</small>
+            <!-- الوقت + حالة الصح -->
+            <div class="flex justify-end items-center gap-1 mt-1">
+              <small class="text-[10px] text-gray-300">{{ item.timestamp.strftime('%H:%M') }}</small>
+              {% if item.is_sender %}
+                {% if item.status == "sent" %}
+                  <span class="text-gray-400">✔</span>
+                {% elif item.status == "delivered" %}
+                  <span class="text-gray-400">✔✔</span>
+                {% elif item.status == "read" %}
+                  <span class="text-blue-400">✔✔</span>
+                {% endif %}
+              {% endif %}
             </div>
           </div>
+
+          {% if item.is_sender %}
+            <!-- صورة المستخدم الحالي -->
+            <div class="relative shrink-0 group">
+              <div class="w-8 h-8 rounded-full p-[1.5px] bg-transparent">
+                <img src="{{ url_for('static', filename='profile_pics/' + (current_user.profile_image if current_user and current_user.profile_image else 'default.jpg')) }}"
+                     alt="profile"
+                     class="w-full h-full rounded-full object-cover border-2 border-white shadow-md">
+              </div>
+            </div>
+          {% endif %}
         </div>
       {% endfor %}
     </div>
 
-    <!-- الإرسال -->
+    <!-- ✨ الإرسال -->
     {% if not is_blocked %}
-      <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-5">
-        <form action="{{ url_for('send_message', username=real_username) }}" method="post" enctype="multipart/form-data" class="space-y-4">
-          <div class="flex flex-col sm:flex-row gap-3">
-            <input type="text" name="content" placeholder="اكتب رسالتك..." class="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring focus:border-blue-300 dark:bg-gray-700 dark:text-white">
-            <input type="file" name="file" class="text-sm text-gray-500 dark:text-white">
-          </div>
-          <div class="flex items-center gap-2">
-            <input type="checkbox" name="anonymous" id="anonymous" class="form-checkbox accent-blue-600" {% if anonymous_mode %}checked{% endif %}>
-            <label for="anonymous" class="text-sm text-gray-600 dark:text-gray-300">إرسال كرسالة مجهولة</label>
-          </div>
-          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition text-sm">
-            📨 إرسال
+      <div class="border-t border-green-500/20 p-4 flex items-center gap-3 bg-black/40 backdrop-blur-md">
+        <form action="{{ url_for('send_message', username=user.username if user else '', anonymous=0) }}"
+              method="post" enctype="multipart/form-data"
+              class="flex w-full items-center gap-3">
+
+          <!-- إدخال النص -->
+          <input type="text" name="content" placeholder="💬 اكتب رسالتك..."
+                 class="flex-1 px-4 py-3 rounded-full border-2 border-green-400/40 bg-black/40 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-400 text-sm shadow-inner">
+
+          <!-- زر المرفق -->
+          <label class="cursor-pointer text-green-400 hover:text-green-300 transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12.79V21a2 2 0 01-2 2H5a2 2 0 01-2-2v-8.21M7 10l5-5 5 5M12 5v13" />
+            </svg>
+            <input type="file" name="file" class="hidden">
+          </label>
+
+          <!-- زر الإرسال -->
+          <button type="submit"
+                  class="bg-gradient-to-r from-green-500 to-emerald-400 text-white p-3 rounded-full shadow-lg hover:scale-105 transform transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10l9-6 9 6-9 6-9-6zM3 10v10a2 2 0 002 2h14a2 2 0 002-2V10" />
+            </svg>
           </button>
         </form>
       </div>
     {% else %}
-      <div class="bg-gray-100 text-center text-gray-500 py-5 dark:bg-gray-700 dark:text-gray-300">
-        لا يمكنك التحدث مع هذا المستخدم.
+      <div class="bg-red-500/20 text-center text-red-300 py-5 text-sm font-semibold backdrop-blur-md">
+        🚫 لا يمكنك التحدث مع هذا المستخدم.
       </div>
     {% endif %}
   </div>
 </div>
+
 {% endblock %}

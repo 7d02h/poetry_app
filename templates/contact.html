@@ -3,20 +3,25 @@
 {% block title %}📩 تواصل معنا - ميمو{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center py-10 px-4">
-  <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8">
-    
+<div class="flex justify-center items-center py-12 px-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-[90vh]">
+
+  <div class="w-full max-w-2xl bg-white/80 dark:bg-gray-800/70 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-gray-200 dark:border-gray-700 animate-fadeIn">
+
     <!-- العنوان -->
-    <div class="text-center mb-6">
-      <h2 class="text-3xl font-bold text-primary mb-2">📩 تواصل معنا</h2>
-      <p class="text-gray-600 dark:text-gray-300 text-sm sm:text-base">نسعد بتواصلك معنا لأي اقتراح، استفسار أو مشكلة تواجهك.</p>
+    <div class="text-center mb-8">
+      <h2 class="text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent mb-3">
+        📩 تواصل معنا
+      </h2>
+      <p class="text-gray-600 dark:text-gray-300 text-sm sm:text-base">
+        نسعد دائمًا باستقبال <span class="font-semibold text-primary">اقتراحاتك</span>، <span class="font-semibold text-primary">استفساراتك</span> أو حل <span class="font-semibold text-primary">المشكلات</span> التي تواجهك.
+      </p>
     </div>
 
     <!-- التنبيهات -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="mb-4 px-4 py-3 rounded text-sm font-medium
+          <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium shadow-md animate-slideUp
             {% if category == 'danger' %} bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200
             {% elif category == 'success' %} bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200
             {% else %} bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 {% endif %}">
@@ -28,30 +33,35 @@
 
     <!-- النموذج -->
     <form method="POST" novalidate class="space-y-6">
+
+      <!-- الاسم -->
       <div>
-        <label class="block mb-1 font-semibold">👤 الاسم الكامل</label>
+        <label class="block mb-2 font-semibold text-gray-800 dark:text-gray-200">👤 الاسم الكامل</label>
         <input type="text" name="name" required
           placeholder="مثال: أحمد الزهراني"
-          class="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base" />
+          class="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-700/70 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base transition" />
       </div>
 
+      <!-- البريد -->
       <div>
-        <label class="block mb-1 font-semibold">📧 البريد الإلكتروني</label>
+        <label class="block mb-2 font-semibold text-gray-800 dark:text-gray-200">📧 البريد الإلكتروني</label>
         <input type="email" name="email" required
           placeholder="example@email.com"
-          class="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base" />
+          class="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-700/70 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base transition" />
       </div>
 
+      <!-- الرسالة -->
       <div>
-        <label class="block mb-1 font-semibold">💬 الرسالة</label>
+        <label class="block mb-2 font-semibold text-gray-800 dark:text-gray-200">💬 الرسالة</label>
         <textarea name="message" rows="5" required
           placeholder="اكتب رسالتك هنا بكل وضوح..."
-          class="w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base"></textarea>
+          class="w-full rounded-2xl border border-gray-300 dark:border-gray-600 bg-white/70 dark:bg-gray-700/70 px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary focus:outline-none text-sm sm:text-base transition"></textarea>
       </div>
 
-      <div class="text-center">
+      <!-- زر الإرسال -->
+      <div class="text-center pt-2">
         <button type="submit"
-          class="bg-primary text-white hover:bg-primary-dark transition px-6 py-3 rounded-xl text-lg font-semibold shadow-md">
+          class="bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary transition-all duration-300 px-8 py-3 rounded-2xl text-lg font-semibold text-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95">
           📨 إرسال الرسالة
         </button>
       </div>
@@ -59,4 +69,19 @@
 
   </div>
 </div>
+
+<!-- ✨ أنيميشن -->
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fadeIn { animation: fadeIn 0.6s ease-out; }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slideUp { animation: slideUp 0.4s ease-out; }
+</style>
 {% endblock %}

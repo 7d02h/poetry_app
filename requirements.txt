@@ -13,3 +13,4 @@ flask-wtf
 flask-migrate
 flask_cors
 stripe
+flask-Mail

@@ -108,7 +108,7 @@ class Ban(db.Model):
 class Message(db.Model):
     __tablename__ = 'messages'
     id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
+    sender = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=True)
     receiver = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
     content = db.Column(db.Text)
     file_path = db.Column(db.String(256))

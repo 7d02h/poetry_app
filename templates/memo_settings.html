@@ -1,152 +1,149 @@
 {% extends 'base.html' %}
-{% block title %}الإعدادات العامة - ميمو{% endblock %}
+{% block title %}⚙️ الإعدادات العامة - ميمو{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <div class="card shadow-lg border-0 rounded-4">
-    <div class="card-body px-4 py-5">
-      <h3 class="text-center text-primary mb-5">⚙️ الإعدادات العامة</h3>
+<div class="container mx-auto px-4 py-10 max-w-4xl">
 
-      <form method="POST" action="{{ url_for('memo_settings') }}">
-
-        <!-- التسجيل -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">👤 التسجيل</h5>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="enable_registration" id="enable_registration"
-                   {% if settings.enable_registration %}checked{% endif %}>
-            <label class="form-check-label" for="enable_registration">السماح بالتسجيل</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="auto_verify_users" id="auto_verify_users"
-                   {% if settings.auto_verify_users %}checked{% endif %}>
-            <label class="form-check-label" for="auto_verify_users">توثيق المستخدمين تلقائيًا</label>
-          </div>
-        </section>
-
-        <!-- الأمان والحظر -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">🔒 الأمان والحظر</h5>
-          <div class="mb-3">
-            <label class="form-label">عدد المحاولات قبل الحظر المؤقت</label>
-            <input type="number" name="max_login_attempts" class="form-control"
-                   value="{{ settings.max_login_attempts }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">مدة الحظر (بالدقائق)</label>
-            <input type="number" name="ban_duration_minutes" class="form-control"
-                   value="{{ settings.ban_duration_minutes }}">
-          </div>
-        </section>
-
-        <!-- القصائد -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">📝 القصائد</h5>
-          <div class="mb-3">
-            <label class="form-label">أقصى عدد حروف للبيت الواحد</label>
-            <input type="number" name="max_poem_length" class="form-control"
-                   value="{{ settings.max_poem_length }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">المدة الزمنية بين كل نشر (بالثواني)</label>
-            <input type="number" name="post_interval_seconds" class="form-control"
-                   value="{{ settings.post_interval_seconds }}">
-          </div>
-        </section>
-
-        <!-- الميزات -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">✨ الميزات</h5>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="enable_likes" id="enable_likes"
-                   {% if settings.enable_likes %}checked{% endif %}>
-            <label class="form-check-label" for="enable_likes">تفعيل الإعجابات</label>
-          </div>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="enable_comments" id="enable_comments"
-                   {% if settings.enable_comments %}checked{% endif %}>
-            <label class="form-check-label" for="enable_comments">تفعيل التعليقات</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="enable_saved" id="enable_saved"
-                   {% if settings.enable_saved %}checked{% endif %}>
-            <label class="form-check-label" for="enable_saved">تفعيل الحفظ</label>
-          </div>
-        </section>
-
-        <!-- التنبيهات والرسائل -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">🔔 التنبيهات والرسائل</h5>
-          <div class="form-check mb-2">
-            <input class="form-check-input" type="checkbox" name="enable_notifications" id="enable_notifications"
-
-{% if settings.enable_notifications %}checked{% endif %}>
-            <label class="form-check-label" for="enable_notifications">تفعيل التنبيهات اللحظية</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="enable_messages" id="enable_messages"
-                   {% if settings.enable_messages %}checked{% endif %}>
-            <label class="form-check-label" for="enable_messages">تفعيل الرسائل الخاصة</label>
-          </div>
-        </section>
-
-        <!-- معلومات الموقع -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">🌐 معلومات الموقع</h5>
-          <div class="mb-3">
-            <label class="form-label">اسم الموقع</label>
-            <input type="text" name="site_name" class="form-control" value="{{ settings.site_name }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">وصف الموقع</label>
-            <textarea name="site_description" class="form-control" rows="2">{{ settings.site_description }}</textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">رابط انستغرام</label>
-            <input type="url" name="instagram_url" class="form-control" value="{{ settings.instagram_url }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">رابط تويتر (إكس)</label>
-            <input type="url" name="twitter_url" class="form-control" value="{{ settings.twitter_url }}">
-          </div>
-        </section>
-
-        <!-- الوضع الليلي -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">🌙 الوضع الليلي</h5>
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" name="dark_mode" id="dark_mode"
-                   {% if settings.dark_mode %}checked{% endif %}>
-            <label class="form-check-label" for="dark_mode">الوضع الليلي مفعل افتراضيًا</label>
-          </div>
-        </section>
-
-        <!-- لوحة ميمو -->
-        <section class="mb-4">
-          <h5 class="text-dark mb-3">🛠️ لوحة ميمو</h5>
-          <div class="mb-3">
-            <label class="form-label">اسم لوحة الإدارة</label>
-            <input type="text" name="admin_panel_name" class="form-control" value="{{ settings.admin_panel_name }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">بريد تواصل معنا</label>
-            <input type="email" name="contact_email" class="form-control" value="{{ settings.contact_email }}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">كلمات محظورة (افصل بينها بفاصلة)</label>
-            <textarea name="blocked_words" class="form-control" rows="3">{{ settings.blocked_words }}</textarea>
-          </div>
-        </section>
-
-        <!-- زر الحفظ -->
-        <div class="text-center mt-5">
-          <button type="submit" class="btn btn-primary px-5 py-2 rounded-pill shadow-sm">
-            💾 حفظ التغييرات
-          </button>
-        </div>
-
-      </form>
-    </div>
+  <!-- 🔹 العنوان الرئيسي -->
+  <div class="text-center mb-10">
+    <h1 class="text-3xl font-extrabold text-blue-600 dark:text-blue-400">
+      ⚙️ الإعدادات العامة
+    </h1>
+    <p class="text-gray-500 mt-2">تحكم كامل في ميزات وأمان موقعك</p>
   </div>
+
+  <form method="POST" action="{{ url_for('memo_settings') }}" enctype="multipart/form-data" class="space-y-8">
+
+    <!-- 👤 التسجيل -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">👤 التسجيل</h2>
+      <div class="space-y-3">
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="enable_registration" {% if settings.enable_registration %}checked{% endif %}>
+          <span>السماح بالتسجيل</span>
+        </label>
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="auto_verify_users" {% if settings.auto_verify_users %}checked{% endif %}>
+          <span>توثيق المستخدمين تلقائيًا</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 🔒 الأمان -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">🔒 الأمان</h2>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div>
+          <label class="block text-sm mb-1">عدد المحاولات قبل الحظر</label>
+          <input type="number" name="max_login_attempts" class="form-input w-full rounded-lg"
+                 value="{{ settings.max_login_attempts }}">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">مدة الحظر (دقائق)</label>
+          <input type="number" name="ban_duration_minutes" class="form-input w-full rounded-lg"
+                 value="{{ settings.ban_duration_minutes }}">
+        </div>
+      </div>
+      <label class="flex items-center space-x-2 space-x-reverse mt-4">
+        <input type="checkbox" name="enable_two_factor" {% if settings.enable_two_factor %}checked{% endif %}>
+        <span>تفعيل التحقق بخطوتين</span>
+      </label>
+    </div>
+
+    <!-- 📝 المحتوى -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">📝 المحتوى</h2>
+      <div class="grid md:grid-cols-2 gap-5">
+        <div>
+          <label class="block text-sm mb-1">أقصى عدد حروف للمنشور</label>
+          <input type="number" name="max_poem_length" class="form-input w-full rounded-lg"
+                 value="{{ settings.max_poem_length }}">
+        </div>
+        <div>
+          <label class="block text-sm mb-1">الفاصل بين كل نشر (ثواني)</label>
+          <input type="number" name="post_interval_seconds" class="form-input w-full rounded-lg"
+                 value="{{ settings.post_interval_seconds }}">
+        </div>
+      </div>
+      <textarea name="blocked_words" rows="3" class="form-input w-full rounded-lg mt-4"
+                placeholder="كلمات محظورة (افصل بفاصلة)">{{ settings.blocked_words }}</textarea>
+    </div>
+
+    <!-- ✨ الميزات الاجتماعية -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">✨ الميزات الاجتماعية</h2>
+      <div class="grid sm:grid-cols-2 gap-3">
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="enable_likes" {% if settings.enable_likes %}checked{% endif %}>
+          <span>تفعيل الإعجابات</span>
+        </label>
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="enable_comments" {% if settings.enable_comments %}checked{% endif %}>
+          <span>تفعيل التعليقات</span>
+        </label>
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="enable_messages" {% if settings.enable_messages %}checked{% endif %}>
+          <span>تفعيل الرسائل الخاصة</span>
+        </label>
+        <label class="flex items-center space-x-2 space-x-reverse">
+          <input type="checkbox" name="enable_notifications" {% if settings.enable_notifications %}checked{% endif %}>
+          <span>تفعيل التنبيهات</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 🌐 الموقع -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">🌐 الموقع</h2>
+      <div class="space-y-4">
+        <input type="text" name="site_name" class="form-input w-full rounded-lg"
+               value="{{ settings.site_name }}" placeholder="اسم الموقع">
+        <textarea name="site_description" rows="2" class="form-input w-full rounded-lg"
+                  placeholder="وصف الموقع">{{ settings.site_description }}</textarea>
+        <input type="file" name="site_logo" class="form-input w-full rounded-lg">
+      </div>
+    </div>
+
+    <!-- 🌙 التخصيص -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">🌙 التخصيص</h2>
+      <label class="flex items-center space-x-2 space-x-reverse">
+        <input type="checkbox" name="dark_mode" {% if settings.dark_mode %}checked{% endif %}>
+        <span>الوضع الليلي افتراضيًا</span>
+      </label>
+    </div>
+
+    <!-- 📈 SEO -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">📈 SEO</h2>
+      <div class="space-y-4">
+        <input type="text" name="meta_title" class="form-input w-full rounded-lg"
+               value="{{ settings.meta_title }}" placeholder="Meta Title">
+        <textarea name="meta_description" rows="2" class="form-input w-full rounded-lg"
+                  placeholder="Meta Description">{{ settings.meta_description }}</textarea>
+        <input type="text" name="ga_id" class="form-input w-full rounded-lg"
+               value="{{ settings.ga_id }}" placeholder="Google Analytics ID">
+      </div>
+    </div>
+
+    <!-- 🛠️ الإدارة -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow p-6">
+      <h2 class="text-lg font-bold mb-4">🛠️ الإدارة</h2>
+      <div class="grid md:grid-cols-2 gap-4 mb-4">
+        <input type="text" name="admin_panel_name" class="form-input w-full rounded-lg"
+               value="{{ settings.admin_panel_name }}" placeholder="اسم لوحة الإدارة">
+        <input type="email" name="contact_email" class="form-input w-full rounded-lg"
+               value="{{ settings.contact_email }}" placeholder="بريد التواصل">
+      </div>
+    </div>
+
+    <!-- ✅ زر الحفظ -->
+    <div class="text-center">
+      <button type="submit" class="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl shadow hover:bg-blue-700 transition">
+        💾 حفظ التغييرات
+      </button>
+    </div>
+
+  </form>
 </div>
 {% endblock %}

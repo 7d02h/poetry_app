@@ -1,56 +1,68 @@
 {% extends 'base.html' %}
-{% block title %}تسجيل الدخول{% endblock %}
+{% block title %}🔐 تسجيل الدخول{% endblock %}
 
 {% block content %}
-<div class="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 px-4">
-  <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 space-y-6 border border-gray-200 dark:border-gray-700">
+<div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-100 via-yellow-100 to-gray-200 dark:from-gray-900 dark:via-gray-800 dark:to-black px-4">
+  
+  <!-- ✅ الكارد -->
+  <div class="relative w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 p-8 overflow-hidden">
     
-    <h2 class="text-2xl font-bold text-center text-blue-600 dark:text-yellow-400">🔐 تسجيل الدخول</h2>
+    <!-- ✨ زخرفة خلفية -->
+    <div class="absolute -top-16 -right-16 w-40 h-40 bg-yellow-400/30 dark:bg-green-400/20 rounded-full blur-3xl"></div>
+    <div class="absolute -bottom-16 -left-16 w-40 h-40 bg-green-300/30 dark:bg-yellow-500/20 rounded-full blur-3xl"></div>
 
-    <form method="POST" class="space-y-4">
+    <!-- العنوان -->
+    <h2 class="text-3xl font-extrabold text-center bg-gradient-to-r from-yellow-400 to-green-500 text-transparent bg-clip-text mb-6">
+      🔐 تسجيل الدخول
+    </h2>
+
+    <!-- النموذج -->
+    <form method="POST" class="space-y-5">
+      
       <div>
-        <label for="username" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-          👤 اسم المستخدم
-        </label>
+        <label for="username" class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 اسم المستخدم</label>
         <input
           type="text"
           id="username"
           name="username"
           required
-          class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition"
+          placeholder="أدخل اسم المستخدم"
         />
       </div>
 
       <div>
-        <label for="password" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
-          🔒 كلمة المرور
-        </label>
+        <label for="password" class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">🔒 كلمة المرور</label>
         <input
           type="password"
           id="password"
           name="password"
           required
-          class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition"
+          placeholder="****"
         />
       </div>
 
+      <!-- رابط نسيت كلمة المرور -->
       <div class="text-end">
-        <a href="{{ url_for('forgot_password') }}" class="text-sm text-gray-500 hover:text-yellow-500 transition">
+        <a href="{{ url_for('forgot_password') }}" class="text-sm font-medium text-gray-500 hover:text-yellow-500 transition">
           هل نسيت كلمة المرور؟
         </a>
       </div>
 
+      <!-- زر الدخول -->
       <button
         type="submit"
-        class="w-full py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold rounded-lg transition"
+        class="w-full py-3 bg-gradient-to-r from-yellow-400 to-green-500 hover:from-yellow-500 hover:to-green-600 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.02] transition-all duration-300"
       >
         دخول
       </button>
     </form>
 
-    <p class="text-center text-sm text-gray-600 dark:text-gray-400">
-      ليس لديك حساب؟ 
-      <a href="{{ url_for('signup') }}" class="font-bold text-blue-600 dark:text-yellow-400 hover:underline">
+    <!-- رابط إنشاء حساب -->
+    <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
+      ليس لديك حساب؟
+      <a href="{{ url_for('signup') }}" class="font-bold text-yellow-500 dark:text-green-400 hover:underline hover:opacity-90 transition">
         إنشاء حساب جديد
       </a>
     </p>

@@ -5,65 +5,104 @@
   <title>ستوري {{ current_user.username }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* ✅ Progress Bars */
     .progress-bar {
       height: 3px;
-      background: white;
+      background: linear-gradient(90deg, #facc15, #f97316, #ef4444);
       width: 0%;
       transition: width linear;
+      box-shadow: 0 0 10px rgba(255,255,255,0.7);
     }
+
+    /* ✅ Story Slide Transition */
     .story-slide {
       display: none;
       flex: 1 1 auto;
       flex-direction: column;
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.6s ease, transform 0.6s ease;
     }
     .story-slide.active {
       display: flex;
+      opacity: 1;
+      transform: scale(1);
     }
+
+    /* ✅ Overlay Zones */
     .overlay-zone {
       position: absolute;
       top: 0;
       bottom: 0;
       width: 50%;
-      z-index: 10; /* أقل من الهيدر والأزرار */
+      z-index: 10;
     }
     #left-zone { left: 0; }
     #right-zone { right: 0; }
+
+    /* ✅ Glassmorphism Effect */
+    .glass {
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+    }
+
+    /* ✅ Buttons */
+    .magic-btn {
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-weight: bold;
+      background: linear-gradient(135deg, #facc15, #f97316, #ef4444);
+      color: black;
+      box-shadow: 0 4px 15px rgba(250,204,21,0.4);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .magic-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 20px rgba(250,204,21,0.7);
+    }
+
+    /* ✅ Long Press Animation */
+    .paused {
+      transform: scale(0.92);
+      transition: transform 0.3s ease;
+    }
   </style>
 </head>
-<body class="bg-black text-white flex items-center justify-center min-h-screen">
+<body class="bg-gradient-to-br from-black via-gray-900 to-black text-white flex items-center justify-center min-h-screen">
 
-  <div class="relative w-full max-w-md h-screen flex flex-col">
+  <div class="relative w-full max-w-md h-screen flex flex-col overflow-hidden">
 
     {% set valid_stories = stories_data|selectattr("story.is_archived", "equalto", False)|list %}
 
     {% if valid_stories and valid_stories|length > 0 %}
-    <!-- البار العلوي -->
+    <!-- ✅ البار العلوي -->
     <div class="absolute top-0 left-0 right-0 flex gap-1 p-2 z-30">
       {% for item in valid_stories %}
-        <div class="flex-1 bg-gray-700 rounded overflow-hidden">
+        <div class="flex-1 bg-gray-700/40 rounded-full overflow-hidden">
           <div class="progress-bar" id="progress-{{ loop.index0 }}"></div>
         </div>
       {% endfor %}
     </div>
 
-    <!-- كل ستوري -->
+    <!-- ✅ كل ستوري -->
     {% for item in valid_stories %}
     <div class="story-slide {% if loop.first %}active{% endif %}">
 
-      <!-- الهيدر -->
-      <div class="absolute top-3 left-0 right-0 flex items-center justify-between px-4 z-40">
+      <!-- ✅ الهيدر -->
+      <div class="absolute top-3 left-2 right-2 flex items-center justify-between px-4 py-2 z-40 glass shadow-lg">
         <div class="flex items-center gap-2">
           <img src="{{ url_for('static', filename='profile_pics/' + (item.story.user.profile_image if item.story.user.profile_image else 'default.jpg')) }}" 
-               class="w-8 h-8 rounded-full border border-gray-500">
+               class="w-9 h-9 rounded-full border-2 border-yellow-400 shadow-md">
           <div>
-            <p class="font-semibold">{{ item.story.user.username }}</p>
+            <p class="font-semibold text-sm">{{ item.story.user.username }}</p>
             <p class="text-xs text-gray-300">{{ time_since(item.story.created_at) }}</p>
           </div>
         </div>
-        <button onclick="window.location.href='/'" class="text-white text-xl">&times;</button>
+        <button onclick="window.location.href='/'" class="text-white text-2xl hover:scale-110 transition">&times;</button>
       </div>
 
-      <!-- المحتوى -->
+      <!-- ✅ المحتوى -->
       <div class="flex-1 flex items-center justify-center px-2">
         {% if item.story.media_path %}
           {% set media_file = item.story.media_path %}
@@ -73,26 +112,26 @@
           {% set file_path = url_for('static', filename=media_file) %}
           
           {% if item.story.media_type == 'video' %}
-            <video class="storyMedia max-h-[80vh] max-w-full rounded-lg" src="{{ file_path }}" playsinline></video>
+            <video class="storyMedia max-h-[80vh] max-w-full rounded-2xl shadow-xl" src="{{ file_path }}" playsinline></video>
           {% else %}
-            <img class="storyMedia max-h-[80vh] max-w-full rounded-lg object-contain" src="{{ file_path }}">
+            <img class="storyMedia max-h-[80vh] max-w-full rounded-2xl shadow-xl object-contain" src="{{ file_path }}">
           {% endif %}
         {% elif item.story.content %}
-          <p class="text-lg text-center">{{ item.story.content }}</p>
+          <p class="text-lg text-center font-bold animate-pulse">{{ item.story.content }}</p>
         {% endif %}
       </div>
 
-      <!-- الفوتر -->
-      <div class="absolute bottom-20 left-0 right-0 flex items-center justify-around text-gray-300 text-sm z-40">
+      <!-- ✅ الفوتر -->
+      <div class="absolute bottom-24 left-3 right-3 flex items-center justify-around text-gray-200 text-sm z-40 glass p-2 rounded-xl">
         <span>👁️ {{ item.views|length }} مشاهدة</span>
         <span>❤️ {{ item.story.likes|length if item.story.likes is defined else 0 }} إعجاب</span>
       </div>
 
-      <!-- قائمة المشاهدين -->
-      <div class="absolute bottom-12 left-0 right-0 max-h-32 overflow-y-auto bg-black/50 p-2 text-sm z-40">
+      <!-- ✅ قائمة المشاهدين -->
+      <div class="absolute bottom-14 left-2 right-2 max-h-32 overflow-y-auto glass p-2 text-sm z-40 rounded-xl">
         {% for view in item.views %}
-          <div class="flex items-center gap-2 py-1">
-            <img src="{{ view.profile_image }}" class="w-6 h-6 rounded-full">
+          <div class="flex items-center gap-2 py-1 border-b border-gray-700/40">
+            <img src="{{ view.profile_image }}" class="w-6 h-6 rounded-full border border-gray-500">
             <span>{{ view.username }}</span>
             {% if view.has_liked %}
               <span class="text-red-500">❤️</span>
@@ -101,7 +140,7 @@
         {% endfor %}
       </div>
 
-      <!-- الأزرار السفلية -->
+<!-- الأزرار السفلية -->
       <div class="absolute bottom-2 left-0 right-0 flex flex-wrap items-center justify-around text-gray-300 text-sm z-40">
         <button onclick="alert('🚀 سيتم إضافة مزيد من الخيارات قريبًا')">المزيد</button>
         <button onclick="alert('👤 تم ذكر صديق')">ذكر</button>
@@ -126,7 +165,7 @@
       <script>window.location.href = "/";</script>
     {% endif %}
 
-    <!-- مناطق التنقل -->
+    <!-- ✅ مناطق التنقل -->
     <div id="left-zone" class="overlay-zone"></div>
     <div id="right-zone" class="overlay-zone"></div>
   </div>
@@ -196,7 +235,7 @@
       }
     }
 
-    // التنقل بالنقر
+    // ✅ التنقل بالنقر
     document.getElementById("left-zone").addEventListener("click", prevSlide);
     document.getElementById("right-zone").addEventListener("click", nextSlide);
 
@@ -207,19 +246,15 @@
     // ✅ وظيفة زر الأرشفة
     function archiveAndRemoveStory(event, form) {
       event.preventDefault();
-
       fetch(form.action, { method: "POST" })
         .then(res => {
           if (res.ok) {
             const slide = form.closest(".story-slide");
             const index = Array.from(slides).indexOf(slide);
-
             slide.remove();
             progresses[index].remove();
-
             slides = document.querySelectorAll(".story-slide");
             progresses = document.querySelectorAll(".progress-bar");
-
             if (slides.length > 0) {
               if (currentIndex >= slides.length) currentIndex = slides.length - 1;
               showSlide(currentIndex);
@@ -236,10 +271,8 @@
       isPaused = true;
       clearTimeout(timer);
       const media = slides[currentIndex].querySelector(".storyMedia");
-      if (media && media.tagName === "VIDEO") {
-        media.pause();
-      }
-      // حساب الوقت المتبقي
+      if (media && media.tagName === "VIDEO") media.pause();
+      slides[currentIndex].classList.add("paused");
       remainingTime -= (Date.now() - progressStartTime);
       progresses[currentIndex].style.transitionDuration = "0s";
     }
@@ -248,9 +281,8 @@
       if (!isPaused) return;
       isPaused = false;
       const media = slides[currentIndex].querySelector(".storyMedia");
-      if (media && media.tagName === "VIDEO") {
-        media.play();
-      }
+      if (media && media.tagName === "VIDEO") media.play();
+      slides[currentIndex].classList.remove("paused");
       progresses[currentIndex].style.transitionDuration = remainingTime / 1000 + "s";
       setTimeout(() => progresses[currentIndex].style.width = "100%", 50);
       progressStartTime = Date.now();
@@ -264,6 +296,35 @@
       zone.addEventListener("touchstart", pauseStory);
       zone.addEventListener("touchend", resumeStory);
     });
+
+    // ✅ Swipe Gestures
+    let touchStartX = 0, touchStartY = 0;
+    let touchEndX = 0, touchEndY = 0;
+
+    document.addEventListener("touchstart", e => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    });
+
+    document.addEventListener("touchend", e => {
+      touchEndX = e.changedTouches[0].screenX;
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    });
+
+    function handleSwipe() {
+      let diffX = touchEndX - touchStartX;
+      let diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffX) > Math.abs(diffY)) {
+        // سحب أفقي
+        if (diffX > 50) prevSlide();
+        else if (diffX < -50) nextSlide();
+      } else {
+        // سحب عمودي
+        if (diffY > 80) window.location.href = "/";
+      }
+    }
   </script>
 </body>
 </html>

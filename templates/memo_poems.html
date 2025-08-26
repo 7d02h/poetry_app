@@ -1,41 +1,52 @@
 {% extends 'base.html' %}
 
-{% block title %}إدارة الأبيات - ميمو{% endblock %}
+{% block title %}📜 إدارة الأبيات - ميمو{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-10">
   <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-6">
 
-    <h3 class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">📜 إدارة الأبيات</h3>
+    <!-- 🔹 العنوان + إحصائيات -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+      <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-3 md:mb-0">📜 إدارة الأبيات</h3>
+      <div class="flex items-center space-x-2 space-x-reverse">
+        <span class="text-sm text-gray-500 dark:text-gray-300">إجمالي: {{ poems|length }}</span>
+        <form method="GET" class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg px-2">
+          <input type="text" name="q" placeholder="🔍 بحث..." 
+                 class="bg-transparent border-0 focus:ring-0 text-sm text-gray-700 dark:text-gray-200 px-2 py-1" />
+        </form>
+      </div>
+    </div>
 
     {% if poems %}
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-center text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700">
+      <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+        <table class="w-full text-sm text-center text-gray-700 dark:text-gray-200">
           <thead class="bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold">
             <tr>
-              <th class="px-4 py-2 border">رقم</th>
-              <th class="px-4 py-2 border">النص</th>
-              <th class="px-4 py-2 border">المستخدم</th>
-              <th class="px-4 py-2 border">الإعجابات</th>
-              <th class="px-4 py-2 border">المشاهدات</th>
-              <th class="px-4 py-2 border">تاريخ النشر</th>
-              <th class="px-4 py-2 border">🗑️ حذف</th>
+              <th class="px-4 py-2">#</th>
+              <th class="px-4 py-2">النص</th>
+              <th class="px-4 py-2">المستخدم</th>
+              <th class="px-4 py-2">❤️ إعجابات</th>
+              <th class="px-4 py-2">👁️ مشاهدات</th>
+              <th class="px-4 py-2">📅 النشر</th>
+              <th class="px-4 py-2">🗑️</th>
             </tr>
           </thead>
           <tbody>
             {% for poem in poems %}
-            <tr class="bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 border-b">
-              <td class="px-4 py-2 border">{{ poem.id }}</td>
-              <td class="px-4 py-2 border max-w-xs whitespace-pre-wrap break-words text-right">{{ poem.text }}</td>
-              <td class="px-4 py-2 border">{{ poem.username }}</td>
-              <td class="px-4 py-2 border">{{ poem.likes }}</td>
-              <td class="px-4 py-2 border">{{ poem.views }}</td>
-              <td class="px-4 py-2 border">{{ poem.created_at }}</td>
-              <td class="px-4 py-2 border">
+            <tr class="odd:bg-white even:bg-gray-50 dark:odd:bg-gray-900 dark:even:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+              <td class="px-4 py-2">{{ poem.id }}</td>
+              <td class="px-4 py-2 max-w-xs whitespace-pre-wrap break-words text-right">{{ poem.text }}</td>
+              <td class="px-4 py-2">{{ poem.username }}</td>
+              <td class="px-4 py-2">{{ poem.likes }}</td>
+              <td class="px-4 py-2">{{ poem.views }}</td>
+              <td class="px-4 py-2 text-sm">{{ poem.created_at.strftime('%Y-%m-%d') }}</td>
+              <td class="px-4 py-2">
                 <form method="POST" action="{{ url_for('delete_poem_admin', poem_id=poem.id) }}">
-                  <button class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 rounded"
-                          onclick="return confirm('هل أنت متأكد من الحذف؟')">
-                    حذف
+                  <button class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow-sm"
+                          onclick="return confirm('هل أنت متأكد من الحذف؟')"
+                          title="حذف">
+                    🗑️
                   </button>
                 </form>
               </td>
@@ -45,8 +56,8 @@
         </table>
       </div>
     {% else %}
-      <div class="text-center text-gray-600 dark:text-gray-300 mt-4">
-        لا توجد أبيات حاليًا.
+      <div class="text-center text-gray-600 dark:text-gray-300 mt-6">
+        🚫 لا توجد أبيات حاليًا.
       </div>
     {% endif %}
   </div>

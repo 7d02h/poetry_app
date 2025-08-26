@@ -3,171 +3,209 @@
 
 {% block content %}
 
-<div class="container mx-auto px-4 py-10">  
-  <h2 class="text-center text-3xl font-bold text-blue-700 mb-10">🧽 استكشاف</h2>  
-  <h4 class="text-lg font-semibold text-gray-700 mb-4">📝 الأبيات الأكثر إعجابًا</h4>  
+<div class="container mx-auto px-4 py-10 max-w-3xl">  
+  <!-- 🔷 العنوان الرئيسي -->
+  <h2 class="text-center text-4xl font-extrabold text-blue-700 mb-12 tracking-wide">
+    🧽 استكشاف
+  </h2>  
+
+  <!-- 📝 الأبيات الأكثر إعجابًا -->
+  <h4 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-6 flex items-center gap-2">
+    📝 الأبيات الأكثر إعجابًا
+  </h4>  
 
   {% if top_poems %}
     {% for poem in top_poems %}
       {% if poem.username not in blocked_users_sidebar %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6" id="poem-{{ poem.id }}">
-          <p class="whitespace-pre-wrap text-lg text-gray-800 dark:text-white mb-2">{{ poem.text }}</p>
-          <p class="text-sm text-gray-500">{{ poem.created_ago }}</p>
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-md hover:shadow-lg transition p-6 mb-8 border border-gray-100 dark:border-gray-700" id="poem-{{ poem.id }}">
+          
+          <!-- نص البيت -->
+          <p class="whitespace-pre-wrap text-lg leading-relaxed text-gray-900 dark:text-gray-100 mb-4">
+            {{ poem.text }}
+          </p>
 
-          <div class="flex items-center gap-3 mt-3">  
-            {% if poem.profile_image %}  
-              <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"  
-                   class="w-9 h-9 rounded-full object-cover" alt="الصورة">  
-            {% else %}  
-              <div class="w-9 h-9 rounded-full bg-gray-400 text-white flex items-center justify-center font-bold">  
-                {{ poem.username[0]|upper }}  
-              </div>  
-            {% endif %}  
-            <a href="{{ url_for('public_profile', username=poem.username) }}"  
-               class="text-blue-600 font-medium hover:underline flex items-center gap-1">  
-              {{ poem.username }}  
-              {% if poem.verified %}  
-                <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">  
-                  <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>  
-                </svg>  
-              {% endif %}  
-            </a>  
-          </div>  
+          <!-- وقت الإنشاء -->
+          <p class="text-xs text-gray-500 mb-4">⏳ {{ poem.created_ago }}</p>
 
-          <div class="flex flex-wrap gap-2 mt-4">  
-            <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded text-sm">{{ poem.views or 0 }} مشاهدة</span>  
+          <!-- معلومات المستخدم -->
+          <div class="flex items-center gap-3">
+            {% if poem.profile_image %}
+              <img src="{{ url_for('static', filename='profile_pics/' + poem.profile_image) }}"
+                   class="w-10 h-10 rounded-full ring-2 ring-gray-200 dark:ring-gray-700 object-cover" alt="الصورة">
+            {% else %}
+              <div class="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold">
+                {{ poem.username[0]|upper }}
+              </div>
+            {% endif %}
 
-            <a href="#" onclick="likePoem('{{ poem.id }}', this); return false;"  
-               class="like-button btn-sm border border-red-500 text-red-500 px-3 py-1 rounded hover:bg-red-100 {% if poem.id in user_liked %}active bg-red-100{% endif %}">  
-              ❤️ {{ poem.likes }}  
-            </a>  
+            <a href="{{ url_for('public_profile', username=poem.username) }}"
+               class="text-blue-600 font-medium hover:underline flex items-center gap-1 text-sm">
+              {{ poem.username }}
+              {% if poem.verified %}
+                <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">
+                  <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>
+                </svg>
+              {% endif %}
+            </a>
+          </div>
 
-            {% if poem.username == session['username'] %}  
-              <a href="#" onclick="deletePoem('{{ poem.id }}'); return false;"  
-                 class="btn-sm border border-gray-400 text-gray-600 px-3 py-1 rounded hover:bg-gray-100">🗑 حذف</a>  
-            {% endif %}  
+          <!-- أزرار التفاعل -->
+          <div class="flex flex-wrap gap-3 mt-6">
+            <span class="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-4 py-1 rounded-full text-xs shadow-sm">
+              👁 {{ poem.views or 0 }} مشاهدة
+            </span>
 
-            <a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"  
-               class="btn-sm border border-blue-500 text-blue-500 px-3 py-1 rounded hover:bg-blue-100">📤 مشاركة</a>  
+            <a href="#" onclick="likePoem('{{ poem.id }}', this); return false;"
+               class="like-button border px-4 py-1 rounded-full text-sm transition 
+                      {% if poem.id in user_liked %}
+                        bg-red-100 text-red-600 border-red-500
+                      {% else %}
+                        border-red-500 text-red-500 hover:bg-red-50
+                      {% endif %}">
+              ❤️ {{ poem.likes }}
+            </a>
 
-            {% if poem.username != session['username'] %}  
-              <a href="{{ url_for('block_user', username=poem.username) }}"  
-                 class="btn-sm border border-yellow-500 text-yellow-600 px-3 py-1 rounded hover:bg-yellow-100">⛔️ حظر</a>  
-            {% endif %}  
-          </div>  
-        </div>  
+            {% if poem.username == session['username'] %}
+              <a href="#" onclick="deletePoem('{{ poem.id }}'); return false;"
+                 class="border border-gray-400 text-gray-600 px-4 py-1 rounded-full text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                🗑 حذف
+              </a>
+            {% endif %}
+
+            <a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"
+               class="border border-blue-500 text-blue-500 px-4 py-1 rounded-full text-sm hover:bg-blue-50 transition">
+              📤 مشاركة
+            </a>
+
+            {% if poem.username != session['username'] %}
+              <a href="{{ url_for('block_user', username=poem.username) }}"
+                 class="border border-yellow-500 text-yellow-600 px-4 py-1 rounded-full text-sm hover:bg-yellow-50 transition">
+                ⛔️ حظر
+              </a>
+            {% endif %}
+          </div>
+        </div>
       {% endif %}
     {% endfor %}
   {% else %}
-    <p class="text-gray-500">لا توجد أبيات حالياً.</p>
+    <p class="text-gray-500 text-center mt-10">لا توجد أبيات حالياً.</p>
   {% endif %}
 
-  <h4 class="text-lg font-semibold text-gray-700 mt-10 mb-4">👥 مستخدمون مقترحون</h4>  
-  {% if suggested_users %}  
+  <!-- 👥 المستخدمون المقترحون -->
+  <h4 class="text-xl font-semibold text-gray-800 dark:text-gray-200 mt-14 mb-6 flex items-center gap-2">
+    👥 مستخدمون مقترحون
+  </h4>  
+
+  {% if suggested_users %}
     {% for user in suggested_users %}
-      {% if user.username not in blocked_users_sidebar %}  
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 mb-4 flex justify-between items-center">  
-          <div class="flex items-center gap-4">  
-            {% if user.profile_image %}  
-              <img src="{{ url_for('static', filename='profile_pics/' + user.profile_image) }}"  
-                   class="w-10 h-10 rounded-full object-cover" alt="الصورة">  
-            {% else %}  
-              <div class="w-10 h-10 rounded-full bg-gray-400 text-white flex items-center justify-center font-bold">  
-                {{ user.username[0]|upper }}  
-              </div>  
-            {% endif %}  
-            <div>  
-              <a href="{{ url_for('public_profile', username=user.username) }}"  
-              class="font-semibold text-gray-800 dark:text-white hover:underline flex items-center gap-1">  
-                {{ user.username }}  
-                {% if user.verified %}  
-                  <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">  
-                    <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>  
-                  </svg>  
-                {% endif %}  
-              </a>  
-              <div class="text-sm text-gray-500">  
-                {{ user.first_name or '' }} {{ user.last_name or '' }}  
-              </div>  
-            </div>  
-          </div>  
-          <form onsubmit="followUser(event, this)" method="post" action="{{ url_for('follow') }}">  
-            <input type="hidden" name="target_user" value="{{ user.username }}">  
-            <button type="submit"  
-                    class="px-3 py-1 text-sm border border-green-600 text-green-600 rounded hover:bg-green-100">  
-               متابعة  
-            </button>  
-          </form>  
-        </div>  
+      {% if user.username not in blocked_users_sidebar %}
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-md hover:shadow-lg transition p-5 mb-5 flex justify-between items-center border border-gray-100 dark:border-gray-700">
+          
+          <div class="flex items-center gap-4">
+            {% if user.profile_image %}
+              <img src="{{ url_for('static', filename='profile_pics/' + user.profile_image) }}"
+                   class="w-11 h-11 rounded-full ring-2 ring-gray-200 dark:ring-gray-700 object-cover" alt="الصورة">
+            {% else %}
+              <div class="w-11 h-11 rounded-full bg-gradient-to-r from-green-500 to-teal-600 text-white flex items-center justify-center font-bold">
+                {{ user.username[0]|upper }}
+              </div>
+            {% endif %}
+            
+            <div>
+              <a href="{{ url_for('public_profile', username=user.username) }}"
+                 class="font-semibold text-gray-900 dark:text-gray-100 hover:underline flex items-center gap-1">
+                {{ user.username }}
+                {% if user.verified %}
+                  <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">
+                    <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>
+                  </svg>
+                {% endif %}
+              </a>
+              <div class="text-sm text-gray-500 dark:text-gray-400">
+                {{ user.first_name or '' }} {{ user.last_name or '' }}
+              </div>
+            </div>
+          </div>
+
+          <form onsubmit="followUser(event, this)" method="post" action="{{ url_for('follow') }}">
+            <input type="hidden" name="target_user" value="{{ user.username }}">
+            <button type="submit"
+                    class="px-4 py-1.5 text-sm rounded-full border transition
+                           border-green-600 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/40">
+              متابعة
+            </button>
+          </form>
+        </div>
       {% endif %}
-    {% endfor %}  
-  {% else %}  
-    <p class="text-gray-500">لا يوجد مستخدمون مقترحون حالياً.</p>  
-  {% endif %}  
-</div>  
+    {% endfor %}
+  {% else %}
+    <p class="text-gray-500 text-center mt-8">لا يوجد مستخدمون مقترحون حالياً.</p>
+  {% endif %}
+</div>
 
-<script>  
-function likePoem(poemId, element) {  
-  const isLiked = element.classList.contains("active");  
-  fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))  
-    .then(response => response.json())  
-    .then(data => {  
-      if (data.success) {  
-        element.classList.toggle("active");  
-        element.innerHTML = '❤️ ' + data.likes;  
-      } else if (data.redirect) {  
-        window.location.href = data.redirect;  
-      }  
-    });  
-}  
-  
-function deletePoem(poemId) {  
-  fetch(`/delete/${poemId}`, { method: 'GET' })  
-    .then(() => {  
-      const poem = document.getElementById(`poem-${poemId}`);  
-      if (poem) poem.remove();  
-    });  
-}  
-  
-function sharePoem(poemText) {  
-  if (navigator.share) {  
-    navigator.share({  
-      title: '📜 بيت شعري',  
-      text: poemText,  
-      url: window.location.href  
-    }).catch((error) => console.log('خطأ في المشاركة:', error));  
-  } else {  
-    alert("المشاركة غير مدعومة في هذا المتصفح.");  
-  }  
-}  
-  
-function followUser(event, form) {  
-  event.preventDefault();  
-  const formData = new FormData(form);  
-  const btn = form.querySelector("button");  
+<!-- 🚀 السكربت -->
+<script>
+function likePoem(poemId, element) {
+  const isLiked = element.classList.contains("active");
+  fetch('/like/' + poemId + '?action=' + (isLiked ? 'unlike' : 'like'))
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        element.classList.toggle("active");
+        element.innerHTML = '❤️ ' + data.likes;
+      } else if (data.redirect) {
+        window.location.href = data.redirect;
+      }
+    });
+}
 
-  fetch(form.action, {  
-    method: 'POST',  
-    body: formData,  
-    headers: { "X-Requested-With": "XMLHttpRequest" }  
-  })  
-    .then(res => res.json())  
-    .then(data => {  
-      if (data.success) {  
-        if (data.following) {  
-          btn.textContent = "متابع ";  
-          btn.classList.remove("border-green-600", "text-green-600", "hover:bg-green-100");  
-          btn.classList.add("border-red-600", "text-red-600", "hover:bg-red-100");  
-        } else {  
-          btn.textContent = "متابعة";  
-          btn.classList.remove("border-red-600", "text-red-600", "hover:bg-red-100");  
-          btn.classList.add("border-green-600", "text-green-600", "hover:bg-green-100");  
-        }  
-      } else if (data.blocked) {  
-        alert("❌ لا يمكنك متابعة هذا المستخدم (محظور).");  
-      }  
-    });  
-}  
-</script>  
+function deletePoem(poemId) {
+  fetch(`/delete/${poemId}, { method: 'GET' }`)
+    .then(() => {
+      const poem = document.getElementById(`poem-${poemId}`);
+      if (poem) poem.remove();
+    });
+}
+
+function sharePoem(poemText) {
+  if (navigator.share) {
+    navigator.share({
+      title: '📜 بيت شعري',
+      text: poemText,
+      url: window.location.href
+    }).catch((error) => console.log('خطأ في المشاركة:', error));
+  } else {
+    alert("المشاركة غير مدعومة في هذا المتصفح.");
+  }
+}
+
+function followUser(event, form) {
+  event.preventDefault();
+  const formData = new FormData(form);
+  const btn = form.querySelector("button");
+
+  fetch(form.action, {
+    method: 'POST',
+    body: formData,
+    headers: { "X-Requested-With": "XMLHttpRequest" }
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        if (data.following) {
+          btn.textContent = "متابع";
+          btn.classList.remove("border-green-600", "text-green-600", "hover:bg-green-50");
+          btn.classList.add("border-red-600", "text-red-600", "hover:bg-red-50");
+        } else {
+          btn.textContent = "متابعة";
+          btn.classList.remove("border-red-600", "text-red-600", "hover:bg-red-50");
+          btn.classList.add("border-green-600", "text-green-600", "hover:bg-green-50");
+        }
+      } else if (data.blocked) {
+        alert("❌ لا يمكنك متابعة هذا المستخدم (محظور).");
+      }
+    });
+}
+</script>
 
 {% endblock %}

@@ -3,47 +3,131 @@
 {% block title %}📊 لوحة الإحصائيات - ميمو{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 py-10">
-  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-6">
 
-    <h3 class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-10">
-      📊 لوحة الإحصائيات العامة
-    </h3>
+<div class="max-w-6xl mx-auto px-4 py-10">  
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">  
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 text-center">
+    <!-- ✨ العنوان -->  
+    <h3 class="text-3xl font-extrabold text-center text-blue-600 dark:text-blue-400 mb-12 tracking-wide">  
+      📊 لوحة الإحصائيات العامة  
+    </h3>  
 
-      <!-- 👤 المستخدمين -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
-        <h1 class="text-4xl font-bold text-blue-600 dark:text-blue-300">{{ total_users }}</h1>
-        <p class="mt-2 text-gray-700 dark:text-gray-300">المستخدمين</p>
-      </div>
+    <!-- 🧩 البطاقات -->  
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 text-center">  
 
-      <!-- 📝 الأبيات -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
-        <h1 class="text-4xl font-bold text-green-600 dark:text-green-300">{{ total_poems }}</h1>
-        <p class="mt-2 text-gray-700 dark:text-gray-300">الأبيات المنشورة</p>
-      </div>
+      <!-- 👤 المستخدمين -->  
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">  
+        <div class="flex justify-center mb-3">  
+          <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" stroke-width="2"  
+               viewBox="0 0 24 24">  
+            <path d="M5.121 17.804A9 9 0 1118.364 4.56M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>  
+          </svg>  
+        </div>  
+        <h1 class="text-4xl font-bold text-blue-600 dark:text-blue-300">{{ total_users }}</h1>  
+        <p class="mt-2 text-gray-700 dark:text-gray-300">المستخدمين</p>  
+      </div>  
 
-      <!-- 💬 الرسائل -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
-        <h1 class="text-4xl font-bold text-cyan-600 dark:text-cyan-300">{{ total_messages }}</h1>
-        <p class="mt-2 text-gray-700 dark:text-gray-300">الرسائل الخاصة</p>
-      </div>
+      <!-- 📝 الأبيات -->  
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">  
+        <div class="flex justify-center mb-3">  
+          <svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" stroke-width="2"  
+               viewBox="0 0 24 24">  
+            <path d="M9 12h6M9 16h6M5 8h14M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>  
+          </svg>  
+        </div>  
+        <h1 class="text-4xl font-bold text-green-600 dark:text-green-300">{{ total_poems }}</h1>  
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الأبيات المنشورة</p>  
+      </div>  
 
-      <!-- 🔒 المبندين -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
-        <h1 class="text-4xl font-bold text-red-600 dark:text-red-400">{{ total_bans }}</h1>
-        <p class="mt-2 text-gray-700 dark:text-gray-300">الحسابات المبندة</p>
-      </div>
+      <!-- 💬 الرسائل -->  
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">  
+        <div class="flex justify-center mb-3">  
+          <svg class="w-10 h-10 text-cyan-500" fill="none" stroke="currentColor" stroke-width="2"  
+               viewBox="0 0 24 24">  
+            <path d="M8 10h8M8 14h5m-9 5h10l5 5V5a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>  
+          </svg>  
+        </div>  
+        <h1 class="text-4xl font-bold text-cyan-600 dark:text-cyan-300">{{ total_messages }}</h1>  
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الرسائل الخاصة</p>  
+      </div>  
 
-      <!-- ❤️ الإعجابات -->
-      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow-sm">
-        <h1 class="text-4xl font-bold text-yellow-500 dark:text-yellow-300">{{ total_likes }}</h1>
-        <p class="mt-2 text-gray-700 dark:text-gray-300">الإعجابات</p>
-      </div>
+      <!-- 🔒 المبندين -->  
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">  
+        <div class="flex justify-center mb-3">  
+          <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" stroke-width="2"  
+               viewBox="0 0 24 24">  
+            <path d="M12 11c0 .828-.895 1.5-2 1.5S8 11.828 8 11s.895-1.5 2-1.5 2 .672 2 1.5zm8 0c0 .828-.895 1.5-2 1.5s-2-.672-2-1.5.895-1.5 2-1.5 2 .672 2 1.5zm-8 7c3.314 0 6-1.343 6-3H6c0 1.657 2.686 3 6 3z"/>  
+          </svg>  
+        </div>  
+        <h1 class="text-4xl font-bold text-red-600 dark:text-red-400">{{ total_bans }}</h1>  
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الحسابات المبندة</p>  
+      </div>  
 
-    </div>
+      <!-- ❤️ الإعجابات -->  
+      <div class="bg-gray-50 dark:bg-gray-700 p-6 rounded-2xl shadow hover:shadow-lg transition transform hover:-translate-y-1">  
+        <div class="flex justify-center mb-3">  
+          <svg class="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" stroke-width="2"  
+               viewBox="0 0 24 24">  
+            <path d="M4.318 6.318a4.5 4.5 0 016.364 0L12 7.636l1.318-1.318a4.5 4.5 0 116.364 6.364L12 21.364l-7.682-8.682a4.5 4.5 0 010-6.364z"/>  
+          </svg>  
+        </div>  
+        <h1 class="text-4xl font-bold text-yellow-500 dark:text-yellow-300">{{ total_likes }}</h1>  
+        <p class="mt-2 text-gray-700 dark:text-gray-300">الإعجابات</p>  
+      </div>  
 
-  </div>
-</div>
+    </div>  
+
+    <!-- 📈 الرسم البياني -->  
+    <div class="mt-16">  
+      <h4 class="text-xl font-bold text-center text-gray-700 dark:text-gray-300 mb-6">رسم بياني توضيحي</h4>  
+      <canvas id="statsChart" height="120"></canvas>  
+    </div>  
+
+  </div>  
+</div>  
+
+<!-- 📊 مكتبة Chart.js -->  
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>  
+<script>  
+document.addEventListener("DOMContentLoaded", function () {  
+  const ctx = document.getElementById('statsChart').getContext('2d');  
+  new Chart(ctx, {  
+    type: 'bar',  
+    data: {  
+      labels: ['المستخدمين', 'الأبيات', 'الرسائل', 'المبندين', 'الإعجابات'],  
+      datasets: [{  
+        label: 'إحصائيات عامة',  
+        data: [`{{ total_users }}, {{ total_poems }}, {{ total_messages }}, {{ total_bans }}, {{ total_likes }}`],  
+        backgroundColor: [  
+          'rgba(37, 99, 235, 0.7)',  
+          'rgba(34, 197, 94, 0.7)',  
+          'rgba(6, 182, 212, 0.7)',  
+          'rgba(239, 68, 68, 0.7)',  
+          'rgba(234, 179, 8, 0.7)'  
+        ],  
+        borderRadius: 8  
+      }]  
+    },  
+    options: {  
+      responsive: true,  
+      plugins: {  
+        legend: {  
+          display: true,  
+          labels: { color: '#374151' }  
+        }  
+      },  
+      scales: {  
+        x: {  
+          ticks: { color: '#374151' }  
+        },  
+        y: {  
+          beginAtZero: true,  
+          ticks: { color: '#374151' }  
+        }  
+      }  
+    }  
+  });  
+});  
+</script>  
+
 {% endblock %}

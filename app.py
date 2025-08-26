@@ -11,13 +11,24 @@ from models import StoryLike
 from sqlalchemy import or_, and_, desc
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
+from flask import Flask, render_template, request, url_for, redirect, flash
+from flask_mail import Mail, Message as MailMessage
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+from models import db, User, Follower
+import random
+import string
+from werkzeug.security import generate_password_hash
+import random
+from flask import jsonify
+from werkzeug.security import generate_password_hash
+
 import os
 import json
 import eventlet
 import humanize
 import re
 import stripe
-
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 # استيراد الموديلات
 from models import (
     db, User, Ban, Notification, Message, MessageReport, ContactMessage,
@@ -52,24 +63,38 @@ def short_number_filter(value):
     except:
         return value
 
-app.secret_key = "s3cr3t_2025_kjfh73hdf983hf"
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app.config['BABEL_DEFAULT_LOCALE'] = 'ar'
 app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'poetry.db')
-app.config["UPLOAD_FOLDER"] = "static/profile_pics"
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2MB
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "profile_pics")
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = "ndlusioapp@gmail.com"
+app.config['MAIL_PASSWORD'] = "ylma kgjg rwnd hdaz"  # بدون مسافات
+app.secret_key = "s3cr3t_2025_kjfn73hdf983hr"
 
 
 
 # ----------------------------- قاعدة البيانات -----------------------------
 db.init_app(app)
 migrate = Migrate(app, db)
-
+mail = Mail(app)
 stripe.api_key = "sk_test_your_secret_key_here"
 STRIPE_PUBLIC_KEY = "pk_test_your_public_key_here"
+
+
+
+# 🔑 Serializer لتوليد رابط مؤقت
+s = URLSafeTimedSerializer(app.secret_key)
+
+
+
 
 
 # ----------------------------- اللغة -----------------------------
@@ -145,6 +170,23 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# في ملف app.py أو حيث تسجل الفلاتر
+def format_number(value):
+    try:
+        num = int(value)
+    except (ValueError, TypeError):
+        return value
+
+    if num >= 1_000_000_000:
+        return f"{num/1_000_000_000:.1f} مليار".replace(".0", "")
+    elif num >= 1_000_000:
+        return f"{num/1_000_000:.1f} مليون".replace(".0", "")
+    elif num >= 1_000:
+        return f"{num/1_000:.1f} ألف".replace(".0", "")
+    return str(num)
+app.jinja_env.filters['format_number'] = format_number
+
+
 def time_ago_format(timestamp):
     diff = datetime.now() - timestamp
     seconds = diff.total_seconds()
@@ -165,6 +207,9 @@ def load_user(user_id):
     return None
 
 # ----------------------------- السياق العام -----------------------------
+@app.context_processor
+def inject_now():
+    return {'now': datetime.utcnow()}
 @app.context_processor
 def inject_user():
     return dict(current_user=current_user)
@@ -272,6 +317,82 @@ def check_user_ban():
         except Exception as e:
             print("خطأ أثناء التحقق من الحظر:", e)
             pass
+
+# 🔑 نسيت كلمة المرور
+from flask_mail import Mail, Message as MailMessage  # ✅ استيراد بدون تعارض
+
+@app.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        if not email:
+            flash("⚠️ يرجى إدخال بريد إلكتروني.", 'warning')
+            return render_template('forgot_password.html')
+
+        # 🔍 التحقق من وجود المستخدم
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("❌ البريد غير مسجل.", 'danger')
+            return render_template('forgot_password.html')
+
+        # ✅ إنشاء التوكن
+        token = s.dumps(email, salt='password-reset-salt')
+        reset_url = url_for('reset_password', token=token, _external=True)
+
+        try:
+            # ✉️ رسالة البريد
+            msg = MailMessage(
+                subject="إعادة تعيين كلمة المرور",
+                sender=app.config['MAIL_USERNAME'],
+                recipients=[email]
+            )
+            msg.body = f"""
+مرحباً {user.username},
+
+اضغط الرابط التالي لإعادة تعيين كلمة المرور (صالح ساعة واحدة):
+{reset_url}
+"""
+
+
+            mail.send(msg)  # إرسال البريد
+            flash("📧 تم إرسال الرابط لبريدك.", 'success')
+
+        except Exception as e:
+            print("🚨 خطأ عند الإرسال:", e)
+            flash("❌ لم يتم إرسال البريد. تحقق من الإعدادات.", 'danger')
+
+    return render_template('forgot_password.html')
+
+# 🔑 إعادة التعيين
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password-reset-salt', max_age=3600)
+    except SignatureExpired:
+        flash("⏰ انتهت صلاحية الرابط.", "danger")
+        return redirect(url_for('forgot_password'))
+    except BadSignature:
+        flash("❌ رابط غير صالح.", "danger")
+        return redirect(url_for('forgot_password'))
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash("المستخدم غير موجود.", "danger")
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        if not new_password or len(new_password) < 6:
+            flash("كلمة المرور يجب أن تكون 6 أحرف على الأقل.", "warning")
+            return render_template('reset_password.html')
+
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+        flash("✅ تم تغيير كلمة المرور! سجل دخولك.", "success")
+        return redirect(url_for('login'))
+
+    return render_template('reset_password.html')
+
 
 @app.route('/')
 def home():
@@ -478,14 +599,15 @@ def login():
 def signup():
     if request.method == "POST":
         username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
 
-        # --- ⚠️ تحديد إذا هو بريميوم (حالياً False)
-        is_premium = False  # أو True لو عندك نظام تفعيل مخصص
+        # --- ⚠️ تحديد إذا هو بريميوم (افتراضيًا False)
+        is_premium = False  
 
-        # --- ✅ التحقق من صلاحية اسم المستخدم حسب حالة البريميوم
+        # --- ✅ التحقق من اسم المستخدم
         if not re.match("^[A-Za-z0-9_]+$", username):
             flash("⚠️ اسم المستخدم يجب أن يحتوي فقط على أحرف إنجليزية أو أرقام أو شرطة سفلية.")
             return render_template("signup.html")
@@ -499,32 +621,41 @@ def signup():
             flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
             return render_template("signup.html")
 
-        # --- هل الاسم مستخدم مسبقًا؟
-        existing = User.query.filter_by(username=username).first()
-        if existing:
-            flash("⚠️ اسم المستخدم موجود مسبقًا. اختر اسمًا آخر.")
+        # --- هل الاسم أو البريد مستخدم مسبقًا؟
+        existing_user = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+        if existing_user:
+            flash("⚠️ اسم المستخدم أو البريد الإلكتروني مستخدم مسبقًا.")
             return render_template("signup.html")
 
         # --- إنشاء الحساب
         hashed_password = generate_password_hash(password)
         user = User(
             username=username,
+            email=email,
             password=hashed_password,
             first_name=first_name,
             last_name=last_name
         )
 
-        # ✅ تفعيل البريميوم تلقائيًا لو عندك منطق لذلك
+        # ✅ تفعيل البريميوم إذا عندك منطق
         if is_premium:
             user.premium_until = datetime.utcnow() + timedelta(days=30)
 
         db.session.add(user)
         db.session.commit()
 
+        # --- ✅ تسجيل دخول مباشر بعد إنشاء الحساب
+        session.clear()
+        login_user(SimpleUser(user))   # <-- نفس آلية login
         session["username"] = username
-        flash("✅ تم إنشاء الحساب بنجاح! مرحبًا بك 🌟")
+        session.permanent = True
+
+        flash("✅ تم إنشاء الحساب وتسجيل دخولك بنجاح! مرحبًا بك 🌟")
         return redirect(url_for("home"))
 
+    # 🔹 مهم: لو كانت GET أو ما انطبق أي شرط، نرجع القالب
     return render_template("signup.html")
 
 
@@ -988,17 +1119,15 @@ def unblock_user(username):
 
     return redirect(request.referrer or url_for('blocked_users'))
 
-
-
 @app.route("/messages/<username>")
 def view_messages(username):
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    current_user = session['username']  # نص، ليس كائن User
-    anonymous_mode = request.args.get("anonymous", "0") == "1"
+    current_user = session['username']
+    current_user_obj = User.query.filter_by(username=current_user).first()
 
-    # التحقق من الحظر بين المستخدمين
+    # ✅ التحقق من الحظر بين المستخدمين
     blocked_entry = Block.query.filter(
         or_(
             and_(Block.blocker == current_user, Block.blocked == username),
@@ -1007,12 +1136,124 @@ def view_messages(username):
     ).first()
     is_blocked = bool(blocked_entry)
 
-    if is_blocked:
+    messages = []
+    display_name = username
+    profile_visible = not is_blocked
+
+    if not is_blocked:
+        # ✅ جلب الرسائل بين المستخدمين (فقط الخاصة)
+        msgs = Message.query.filter(
+            or_(
+                and_(Message.sender == current_user, Message.receiver == username),
+                and_(Message.sender == username, Message.receiver == current_user)
+            )
+        ).order_by(Message.timestamp).all()
+
+        for msg in msgs:
+            sender_user = User.query.filter_by(username=msg.sender).first()
+
+            messages.append({
+                "id": msg.id,
+                "content": msg.content if msg.message_type == "text" else None,
+                "file_path": msg.file_path if msg.message_type == "file" else None,
+                "message_type": msg.message_type,
+                "timestamp": msg.timestamp,
+                "sender": msg.sender,
+                "receiver": msg.receiver,
+                "is_read": msg.is_read,
+                "is_sender": (msg.sender == current_user),
+                "status": "read" if msg.is_read else "sent",
+                "sender_user": sender_user
+            })
+
+    else:
+        # ✅ لو محظور
         messages = []
         display_name = "User is unavailable"
-        profile_visible = False
-    else:
-        # جلب الرسائل
+
+    # 🛑 عدد المحادثات غير المقروءة (زي inbox)
+    unread_conversations_count = (
+        db.session.query(Message.sender)
+        .filter(Message.receiver == current_user, Message.is_read == False)
+        .distinct()
+        .count()
+    )
+
+    # 🛑 عدد الإشعارات
+    unread_notifications_count = Notification.query.filter_by(
+        recipient=current_user, is_read=False
+    ).count()
+
+    # ✅ ستوريات الطرف الآخر
+    user_obj = User.query.filter_by(username=username).first()
+    active_stories = []
+    has_story = False
+    has_unseen_story = False
+
+    if user_obj:
+        active_stories = Story.query.filter(
+            Story.user_id == user_obj.id,
+            Story.is_active == True,
+            Story.expires_at > datetime.utcnow()
+        ).all()
+
+        has_story = len(active_stories) > 0
+
+        if has_story:
+            for story in active_stories:
+                viewed = StoryView.query.filter_by(
+                    story_id=story.id,
+                    viewer_id=current_user_obj.id
+                ).first()
+                if not viewed:
+                    has_unseen_story = True
+                    break
+
+    return render_template(
+        "messages.html",
+        messages=messages,
+        is_blocked=is_blocked,
+        current_user=current_user,
+        display_name=display_name,
+        profile_visible=profile_visible,
+        real_username=username,
+        unread_messages_count=unread_conversations_count,
+        unread_notifications_count=unread_notifications_count,
+        has_unread_messages=(unread_conversations_count > 0),
+        has_unread_notifications=(unread_notifications_count > 0),
+        # 👇 إضافات الستوري
+        has_story=has_story,
+        has_unseen_story=has_unseen_story,
+        stories=active_stories,
+        user=user_obj
+    )
+
+@app.route("/messages/anonymous/<username>")
+def view_messages_anonymous(username):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    current_user = session['username']
+    current_user_obj = User.query.filter_by(username=current_user).first()
+
+    # ✅ هنا المجهول دايمًا True
+    anonymous_mode = True
+    anonymous_flag = 1
+
+    # ✅ التحقق من الحظر
+    blocked_entry = Block.query.filter(
+        or_(
+            and_(Block.blocker == current_user, Block.blocked == username),
+            and_(Block.blocker == username, Block.blocked == current_user)
+        )
+    ).first()
+    is_blocked = bool(blocked_entry)
+
+    messages = []
+    display_name = username
+    profile_visible = not is_blocked
+
+    if not is_blocked:
         msgs = Message.query.filter(
             and_(
                 or_(
@@ -1023,19 +1264,34 @@ def view_messages(username):
             )
         ).order_by(Message.timestamp).all()
 
-        messages = []
         for msg in msgs:
             show_sender = True
+            sender_user = User.query.filter_by(username=msg.sender).first() if msg.sender else None
+
+            # ✅ في المجهول: نخفي الهوية إلا لو بريميوم
             if msg.is_anonymous:
-                sender_user = User.query.filter_by(username=msg.sender).first()
                 if sender_user and not sender_user.is_premium():
                     show_sender = False
-            messages.append({'msg': msg, 'show_sender': show_sender})
 
-        display_name = username
-        profile_visible = True
+            messages.append({
+                "id": msg.id,
+                "content": msg.content,
+                "file_path": msg.file_path,   # 👈 الآن الصور والملفات بتبين
+                "timestamp": msg.timestamp,
+                "sender": msg.sender,
+                "receiver": msg.receiver,
+                "is_read": msg.is_read,
+                "is_sender": (msg.sender == current_user),
+                "show_sender": show_sender,
+                "status": "read" if msg.is_read else "sent",
+                "sender_user": sender_user
+            })
 
-    # 🛑 حساب عدد المحادثات غير المقروءة بدل الرسائل
+    else:
+        messages = []
+        display_name = "User is unavailable"
+
+    # 🛑 عدد المحادثات غير المقروءة
     unread_conversations_count = (
         db.session.query(Message.sender)
         .filter(Message.receiver == current_user, Message.is_read == False)
@@ -1043,25 +1299,52 @@ def view_messages(username):
         .count()
     )
 
+    # 🛑 عدد الإشعارات
     unread_notifications_count = Notification.query.filter_by(
         recipient=current_user, is_read=False
     ).count()
 
+    # ✅ ستوريات الطرف الآخر
+    user_obj = User.query.filter_by(username=username).first()
+    active_stories = []
+    has_story = False
+    has_unseen_story = False
+
+    if user_obj:
+        active_stories = Story.query.filter(
+            Story.user_id == user_obj.id,
+            Story.is_active == True,
+            Story.expires_at > datetime.utcnow()
+        ).all()
+
+        has_story = len(active_stories) > 0
+        if has_story:
+            for story in active_stories:
+                viewed = StoryView.query.filter_by(
+                    story_id=story.id,
+                    viewer_id=current_user_obj.id
+                ).first()
+                if not viewed:
+                    has_unseen_story = True
+                    break
+
     return render_template(
-        "messages.html",
+        "messages_anonymous.html",
         messages=messages,
         is_blocked=is_blocked,
         current_user=current_user,
         anonymous_mode=anonymous_mode,
+        anonymous_flag=anonymous_flag,
         display_name=display_name,
         profile_visible=profile_visible,
-        real_username=username,  # كما طلبت
-        unread_messages_count=unread_conversations_count,  # ← صار يعرض عدد المحادثات
+        unread_conversations_count=unread_conversations_count,
         unread_notifications_count=unread_notifications_count,
-        has_unread_messages=(unread_conversations_count > 0),
-        has_unread_notifications=(unread_notifications_count > 0)
+        active_stories=active_stories,
+        has_story=has_story,
+        has_unseen_story=has_unseen_story,
+        real_username=username   # 👈 هذا السطر هو المهم
     )
-# 📤 إرسال رسالة جديدة
+
 @app.route("/send_message/<username>", methods=["POST"])
 def send_message(username):
     if 'username' not in session:
@@ -1071,41 +1354,45 @@ def send_message(username):
     content = request.form.get("content")
     file_path = None
 
-    # التعامل مع الملف (اختياري)
+    # ✅ التعامل مع الملف (صورة / مرفق)
     file = request.files.get("file")
     if file and file.filename != '':
         filename = secure_filename(file.filename)
-        upload_folder = os.path.join('static', 'uploads')
+
+        # نخزن داخل static/uploads
+        upload_folder = os.path.join(app.root_path, 'static', 'uploads')
         os.makedirs(upload_folder, exist_ok=True)
+
+        # نحفظ الملف فعليًا
         full_path = os.path.join(upload_folder, filename)
         file.save(full_path)
-        # نخزن المسار بالنسبة لـ static
+
+        # نخزن بالقاعدة مسار نسبي من static
         file_path = f"uploads/{filename}"
 
-    # هل المستخدم أرسل الرسالة كمجهول؟
-    anonymous = 'anonymous' in request.form
+    # ✅ هل المستخدم أرسل الرسالة كمجهول
+    anonymous = request.args.get("anonymous", "0") == "1"
 
-    # جلب حساب المرسل من قاعدة البيانات
-    sender_user = User.query.filter_by(username=sender).first()
-
-    # إنشاء الرسالة
+    # ✅ دايمًا نخزن المرسل الحقيقي لكن نتحكم بالعرض لاحقًا
     message = Message(
         sender=sender,
         receiver=username,
-        content=content,
+        content=content if content else None,
         file_path=file_path,
-        is_anonymous=anonymous   # عمود واحد فقط بدون تكرار
+        is_anonymous=anonymous
     )
     db.session.add(message)
     db.session.commit()
 
-    # إرسال إشعار للمستلم
+    # ✅ إشعار للمستلم
     if username != sender:
         send_notification(username, "📨 وصلك رسالة جديدة!")
 
-    # نعيد التوجيه وعرض الرسائل
-    return redirect(url_for("view_messages", username=username))
-
+    # ✅ إعادة التوجيه للصفحة المناسبة
+    if anonymous:
+        return redirect(url_for("view_messages_anonymous", username=username))
+    else:
+        return redirect(url_for("view_messages", username=username, anonymous="0"))
 
 # 🚨 كود البلاغ عن محادثة
 @app.route("/report_conversation/<username>")
@@ -1121,7 +1408,6 @@ def report_conversation(username):
 
     return f"تم الإبلاغ عن المحادثة مع {username} بنجاح!"
 
-
 @app.route('/inbox')
 def inbox():
     if 'username' not in session:
@@ -1130,45 +1416,71 @@ def inbox():
     current_user_name = session['username']
     anonymous = request.args.get("anonymous", "0") == "1"
 
-    # جلب جميع الرسائل الخاصة أو المجهولة المتعلقة بالمستخدم
-    messages = Message.query.filter(
+    # جلب كل المستخدمين اللي في بينهم رسائل (مفلترة حسب مجهول/خاص)
+    users = User.query.join(
+        Message, ((Message.sender == User.username) | (Message.receiver == User.username))
+    ).filter(
         ((Message.sender == current_user_name) | (Message.receiver == current_user_name)) &
-        (Message.anonymous == anonymous)
-    ).order_by(Message.timestamp.desc()).all()
+        (Message.is_anonymous == anonymous)
+    ).distinct().all()
 
-    # إنشاء قائمة المحادثات مع كل مستخدم تم التواصل معه
-    conversation_users = {}
-    for msg in messages:
-        other_user = msg.receiver if msg.sender == current_user_name else msg.sender
-        if other_user not in conversation_users:
-            conversation_users[other_user] = msg.timestamp  # نحفظ توقيت آخر رسالة
+    current_user_obj = User.query.filter_by(username=current_user_name).first()
 
-    # ترتيب المستخدمين حسب آخر رسالة
-    sorted_usernames = sorted(conversation_users.items(), key=lambda x: x[1], reverse=True)
+    user_data = []
+    for user in users:
+        # آخر رسالة بين المستخدم الحالي والمستخدم الآخر
+        last_message = Message.query.filter(
+            (((Message.sender == current_user_name) & (Message.receiver == user.username)) |
+             ((Message.sender == user.username) & (Message.receiver == current_user_name))) &
+            (Message.is_anonymous == anonymous)
+        ).order_by(Message.timestamp.desc()).first()
 
-    # تجهيز بيانات المستخدمين للعرض في الواجهة
-    users = []
-    for username, _ in sorted_usernames:
-        user = User.query.filter_by(username=username).first()
-        if user:
-            display_name = "مجهول" if anonymous else (user.first_name or user.username)
+        # عدد الرسائل غير المقروءة (مفلترة برضه)
+        unread_count = Message.query.filter_by(
+            receiver=current_user_name,
+            sender=user.username,
+            is_read=False,
+            is_anonymous=anonymous
+        ).count()
 
-            # 🔹 حساب عدد الرسائل غير المقروءة من هذا المستخدم
-            unread_count = Message.query.filter_by(
-                sender=username,
-                receiver=current_user_name,
-                is_read=False,
-                anonymous=anonymous
-            ).count()
+        # 👀 ستوريات
+        active_stories = Story.query.filter(
+            Story.user_id == user.id,
+            Story.is_active == True,
+            Story.expires_at > datetime.utcnow()
+        ).all()
 
-            users.append({
-                "username": user.username,
-                "display_name": display_name,
-                "profile_image": user.profile_image or "default.jpg",
-                "unread_count": unread_count
-            })
+        has_story = len(active_stories) > 0
+        has_unseen_story = False
 
-    return render_template('inbox.html', users=users, anonymous=anonymous)
+        if has_story:
+            for story in active_stories:
+                viewed = StoryView.query.filter_by(
+                    story_id=story.id,
+                    viewer_id=current_user_obj.id
+                ).first()
+                if not viewed:
+                    has_unseen_story = True
+                    break
+
+        user_data.append({
+            "username": user.username,
+            "display_name": f"{user.first_name} {user.last_name}" if user.first_name else user.username,
+            "profile_image": user.profile_image,
+            "unread_count": unread_count,
+            "has_story": has_story,
+            "has_unseen_story": has_unseen_story,
+            "last_message_time": last_message.timestamp.strftime("%H:%M") if last_message else None,
+            "last_message": last_message.content if last_message and last_message.message_type == "text" else None,
+            "last_message_type": last_message.message_type if last_message else None,
+            "is_sender": last_message.sender == current_user_name if last_message else False,
+            "last_message_status": (
+                "read" if last_message.is_read else "sent"
+            ) if last_message else None,
+        })
+
+    return render_template("inbox.html", users=user_data, anonymous=anonymous)
+
 
 @app.route('/follow', methods=['POST'])
 @login_required
@@ -1714,29 +2026,34 @@ def increase_followers(user_id):
     import random
     import string
 
+    # 🔹 جلب المستخدم الهدف
     user = User.query.get_or_404(user_id)
+
+    # 🔹 العدد المطلوب إضافته
     amount = int(request.form.get('amount', 1))
 
     for _ in range(amount):
-        # توليد اسم مستخدم وهمي فريد
+        # 🔹 توليد اسم مستخدم وهمي (متابع)
         fake_username = 'fake_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
-        
-        # إضافة متابع وهمي جديد إلى جدول Follower
+
+        # 🔹 إضافة المتابع في جدول Follower فقط
         new_follower = Follower(
-            username=fake_username,
-            followed_username=user.username
+            username=fake_username,           # المتابع الوهمي
+            followed_username=user.username   # الشخص المستهدف
         )
         db.session.add(new_follower)
 
     db.session.commit()
 
-    # إعادة تحميل عدد المتابعين من جدول Follower مباشرة
+    # 🔹 تحديث عدد المتابعين
     follower_count = Follower.query.filter_by(followed_username=user.username).count()
 
     return jsonify({
         'success': True,
         'followers': follower_count
     })
+
+
 # توثيق المستخدم
 @app.route('/verify_user/<int:user_id>', methods=['POST'])
 @login_required
@@ -2061,25 +2378,7 @@ def memo_stats():
     )
 
 
-# 📌 صفحة "نسيت كلمة المرور"
-@app.route('/forgot-password', methods=['GET', 'POST'])
-def forgot_password():
-    if request.method == 'POST':
-        email = request.form.get('email', '').strip()
 
-        if not email:
-            flash("يرجى إدخال بريد إلكتروني صالح.", 'warning')
-            return render_template('forgot_password.html')
-
-        user = User.query.filter_by(email=email).first()
-
-        if user:
-            # هنا يمكنك إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
-            flash("📧 تم إرسال تعليمات إعادة تعيين كلمة المرور إلى بريدك الإلكتروني.", 'success')
-        else:
-            flash("هذا البريد الإلكتروني غير مسجل.", 'danger')
-
-    return render_template('forgot_password.html')
 
 @app.route("/premium")
 def premium():
@@ -2503,6 +2802,34 @@ def archive_page():
 
 
 
+
+
+# ✅ إضافة يوزر جديد من الرابط (للمسؤول فقط)
+@app.route('/admin/adduser/<username>/<email>/<password>')
+def admin_adduser(username, email, password):
+    if 'username' not in session or session['username'] != 'admin':
+        return "🚫 ممنوع الدخول!", 403
+
+    # تحقق إذا موجود
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        return f"⚠️ يوجد مستخدم بنفس الاسم: {username}"
+
+    # تشفير الباسورد
+    hashed_password = generate_password_hash(password)
+
+    # إنشاء المستخدم
+    user = User(
+        username=username,
+        email=email,
+        password=hashed_password,
+        first_name="مستخدم",
+        last_name="جديد"
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    return f"✅ تمت إضافة المستخدم: {username} | 📧 {email}"
 
 
 

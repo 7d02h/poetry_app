@@ -1,65 +1,70 @@
 {% extends "base.html" %}
 
-{% block title %}إدارة الحسابات المحظورة - ميمو{% endblock %}
+{% block title %}🚫 إدارة الحسابات المحظورة - ميمو{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
-  <div class="card shadow-lg border-0 rounded-4">
-    <div class="card-body">
-      <h3 class="text-center text-danger mb-4">🚫 إدارة الحسابات المحظورة</h3>
+<div class="max-w-6xl mx-auto px-4 py-10">
+  
+  <!-- ✨ العنوان -->
+  <h3 class="text-2xl font-bold text-center text-red-600 dark:text-red-400 mb-10">
+    🚫 إدارة الحسابات المحظورة
+  </h3>
 
-      {% if bans %}
-      <div class="table-responsive">
-        <table class="table table-bordered table-hover text-center align-middle">
-          <thead class="table-danger">
-            <tr>
-              <th>#</th>
-              <th>👤 المستخدم</th>
-              <th>📅 تاريخ الحظر</th>
-              <th>⏳ ينتهي في</th>
-              <th>📌 السبب</th>
-              <th>⚙️ الحالة</th>
-              <th>🎯 التحكم</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for ban in bans %}
-              <tr>
-                <td>{{ ban.id }}</td>
-                <td><strong>{{ ban.username }}</strong></td>
-                <td>{{ ban.banned_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>{{ ban.ends_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                <td>{{ ban.reason or "—" }}</td>
-                <td>
-                  {% if ban.active %}
-                    <span class="badge bg-danger px-3 py-2">مفعل</span>
-                  {% else %}
-                    <span class="badge bg-success px-3 py-2">منتهي</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if ban.active %}
-                    <form method="POST" action="{{ url_for('unban_user', ban_id=ban.id) }}">
-                      <button class="btn btn-sm btn-outline-secondary"
-                              onclick="return confirm('هل أنت متأكد من رفع الحظر عن {{ ban.username }}؟');">
-                        ✅ رفع الحظر
-                      </button>
-                    </form>
-                  {% else %}
-                    <span class="text-muted">—</span>
-                  {% endif %}
-                </td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <div class="alert alert-info text-center">
-          لا يوجد حسابات محظورة حاليًا.
+  {% if bans %}
+  <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for ban in bans %}
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-md p-6 hover:shadow-lg transition">
+      
+      <!-- 👤 معلومات المستخدم -->
+      <div class="flex items-center gap-4 mb-4">
+        <div class="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xl font-bold text-gray-700 dark:text-gray-100">
+          {{ ban.username[0] | upper }}
         </div>
-      {% endif %}
+        <div>
+          <h4 class="font-bold text-lg text-gray-900 dark:text-gray-100">
+            {{ ban.username }}
+          </h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            #{{ ban.id }}
+          </p>
+        </div>
+      </div>
+
+      <!-- 📅 تفاصيل الحظر -->
+      <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 mb-4">
+        <p>📅 تاريخ الحظر: 
+          <span class="font-medium">{{ ban.banned_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </p>
+        <p>⏳ ينتهي في: 
+          <span class="font-medium">{{ ban.ends_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </p>
+        <p>📌 السبب: <span class="font-medium">{{ ban.reason or "—" }}</span></p>
+      </div>
+
+      <!-- ⚙️ الحالة + التحكم -->
+      <div class="flex items-center justify-between">
+        {% if ban.active %}
+          <span class="px-3 py-1 text-xs rounded-full bg-red-500 text-white">مفعل</span>
+          <form method="POST" action="{{ url_for('unban_user', ban_id=ban.id) }}">
+            <button class="px-3 py-1 text-sm rounded-lg border border-gray-300 dark:border-gray-600 
+                           hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                    onclick="return confirm('هل أنت متأكد من رفع الحظر عن {{ ban.username }}؟');">
+              ✅ رفع الحظر
+            </button>
+          </form>
+        {% else %}
+          <span class="px-3 py-1 text-xs rounded-full bg-green-500 text-white">منتهي</span>
+          <span class="text-gray-400 dark:text-gray-500 text-sm">—</span>
+        {% endif %}
+      </div>
+
     </div>
+    {% endfor %}
   </div>
+  {% else %}
+    <div class="text-center py-10">
+      <p class="text-gray-600 dark:text-gray-300 text-lg">لا يوجد حسابات محظورة حاليًا.</p>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}
