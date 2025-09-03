@@ -31,7 +31,8 @@ import requests
 from datetime import datetime, timedelta
 from flask import jsonify, session
 
-
+from flask import Flask, request
+from flask_babel import Babel
 
 
 import json
@@ -125,11 +126,11 @@ def archive_stories():
 
 
 
+babel = Babel(app)
 
+@babel.localeselector
 def get_locale():
     return request.accept_languages.best_match(['ar', 'en'])
-
-babel = Babel(app, locale_selector=get_locale)
 
 # ----------------------------- SocketIO -----------------------------
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
