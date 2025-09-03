@@ -1,80 +1,379 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4 py-16">
 
-  <div class="max-w-5xl w-full">
+<!-- Sprite للأيقونات القابلة لإعادة الاستخدام -->
+<svg class="hidden">
+  <!-- جوهرة -->
+  <symbol id="i-gem" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M3 8l4-5h10l4 5-9 13L3 8z"></path>
+    <path stroke-width="1.5" d="M3 8h18M7 3l5 13M17 3l-5 13"></path>
+  </symbol>
+  <!-- صح مملوءة -->
+  <symbol id="i-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <circle cx="12" cy="12" r="9" stroke-width="1.5"></circle>
+    <path stroke-width="1.5" d="M9 12l2 2 4-4"></path>
+  </symbol>
+  <!-- صاروخ -->
+  <symbol id="i-rocket" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M14 3c4 1 7 4 7 8-2 0-4 1-5 3l-5 5c-2 1-3 3-3 3s-2-1-3-3 2-4 3-5l5-5c2-1 3-3 3-5z"></path>
+    <path stroke-width="1.5" d="M12 7a2 2 0 100 4 2 2 0 000-4z"></path>
+  </symbol>
+  <!-- نجمة/شعبية -->
+  <symbol id="i-star" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M12 3l3 6 6 .9-4.5 4.4 1 6.3L12 17l-5.5 3.6 1-6.3L3 9.9 9 9l3-6z"></path>
+  </symbol>
+  <!-- ساعة/عدّاد -->
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <circle cx="12" cy="12" r="9" stroke-width="1.5"></circle>
+    <path stroke-width="1.5" d="M12 7v5l3 2"></path>
+  </symbol>
+  <!-- بطاقة -->
+  <symbol id="i-credit-card" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <rect x="2" y="5" width="20" height="14" rx="2" ry="2" stroke-width="1.5"></rect>
+    <path stroke-width="1.5" d="M2 10h20"></path>
+    <path stroke-width="1.5" d="M6 15h4"></path>
+  </symbol>
+  <!-- علامة بنك -->
+  <symbol id="i-bank" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M3 10l9-6 9 6"></path>
+    <path stroke-width="1.5" d="M5 10v8M19 10v8M3 18h18"></path>
+  </symbol>
+  <!-- شعار PayPal مبسّط -->
+  <symbol id="i-paypal" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+    <path d="M9 5h6.2c2.7 0 4.8 1.7 4.8 4.2 0 2.6-2.1 4.3-4.9 4.3H13l-.6 3.5H7.7L9 5z"></path>
+  </symbol>
+  <!-- خصم/وسم -->
+  <symbol id="i-tag-percent" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M3 12l7-7h7l4 4v7l-7 7-11-11z"></path>
+    <path stroke-width="1.5" d="M16 8h.01M8 16l8-8"></path>
+  </symbol>
+  <!-- فقاعة اقتباس -->
+  <symbol id="i-quote" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+    <path stroke-width="1.5" d="M7 7h5v6H7zM12 7h5v6h-5z"></path>
+    <path stroke-width="1.5" d="M9 19c-2 0-3-1-3-3M15 19c-2 0-3-1-3-3"></path>
+  </symbol>
+</svg>
+
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-white to-green-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 py-16">
+  <div class="max-w-6xl w-full">
 
     <!-- ✨ الهيدر -->
-    <div class="text-center mb-12">
-      <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-lg mb-6">
-        <i class="bi bi-gem text-4xl"></i>
+    <div class="text-center mb-12 animate-[fadeIn_0.6s_ease-out]">
+      <div class="mx-auto w-20 h-20 flex items-center justify-center rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-500 text-white shadow-xl shadow-yellow-500/30 mb-6 ring-8 ring-yellow-400/10">
+        <svg class="w-10 h-10" aria-hidden="true"><use href="#i-gem"/></svg>
       </div>
-      <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white">🌟 عضوية بريميوم</h1>
-      <p class="text-gray-600 dark:text-gray-300 mt-2 text-lg">
-        اختر الخطة المناسبة لك واستمتع بالمميزات الحصرية 💎
+      <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">عضوية بريميوم</h1>
+      <p class="text-gray-600 dark:text-gray-300 mt-3 text-lg">
+        اختر الخطة المناسبة لك واستمتع بالمميزات الحصرية
       </p>
+      <div class="mt-6">
+        <a href="#plans" class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-lg hover:translate-y-[-2px] active:translate-y-0 transition-all duration-200">
+          <svg class="w-5 h-5" aria-hidden="true"><use href="#i-rocket"/></svg>
+          <span>ابدأ الآن</span>
+        </a>
+      </div>
     </div>
-
     <!-- ✅ المميزات -->
-    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-12">
-      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">🚀 ماذا ستحصل عليه؟</h2>
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-12 border border-gray-200/60 dark:border-gray-700/60 transition-all duration-300 hover:shadow-2xl">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">ماذا ستحصل عليه؟</h2>
       <ul class="grid sm:grid-cols-2 gap-4 text-gray-800 dark:text-gray-200">
-        <li class="flex items-center space-x-2 space-x-reverse">
-          <i class="bi bi-check-circle-fill text-green-500"></i>
+        <li class="flex items-center gap-3 group">
+          <span class="inline-flex w-8 h-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40 group-hover:scale-110 transition">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400"><use href="#i-check-circle"/></svg>
+          </span>
           <span>استخدام أسماء مستخدمين أقل من 4 أحرف</span>
         </li>
-        <li class="flex items-center space-x-2 space-x-reverse">
-          <i class="bi bi-check-circle-fill text-green-500"></i>
+        <li class="flex items-center gap-3 group">
+          <span class="inline-flex w-8 h-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40 group-hover:scale-110 transition">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400"><use href="#i-check-circle"/></svg>
+          </span>
           <span>معرفة هوية المرسل في الرسائل المجهولة</span>
         </li>
-        <li class="flex items-center space-x-2 space-x-reverse">
-          <i class="bi bi-check-circle-fill text-green-500"></i>
+        <li class="flex items-center gap-3 group">
+          <span class="inline-flex w-8 h-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40 group-hover:scale-110 transition">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400"><use href="#i-check-circle"/></svg>
+          </span>
           <span>تجربة خالية من الإعلانات</span>
         </li>
-        <li class="flex items-center space-x-2 space-x-reverse">
-          <i class="bi bi-check-circle-fill text-green-500"></i>
+        <li class="flex items-center gap-3 group">
+          <span class="inline-flex w-8 h-8 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40 group-hover:scale-110 transition">
+            <svg class="w-5 h-5 text-green-600 dark:text-green-400"><use href="#i-check-circle"/></svg>
+          </span>
           <span>مميزات إضافية قادمة قريبًا...</span>
         </li>
       </ul>
     </div>
 
+<!-- ⏳ العروض من لوحة التحكم -->
+    {% if offers %}
+      {% for offer in offers %}
+        <div class="relative overflow-hidden rounded-3xl shadow-xl p-8 mb-12 text-center border border-pink-200/40 dark:border-pink-500/20
+                    bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-500 text-white
+                    transition-[transform,box-shadow] duration-300 hover:shadow-2xl hover:translate-y-[-2px]">
+          <!-- زخرفة مشعة -->
+          <div class="pointer-events-none absolute -top-24 -left-24 w-72 h-72 bg-white/10 rounded-full blur-3xl"></div>
+
+          <div class="flex items-center justify-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-white/90"><use href="#i-tag-percent"/></svg>
+            <h2 class="text-2xl font-bold">{{ offer.title }}</h2>
+          </div>
+
+          <p class="mb-4 opacity-95">{{ offer.description }}</p>
+
+          {% if offer.discount_percent %}
+          <p class="mb-2 font-semibold">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15">
+              <svg class="w-4 h-4"><use href="#i-tag-percent"/></svg>
+              خصم {{ offer.discount_percent }}%
+            </span>
+          </p>
+          {% endif %}
+
+          <p class="flex items-center justify-center gap-2 opacity-95">
+            <svg class="w-5 h-5"><use href="#i-clock"/></svg>
+            ينتهي في {{ offer.end_date.strftime('%Y-%m-%d %H:%M') }}
+          </p>
+
+          <div id="countdown-{{ offer.id }}" class="text-3xl md:text-4xl font-extrabold mt-5 tracking-wide"></div>
+        </div>
+
+        <script>
+          (function(){
+            const countdownDate = new Date("{{ offer.end_date.strftime('%Y-%m-%dT%H:%M:%S') }}").getTime();
+            const el = document.getElementById("countdown-{{ offer.id }}");
+            const timer = setInterval(() => {
+              const now = new Date().getTime();
+              const distance = countdownDate - now;if (distance < 0) {
+                clearInterval(timer);
+                el.innerHTML = "انتهى العرض!";
+                el.classList.add("text-white/80");
+                return;
+              }
+
+              const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+              const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+              const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+              const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+              el.innerHTML = (days > 0 ? days + "ي " : "") + hours + "س : " + minutes + "د : " + seconds + "ث";
+            }, 1000);
+          })();
+        </script>
+      {% endfor %}
+    {% endif %}
+
+    <!-- 📊 مقارنة الباقات -->
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-12 border border-gray-200/60 dark:border-gray-700/60">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">مقارنة الباقات</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-center border-collapse">
+          <thead>
+            <tr class="bg-gray-100/80 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 text-sm">
+              <th class="p-3 font-semibold">الميزة</th>
+              <th class="p-3 font-semibold">مجاني</th>
+              <th class="p-3 font-semibold">شهري</th>
+              <th class="p-3 font-semibold">سنوي</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200/70 dark:divide-gray-700/70 text-gray-800 dark:text-gray-200">
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition">
+              <td class="p-3">أسماء قصيرة</td>
+              <td class="p-3">✗</td>
+              <td class="p-3">✓</td>
+              <td class="p-3">✓</td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition">
+              <td class="p-3">معرفة المرسل</td>
+              <td class="p-3">✗</td>
+              <td class="p-3">✓</td>
+              <td class="p-3">✓</td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition">
+              <td class="p-3">بدون إعلانات</td>
+              <td class="p-3">✗</td>
+              <td class="p-3">✓</td>
+              <td class="p-3">✓</td>
+            </tr>
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/40 transition">
+              <td class="p-3">سعر أفضل</td>
+              <td class="p-3">-</td>
+              <td class="p-3">$4.99</td>
+              <td class="p-3 text-green-600 dark:text-green-400 font-bold">توفير 15%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- 💳 الباقات -->
-    <div class="grid md:grid-cols-2 gap-8">
-      
+    <div id="plans" class="grid md:grid-cols-2 gap-8 mb-16">
       <!-- 📅 الخطة الشهرية -->
-      <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-gray-200 dark:border-gray-700 hover:scale-105 transition transform duration-200">
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">📅 الخطة الشهرية</h3>
+      <div class="relative bg-white/85 dark:bg-gray-800/85 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-gray-200/70 dark:border-gray-700/70
+                  transition-all duration-300 hover:shadow-2xl hover:translate-y-[-2px]">
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">الخطة الشهرية</h3>
         <p class="text-5xl font-extrabold text-green-600 dark:text-green-400 mb-2">$4.99</p>
         <p class="text-gray-600 dark:text-gray-400 mb-6">ادفع شهريًا، يمكنك الإلغاء في أي وقت</p>
         <form action="{{ url_for('upgrade_premium') }}" method="post">
           <input type="hidden" name="plan" value="monthly">
-          <button type="submit" 
-                  class="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-lg hover:opacity-90 transition">
-            🚀 اختر الشهري
+          <button type="submit" class="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold shadow-lg
+                                     hover:translate-y-[-2px] active:translate-y-0 transition-all duration-200 inline-flex items-center justify-center gap-2">
+            <svg class="w-5 h-5"><use href="#i-rocket"/></svg>
+            <span>اختر الشهري</span>
           </button>
         </form>
       </div>
-
       <!-- 📆 الخطة السنوية -->
-      <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 rounded-3xl shadow-xl p-8 border-2 border-yellow-400 dark:border-yellow-500 hover:scale-105 transition transform duration-200 relative">
-        
-        <!-- تاج التوصية -->
-        <span class="absolute top-0 right-0 -mt-4 -mr-4 bg-yellow-400 text-white text-sm font-bold px-4 py-1 rounded-full shadow">
-          ⭐ الأكثر شعبية
+      <div class="relative rounded-3xl shadow-xl p-8 border-2 border-yellow-400 dark:border-yellow-500
+                  bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20
+                  transition-all duration-300 hover:shadow-2xl hover:translate-y-[-2px]">
+        <span class="absolute top-0 right-0 -mt-4 -mr-4 inline-flex items-center gap-2 bg-yellow-400 text-white text-xs font-bold px-4 py-1 rounded-full shadow">
+          <svg class="w-4 h-4"><use href="#i-star"/></svg>
+          الأكثر شعبية
         </span>
-
-        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">📆 الخطة السنوية</h3>
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-4">الخطة السنوية</h3>
         <p class="text-5xl font-extrabold text-yellow-500 mb-2">$49.99</p>
-        <p class="text-gray-600 dark:text-gray-400 mb-6">ادفع مرة واحدة ووفر أكثر من <span class="font-bold text-green-600">15%</span></p>
+        <p class="text-gray-700 dark:text-gray-300 mb-6">ادفع مرة واحدة ووفر أكثر من <span class="font-bold text-green-600 dark:text-green-400">15%</span></p>
         <form action="{{ url_for('upgrade_premium') }}" method="post">
           <input type="hidden" name="plan" value="yearly">
-          <button type="submit" 
-                  class="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold shadow-lg hover:opacity-90 transition">
-            💎 اختر السنوي
+          <button type="submit" class="w-full py-3 rounded-2xl bg-gradient-to-r from-yellow-400 to-yellow-500 text-white font-bold shadow-lg
+                                     hover:translate-y-[-2px] active:translate-y-0 transition-all duration-200 inline-flex items-center justify-center gap-2">
+            <svg class="w-5 h-5"><use href="#i-gem"/></svg>
+            <span>اختر السنوي</span>
           </button>
         </form>
       </div>
     </div>
+
+    <!-- ⭐ شهادات المستخدمين -->
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-16 border border-gray-200/60 dark:border-gray-700/60">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <svg class="w-5 h-5 text-gray-700 dark:text-gray-300"><use href="#i-quote"/></svg>
+        <span>ماذا يقول مستخدمونا؟</span>
+      </h2>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="group p-6 bg-white dark:bg-gray-700 rounded-2xl shadow transition hover:shadow-lg">
+          <p class="text-gray-700 dark:text-gray-200 mb-4">"العضوية بريميوم حسنت تجربتي كثيرًا، الآن أقدر أعرف مين يرسل لي الرسائل!"</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-green-200 to-green-300 dark:from-green-700 dark:to-green-600"></div>
+            <span class="font-bold text-gray-900 dark:text-white">أحمد</span>
+          </div>
+        </div>
+        <div class="group p-6 bg-white dark:bg-gray-700 rounded-2xl shadow transition hover:shadow-lg">
+          <p class="text-gray-700 dark:text-gray-200 mb-4">"لا إعلانات مزعجة بعد الآن، أفضل قرار اتخذته!"</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-200 to-blue-300 dark:from-blue-700 dark:to-blue-600"></div>
+            <span class="font-bold text-gray-900 dark:text-white">ليلى</span>
+          </div>
+        </div>
+        <div class="group p-6 bg-white dark:bg-gray-700 rounded-2xl shadow transition hover:shadow-lg">
+          <p class="text-gray-700 dark:text-gray-200 mb-4">"السعر السنوي ممتاز مقارنة بالمميزات اللي أحصل عليها"</p>
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-200 to-yellow-300 dark:from-yellow-700 dark:to-yellow-600"></div>
+            <span class="font-bold text-gray-900 dark:text-white">سارة</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ❓ الأسئلة الشائعة -->
+    <div class="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 mb-16 border border-gray-200/60 dark:border-gray-700/60">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">الأسئلة الشائعة</h2><div class="space-y-4">
+        <details class="group p-4 bg-gray-50 dark:bg-gray-700/60 rounded-xl transition">
+          <summary class="font-bold cursor-pointer flex items-center justify-between">
+            <span>هل أقدر ألغي الاشتراك في أي وقت؟</span>
+            <span class="ml-2 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-300">نعم، يمكنك الإلغاء بسهولة من الإعدادات ولن يتم خصم أي مبالغ مستقبلية.</p>
+        </details>
+        <details class="group p-4 bg-gray-50 dark:bg-gray-700/60 rounded-xl transition">
+          <summary class="font-bold cursor-pointer flex items-center justify-between">
+            <span>هل في فترة تجريبية مجانية؟</span>
+            <span class="ml-2 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-300">نعم، نوفر فترة تجريبية لبعض العروض الخاصة من وقت لآخر.</p>
+        </details>
+        <details class="group p-4 bg-gray-50 dark:bg-gray-700/60 rounded-xl transition">
+          <summary class="font-bold cursor-pointer flex items-center justify-between">
+            <span>ما هي طرق الدفع المتاحة؟</span>
+            <span class="ml-2 transition group-open:rotate-180">▾</span>
+          </summary>
+          <p class="mt-2 text-gray-600 dark:text-gray-300">يمكنك الدفع باستخدام Visa, MasterCard, PayPal، وغيرها.</p>
+        </details>
+      </div>
+    </div>
+
+    <!-- 💳 وسائل الدفع -->
+    <div class="text-center text-gray-600 dark:text-gray-400">
+      <p class="mb-4">نقبل جميع وسائل الدفع الشهيرة</p>
+      <div class="flex items-center justify-center gap-6 text-3xl">
+        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow">
+          <svg class="w-7 h-7 text-gray-800 dark:text-gray-200"><use href="#i-credit-card"/></svg>
+        </span>
+
+        <!-- زر إظهار PayPal -->
+        <button id="show-paypal" class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow hover:scale-105 transition">
+          <svg class="w-7 h-7 text-[#003087]"><use href="#i-paypal"/></svg>
+        </button>
+
+        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-gray-800 shadow">
+          <svg class="w-7 h-7 text-gray-800 dark:text-gray-200"><use href="#i-bank"/></svg>
+        </span>
+      </div>
+    </div>
+
+    <!-- ✅ مكان أزرار PayPal (مخفي افتراضياً) -->
+    <div id="paypal-container" class="mt-6 hidden">
+      <h3 class="text-lg font-bold mb-3">اختر خطتك مع PayPal</h3>
+      <div id="paypal-button-monthly" class="mb-4"></div>
+      <div id="paypal-button-yearly"></div>
+    </div>
+
   </div>
 </div>
+
+<!-- أنيميشن خفيفة -->
+<style>
+@keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
+</style>
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id=Aaqlf_3RSD5e7RlPLA-F-V-pdfrddc5ppqjb6RdEshIjHnR837WYJoYc3LjvfXluap58xS_JavvlXvis&currency=USD"></script>
+
+<script>
+  // زر إظهار PayPal
+  document.getElementById("show-paypal").addEventListener("click", function() {
+    document.getElementById("paypal-container").classList.toggle("hidden");
+  });
+
+  // زر شهري
+  paypal.Buttons({
+      createOrder: function(data, actions) {
+          return fetch("/create-paypal-order", {
+              method: "post",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({plan: "monthly"})
+          }).then(res => res.json())
+            .then(order => order.id);
+      },
+      onApprove: function(data, actions) {
+          return fetch(`/capture-paypal-order/${data.orderID}`, { method: "post" })
+                 .then(() => window.location.href = "/premium_success");
+      }
+  }).render("#paypal-button-monthly");
+
+  // زر سنوي
+  paypal.Buttons({
+      createOrder: function(data, actions) {
+          return fetch("/create-paypal-order", {
+              method: "post",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({plan: "yearly"})
+          }).then(res => res.json())
+            .then(order => order.id);
+      },
+      onApprove: function(data, actions) {
+          return fetch(`/capture-paypal-order/${data.orderID}`, { method: "post" })
+                 .then(() => window.location.href = "/premium_success");
+      }
+  }).render("#paypal-button-yearly");
+</script>
 {% endblock %}

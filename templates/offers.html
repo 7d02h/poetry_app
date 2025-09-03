@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}إدارة العروض - ميمو{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
+    
+    <!-- العنوان -->
+    <h3 class="text-3xl font-extrabold text-center text-yellow-600 dark:text-yellow-400 mb-10 tracking-wide">
+      🔥 إدارة العروض
+    </h3>
+
+    <!-- زر إضافة عرض جديد -->
+    <a href="{{ url_for('add_offer') }}" 
+       class="inline-block mb-6 px-4 py-2 bg-blue-600 text-white rounded-xl shadow hover:opacity-90">
+       ➕ إضافة عرض جديد
+    </a>
+
+    <!-- قائمة العروض -->
+    <div class="grid gap-4">
+      {% for offer in offers %}
+      <div class="p-6 bg-gray-50 dark:bg-gray-700 rounded-2xl shadow flex flex-col md:flex-row justify-between items-start md:items-center">
+        
+        <!-- تفاصيل العرض -->
+        <div class="mb-4 md:mb-0">
+          <h5 class="text-lg font-bold text-gray-800 dark:text-white">
+            {{ offer.title }}
+          </h5>
+          <p class="text-gray-600 dark:text-gray-300">{{ offer.description }}</p>
+
+          {% if offer.discount_percent > 0 %}
+          <p class="text-green-600 dark:text-green-400 font-bold">
+            💸 خصم {{ offer.discount_percent }}%
+          </p>
+          {% endif %}
+
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            📅 من: {{ offer.start_date.strftime('%Y-%m-%d') }} 
+            → إلى: {{ offer.end_date.strftime('%Y-%m-%d') }}
+          </p>
+
+          {% if offer.is_valid() %}
+            <span class="inline-block mt-1 px-2 py-1 text-xs bg-green-500 text-white rounded">مفعل ✅</span>
+          {% else %}
+            <span class="inline-block mt-1 px-2 py-1 text-xs bg-red-500 text-white rounded">غير فعال ❌</span>
+          {% endif %}
+        </div>
+
+        <!-- أزرار التحكم -->
+        <div class="space-x-2 space-x-reverse flex">
+          <!-- زر التفعيل/التعطيل -->
+          <form action="{{ url_for('toggle_offer', offer_id=offer.id) }}" method="post" class="inline">
+            {% if offer.is_active %}
+              <button type="submit" class="px-3 py-1 bg-gray-500 text-white rounded-lg">🚫 تعطيل</button>
+            {% else %}
+              <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-lg">✅ تفعيل</button>
+            {% endif %}
+          </form>
+
+          <!-- زر التعديل -->
+          <a href="{{ url_for('edit_offer', offer_id=offer.id) }}" 
+             class="px-3 py-1 bg-yellow-500 text-white rounded-lg">✏️ تعديل</a>
+          
+          <!-- زر الحذف -->
+          <form action="{{ url_for('delete_offer', offer_id=offer.id) }}" method="post" class="inline"
+                onsubmit="return confirm('هل أنت متأكد من حذف هذا العرض؟')">
+            <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded-lg">🗑 حذف</button>
+          </form>
+        </div>
+      </div>
+      {% else %}
+      <p class="text-gray-500 dark:text-gray-400">لا يوجد عروض حالياً</p>
+      {% endfor %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

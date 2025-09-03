@@ -220,3 +220,21 @@ class StoryView(db.Model):
 
     story = db.relationship('Story', backref='views', lazy=True)
     viewer = db.relationship('User', lazy=True)
+
+class Offer(db.Model):
+    __tablename__ = 'offers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)  # عنوان العرض
+    description = db.Column(db.Text, nullable=False)   # وصف العرض
+    discount_percent = db.Column(db.Integer, default=0)  # نسبة الخصم %
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)  # بداية العرض
+    end_date = db.Column(db.DateTime, nullable=False)  # نهاية العرض
+    is_active = db.Column(db.Boolean, default=True)    # هل العرض مفعّل؟
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def is_valid(self):
+        """يتأكد إذا العرض مازال صالح"""
+        now = datetime.utcnow()
+        return self.is_active and self.start_date <= now <= self.end_date

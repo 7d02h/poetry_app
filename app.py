@@ -15,14 +15,25 @@ from flask import Flask, render_template, request, url_for, redirect, flash
 from flask_mail import Mail, Message as MailMessage
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from models import db, User, Follower
+from models import Offer
+import requests
+from flask import Flask, request, redirect, url_for, render_template, session, jsonify
 import random
 import string
 from werkzeug.security import generate_password_hash
 import random
 from flask import jsonify
 from werkzeug.security import generate_password_hash
-
+from flask_babel import Babel
 import os
+import base64
+import requests
+from datetime import datetime, timedelta
+from flask import jsonify, session
+
+
+
+
 import json
 import eventlet
 import humanize
@@ -78,6 +89,10 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = "ndlusioapp@gmail.com"
 app.config['MAIL_PASSWORD'] = "ylma kgjg rwnd hdaz"  # بدون مسافات
 app.secret_key = "s3cr3t_2025_kjfn73hdf983hr"
+# PayPal Live credentials (استبدلهم باللي أخذتهم من PayPal)
+PAYPAL_CLIENT = "Aaqlf_3RSD5e7RlPLA-F-V-pdfrddc5ppqjb6RdEshIjHnR837WYJoYc3LjvfXluap58xS_JavvlXvis"
+PAYPAL_SECRET = "EIN-R7pBCLZqEBOg0ZCKD6w3L6MGzlRsP6WzmoZMyEfYSjmrrcT56BKtuv6HvKdUgevl7oEAWS0xois8"
+PAYPAL_API = "https://api-m.paypal.com"
 
 
 
@@ -110,9 +125,11 @@ def archive_stories():
 
 babel = Babel(app)
 
-@babel.localeselector
+
 def get_locale():
-    return session.get('lang', request.accept_languages.best_match(['ar', 'en']))
+    return request.accept_languages.best_match(['ar', 'en'])
+
+babel = Babel(app, locale_selector=get_locale)
 
 # ----------------------------- SocketIO -----------------------------
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -136,6 +153,16 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+def get_paypal_access_token():
+    auth = (PAYPAL_CLIENT, PAYPAL_SECRET)
+    headers = {"Accept": "application/json", "Accept-Language": "en_US"}
+    data = {"grant_type": "client_credentials"}
+
+    r = requests.post(f"{PAYPAL_API}/v1/oauth2/token", headers=headers, data=data, auth=auth)
+    j = r.json()
+    if "access_token" not in j:
+        return None, j
+    return j["access_token"], None
 
 def send_notification(to_username, message, notif_type='general'):
     # إرسال الإشعار اللحظي باستخدام SocketIO
@@ -1555,12 +1582,10 @@ from flask import (
 
 
 # ❤️ زر الإعجاب
-@app.route('/like/<int:poem_id>')
+@app.route('/like/<int:poem_id>', methods=['POST'])
 def like(poem_id):
     if 'username' not in session:
         return jsonify({'success': False, 'redirect': url_for('login')})
-
-      # ✅
 
     username = session['username']
     poem = Poem.query.get(poem_id)
@@ -1571,11 +1596,11 @@ def like(poem_id):
 
     if existing_like:
         db.session.delete(existing_like)
-        poem.likes -= 1
+        poem.likes = poem.likes - 1 if poem.likes > 0 else 0
     else:
         new_like = Like(username=username, poem_id=poem_id)
         db.session.add(new_like)
-        poem.likes += 1
+        poem.likes = poem.likes + 1
 
         # ✅ إشعار لحظي
         if poem.username != username:
@@ -1587,7 +1612,10 @@ def like(poem_id):
             )
             db.session.add(notification)
 
-            send_notification(poem.username, f"{username} أعجب ببيتك! ❤️")
+            try:
+                send_notification(poem.username, f"{username} أعجب ببيتك! ❤️")
+            except NameError:
+                print("⚠️ send_notification غير معرف، تخطيت الإرسال.")
 
     db.session.commit()
 
@@ -2377,76 +2405,165 @@ def memo_stats():
         total_likes=total_likes
     )
 
+@app.route("/admin/offers/edit/<int:offer_id>", methods=["GET", "POST"])
+@login_required
+def edit_offer(offer_id):
+    if not current_user.is_admin:
+        flash("🚫 لا تملك صلاحية", "danger")
+        return redirect(url_for("memo_offers"))
+
+    offer = Offer.query.get_or_404(offer_id)
+
+    if request.method == "POST":
+        offer.title = request.form.get("title")
+        offer.description = request.form.get("description")
+        offer.discount_percent = int(request.form.get("discount_percent", 0))
+        offer.start_date = request.form.get("start_date") or offer.start_date
+        offer.end_date = request.form.get("end_date") or offer.end_date
+        offer.is_active = bool(request.form.get("is_active"))
+
+        db.session.commit()
+        flash("✅ تم تعديل العرض بنجاح", "success")
+        return redirect(url_for("memo_offers"))
+
+    return render_template("edit_offer.html", offer=offer)
+
+@app.route("/admin/offers/delete/<int:offer_id>", methods=["POST", "GET"])
+@login_required
+def delete_offer(offer_id):
+    if not current_user.is_admin:
+        flash("🚫 لا تملك صلاحية", "danger")
+        return redirect(url_for("memo_offers"))
+
+    offer = Offer.query.get_or_404(offer_id)
+    db.session.delete(offer)
+    db.session.commit()
+
+    flash("🗑 تم حذف العرض بنجاح", "success")
+    return redirect(url_for("memo_offers"))
+
+@app.route("/admin/offers")
+@login_required
+def memo_offers():
+    if not current_user.is_admin:
+        flash("🚫 لا تملك صلاحية", "danger")
+        return redirect(url_for("index"))
+
+    # جميع العروض
+    offers = Offer.query.order_by(Offer.created_at.desc()).all()
+    return render_template("offers.html", offers=offers)
 
 
+@app.route("/admin/offers/add", methods=["GET", "POST"])
+@login_required
+def add_offer():
+    if not current_user.is_admin:
+        flash("🚫 لا تملك صلاحية", "danger")
+        return redirect(url_for("index"))
 
-@app.route("/premium")
-def premium():
-    # تحقق إذا المستخدم مسجل دخول
+    if request.method == "POST":
+        title = request.form.get("title")
+        description = request.form.get("description")
+        discount_percent = request.form.get("discount_percent", 0, type=int)
+        start_date = request.form.get("start_date")
+        end_date = request.form.get("end_date")
+        is_active = bool(request.form.get("is_active"))
+
+        # تحويل التاريخ من النص إلى datetime
+        try:
+            start_date = datetime.strptime(start_date, "%Y-%m-%dT%H:%M")
+            end_date = datetime.strptime(end_date, "%Y-%m-%dT%H:%M")
+        except Exception:
+            flash("⚠️ صيغة التاريخ غير صحيحة", "danger")
+            return redirect(url_for("add_offer"))
+
+        # تحقق أن تاريخ النهاية بعد البداية
+        if end_date <= start_date:
+            flash("⚠️ تاريخ النهاية يجب أن يكون بعد تاريخ البداية", "danger")
+            return redirect(url_for("add_offer"))
+
+        # إنشاء العرض الجديد
+        new_offer = Offer(
+            title=title,
+            description=description,
+            discount_percent=discount_percent,
+            start_date=start_date,
+            end_date=end_date,
+            is_active=is_active
+        )
+        db.session.add(new_offer)
+        db.session.commit()
+
+        flash("✅ تمت إضافة العرض بنجاح", "success")
+        return redirect(url_for("memo_offers"))
+
+    # صفحة إضافة عرض
+    return render_template("add_offer.html")
+
+@app.route("/admin/offers/toggle/<int:offer_id>", methods=["POST"])
+@login_required
+def toggle_offer(offer_id):
+    if not current_user.is_admin:
+        flash("🚫 لا تملك صلاحية", "danger")
+        return redirect(url_for("memo_offers"))
+
+    offer = Offer.query.get_or_404(offer_id)
+    offer.is_active = not offer.is_active  # قلب الحالة
+    db.session.commit()
+
+    flash(f"تم {'تفعيل' if offer.is_active else 'إلغاء'} العرض ✅", "success")
+    return redirect(url_for("memo_offers"))
+
+@app.route("/premium", methods=["GET", "POST"])
+def upgrade_premium():
     if "username" not in session:
         flash("يجب تسجيل الدخول أولاً.")
         return redirect(url_for("login"))
-    
-    return render_template("premium.html")
 
-
-
-
-
-@app.route('/premium', methods=['GET', 'POST'])
-def upgrade_premium():
-    if 'username' not in session:
-        return redirect(url_for('login'))
-
-    if request.method == 'POST':
+    if request.method == "POST":
         try:
-            # إنشاء جلسة دفع Stripe
-            checkout_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': 'عضوية بريميوم',
-                            'description': 'ترقية عضوية لتفعيل مميزات البريميوم',
-                        },
-                        'unit_amount': 500,  # السعر بالسنت (5 دولار)
-                    },
-                    'quantity': 1,
+            auth = (PAYPAL_CLIENT, PAYPAL_SECRET)
+            headers = {"Content-Type": "application/json"}
+            data = {
+                "intent": "CAPTURE",
+                "purchase_units": [{
+                    "amount": {"currency_code": "USD", "value": "5.00"},
+                    "description": "عضوية بريميوم"
                 }],
-                mode='payment',
-                success_url=url_for('premium_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
-                cancel_url=url_for('upgrade_premium', _external=True),
-                client_reference_id=session['username'],  # نربط الدفع بالمستخدم
-            )
-            return redirect(checkout_session.url)
+                "application_context": {
+                    "return_url": url_for("paypal_success", _external=True),
+                    "cancel_url": url_for("upgrade_premium", _external=True),
+                }
+            }
+
+            # إنشاء طلب دفع PayPal
+            r = requests.post(f"{PAYPAL_API}/v2/checkout/orders",
+                              auth=auth, headers=headers, json=data)
+            order = r.json()
+
+            # الحصول على رابط الموافقة
+            for link in order.get("links", []):
+                if link["rel"] == "approve":
+                    return redirect(link["href"])
+
+            return "خطأ: لم يتم العثور على رابط الموافقة"
         except Exception as e:
             return str(e)
 
-    # إذا GET نعرض صفحة الاشتراك (اللي عملتها)
-    return render_template('premium.html')
-
-@app.route('/premium/success')
-def premium_success():
-    session_id = request.args.get('session_id')
-
-    if not session_id:
-        return redirect(url_for('upgrade_premium'))
-
-    # تحقق من حالة الدفع من Stripe إذا حبيت (اختياري)
-    checkout_session = stripe.checkout.Session.retrieve(session_id)
-
-    if checkout_session.payment_status == 'paid':
-        # هنا حدث بيانات العضوية في قاعدة البيانات مثلاً
-        # user = User.query.filter_by(username=session['username']).first()
-        # user.is_premium = True
-        # db.session.commit()
-
-        return render_template('premium_success.html')
-
-    return redirect(url_for('upgrade_premium'))
+    # GET → عرض صفحة الاشتراك
+    now = datetime.utcnow()
+    active_offers = Offer.query.filter(
+        Offer.is_active == True,
+        Offer.start_date <= now,
+        Offer.end_date >= now
+    ).all()
+    return render_template("premium.html", offers=active_offers)
 
 
+@app.route("/paypal_success")
+def paypal_success():
+    session["premium"] = True
+    return render_template("premium_success.html")
 # 🟢 تحديد مجلد رفع الستوري داخل static/stories
 
 
@@ -2616,9 +2733,12 @@ def my_stories():
         time_since=time_ago_format
     )
 
-
-
-
+    # ✅ إرسال للقالب
+    return render_template(
+        "my_story.html",
+        stories_data=stories_data,
+        time_since=time_ago_format
+    )
 
 # حفظ الستوري
 @app.route("/save_story/<int:story_id>")
@@ -2764,21 +2884,19 @@ def archive_poem(poem_id):
 
 
 
-# 🎥 أرشفة ستوري
 @app.route("/archive/story/<int:story_id>", methods=["POST"])
 @login_required
 def archive_story(story_id):
     story = Story.query.get_or_404(story_id)
 
-    # التحقق إن الستوري للمستخدم الحالي
     if story.user_id != current_user.id:
         return "❌ غير مسموح", 403
 
     story.is_archived = True
-    story.archived_at = datetime.utcnow()  # وقت الأرشفة
+    story.archived_at = datetime.utcnow()
     db.session.commit()
 
-    return redirect(url_for("archive_page"))
+    return "✅ تم الأرشفة", 200
 
 # 📦 صفحة الأرشيف
 @app.route("/archive")
@@ -2799,7 +2917,6 @@ def archive_page():
         poems=archived_poems,
         stories=archived_stories
     )
-
 
 
 
@@ -2832,6 +2949,89 @@ def admin_adduser(username, email, password):
     return f"✅ تمت إضافة المستخدم: {username} | 📧 {email}"
 
 
+
+@app.route("/create-paypal-order", methods=["POST"])
+def create_paypal_order():
+    if "username" not in session:
+        return jsonify({"error": "يجب تسجيل الدخول أولاً"}), 403
+
+    data = request.get_json() or {}
+    plan = data.get("plan", "monthly")
+
+    prices = {
+        "monthly": "4.99",
+        "yearly": "49.99"
+    }
+    if plan not in prices:
+        return jsonify({"error": "الخطة غير صحيحة"}), 400
+
+    access_token, err = get_paypal_access_token()
+    if not access_token:
+        return jsonify({"error": "PayPal OAuth failed", "details": err}), 500
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    body = {
+        "intent": "CAPTURE",
+        "purchase_units": [{
+            "amount": {"currency_code": "USD", "value": prices[plan]},
+            "description": f"Premium Membership - {plan}"
+        }]
+    }
+
+    r = requests.post(f"{PAYPAL_API}/v2/checkout/orders", headers=headers, json=body)
+    order = r.json()
+    if "id" not in order:
+        return jsonify({"error": "PayPal create order error", "details": order}), 500
+
+    # (اختياري) خزّن الخطة مؤقتًا مع order_id لو بدك تربط لاحقًا
+    # session[f"plan_for_{order['id']}"] = plan
+
+    return jsonify({"id": order["id"]})
+
+
+@app.route("/capture-paypal-order/<order_id>", methods=["POST"])
+def capture_paypal_order(order_id):
+    if "username" not in session:
+        return jsonify({"error": "يجب تسجيل الدخول أولاً"}), 403
+
+    access_token, err = get_paypal_access_token()
+    if not access_token:
+        return jsonify({"error": "PayPal OAuth failed", "details": err}), 500
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {access_token}"
+    }
+    r = requests.post(f"{PAYPAL_API}/v2/checkout/orders/{order_id}/capture", headers=headers)
+    result = r.json()
+
+    # نجاح الطلب عادةً يكون status = COMPLETED
+    if result.get("status") == "COMPLETED":
+        # حدّد الخطة: إمّا من السيشن أو من مبلغ الطلب
+        plan = "monthly"
+        try:
+            purchase_units = result.get("purchase_units", [])
+            amount = purchase_units[0]["payments"]["captures"][0]["amount"]["value"]
+            plan = "yearly" if amount.startswith("49") else "monthly"
+        except Exception:
+            pass
+
+        # فعل البريميوم في قاعدة البيانات
+        user = User.query.filter_by(username=session["username"]).first()
+        if user:
+            now = datetime.utcnow()
+            # مدّد إن كان عنده بريميوم سابق
+            base = user.premium_until if user.premium_until and user.premium_until > now else now
+            delta = timedelta(days=365) if plan == "yearly" else timedelta(days=30)
+            user.premium_until = base + delta
+            db.session.commit()
+
+        return jsonify({"status": "success"})
+
+    return jsonify(result), 400
 
 
 

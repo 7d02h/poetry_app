@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}إضافة عرض جديد{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-10">
+  <div class="bg-white dark:bg-gray-800 shadow-xl rounded-3xl p-8">
+    <h3 class="text-2xl font-bold text-center text-blue-600 dark:text-blue-400 mb-6">
+      ➕ إضافة عرض جديد
+    </h3>
+
+    <form method="post" class="space-y-4">
+      <!-- العنوان -->
+      <div>
+        <label class="block mb-1 font-medium">العنوان</label>
+        <input type="text" name="title" class="w-full border rounded-lg px-3 py-2" required>
+      </div>
+
+      <!-- الوصف -->
+      <div>
+        <label class="block mb-1 font-medium">الوصف</label>
+        <textarea name="description" rows="3" class="w-full border rounded-lg px-3 py-2" required></textarea>
+      </div>
+
+      <!-- نسبة الخصم -->
+      <div>
+        <label class="block mb-1 font-medium">نسبة الخصم (%)</label>
+        <input type="number" name="discount_percent" min="0" max="100" value="0"
+               class="w-full border rounded-lg px-3 py-2">
+      </div>
+
+      <!-- تاريخ البداية -->
+      <div>
+        <label class="block mb-1 font-medium">تاريخ البداية</label>
+        <input type="datetime-local" name="start_date"
+               class="w-full border rounded-lg px-3 py-2" required>
+      </div>
+
+      <!-- تاريخ النهاية -->
+      <div>
+        <label class="block mb-1 font-medium">تاريخ النهاية</label>
+        <input type="datetime-local" name="end_date"
+               class="w-full border rounded-lg px-3 py-2" required>
+      </div>
+
+      <!-- حالة العرض -->
+      <div>
+        <label class="inline-flex items-center">
+          <input type="checkbox" name="is_active" class="mr-2">
+          فعال؟
+        </label>
+      </div>
+
+      <!-- زر الحفظ -->
+      <button type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg w-full">
+        💾 حفظ العرض
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

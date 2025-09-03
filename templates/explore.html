@@ -72,10 +72,15 @@
               </a>
             {% endif %}
 
-            <a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"
-               class="border border-blue-500 text-blue-500 px-4 py-1 rounded-full text-sm hover:bg-blue-50 transition">
-              📤 مشاركة
-            </a>
+<a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"
+   class="border border-blue-500 text-blue-500 px-4 py-1 rounded-full text-sm hover:bg-blue-50 transition flex items-center gap-2">
+  <!-- SVG ورقة طيّارة -->
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" class="w-4 h-4">
+    <path d="M21.426 2.574a2 2 0 0 0-2.063-.472L3.555 7.85a2 2 0 0 0-.164 3.747l6.37 2.91 2.91 6.37a2 2 0 0 0 3.747-.164l5.748-15.808a2 2 0 0 0-.74-2.331ZM11.48 13.08l-.193.516-.36-.165-5.458-2.493 14.717-5.346-5.346 14.717-2.493-5.458Z"/>
+  </svg>
+
+  <span>مشاركة</span>
+</a>
 
             {% if poem.username != session['username'] %}
               <a href="{{ url_for('block_user', username=poem.username) }}"
