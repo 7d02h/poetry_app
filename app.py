@@ -123,7 +123,7 @@ def archive_stories():
     print("✅ تم أرشفة الستوريات المنتهية")
 
 
-babel = Babel(app)
+
 
 
 def get_locale():
