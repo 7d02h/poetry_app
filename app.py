@@ -164,7 +164,12 @@ def archive_stories():
 
 
 
-babel = Babel(app, locale_selector=lambda: session.get("lang", "ar"))
+babel = Babel(app)  # فقط أنشئ Babel بدون locale_selector
+
+@babel.localeselector
+def get_locale():
+    # ارجع اللغة من الجلسة، أو 'ar' إذا لم تكن موجودة
+    return session.get("lang", "ar")
 
 
 
