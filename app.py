@@ -152,7 +152,7 @@ def set_csp_headers(response):
     )
     return response
 
-    
+
 @app.cli.command("archive_stories")
 def archive_stories():
     expiration_time = datetime.utcnow() - timedelta(hours=24)
@@ -164,8 +164,12 @@ def archive_stories():
 
 
 
+babel = Babel(app)
 
-babel = Babel(app, locale_selector=lambda: session.get("lang", "ar"))
+@babel.localeselector
+def get_locale():
+    return session.get("lang", "ar")
+
 
 # ----------------------------- SocketIO -----------------------------
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
