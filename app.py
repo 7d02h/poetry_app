@@ -164,11 +164,8 @@ def archive_stories():
 
 
 
-babel = Babel(app)
+babel = Babel(app, locale_selector=lambda: session.get("lang", "ar"))
 
-@babel.localeselector
-def get_locale():
-    return session.get("lang", "ar")
 
 
 # ----------------------------- SocketIO -----------------------------

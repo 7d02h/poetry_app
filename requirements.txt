@@ -15,3 +15,5 @@ flask_cors
 stripe
 flask-Mail
 flask_talisman
+
+Flask-Babel
