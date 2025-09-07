@@ -19,6 +19,9 @@ from models import Offer
 import requests
 from flask import Flask, request, redirect, url_for, render_template, session, jsonify
 import random
+
+from forms import TermsForm
+
 import string
 from werkzeug.security import generate_password_hash
 import random
@@ -30,11 +33,13 @@ import base64
 import requests
 from datetime import datetime, timedelta
 from flask import jsonify, session
-
+from flask import Flask
+from flask_wtf import CSRFProtect
 from flask import Flask, request
 from flask_babel import Babel
-
-
+from forms import LoginForm
+from forms import SignupForm   # تأكد مستورد الفورم
+from flask_talisman import Talisman
 import json
 import eventlet
 import humanize
@@ -60,7 +65,7 @@ from notification_utils import send_notification
 eventlet.monkey_patch()
 # ----------------------------- إعداد التطبيق -----------------------------
 app = Flask(__name__)
-
+csrf = CSRFProtect(app)
 CORS(app)
 @app.template_filter('short_number')
 def short_number_filter(value):
@@ -83,13 +88,14 @@ app.config['BABEL_TRANSLATION_DIRECTORIES'] = 'translations'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'poetry.db')
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024  # 2MB
 app.config["UPLOAD_FOLDER"] = os.path.join("static", "profile_pics")
-
+app.config['WTF_CSRF_ENABLED'] = True
+app.config['WTF_CSRF_TIME_LIMIT'] = None
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = "ndlusioapp@gmail.com"
 app.config['MAIL_PASSWORD'] = "ylma kgjg rwnd hdaz"  # بدون مسافات
-app.secret_key = "s3cr3t_2025_kjfn73hdf983hr"
+app.config['SECRET_KEY'] = "Aaqlf3RSD5e7RlPLAFVpdfrddc5ppqjb6RdEshI"
 # PayPal Live credentials (استبدلهم باللي أخذتهم من PayPal)
 PAYPAL_CLIENT = "Aaqlf_3RSD5e7RlPLA-F-V-pdfrddc5ppqjb6RdEshIjHnR837WYJoYc3LjvfXluap58xS_JavvlXvis"
 PAYPAL_SECRET = "EIN-R7pBCLZqEBOg0ZCKD6w3L6MGzlRsP6WzmoZMyEfYSjmrrcT56BKtuv6HvKdUgevl7oEAWS0xois8"
@@ -98,10 +104,11 @@ PAYPAL_API = "https://api-m.paypal.com"
 
 
 # ----------------------------- قاعدة البيانات -----------------------------
+
 db.init_app(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
-stripe.api_key = "sk_test_your_secret_key_here"
+stripe.api_key = "Aaqlf_3RSD5e7RlPLA-F-V-pdfrddc5ppqjb6RdEshI"
 STRIPE_PUBLIC_KEY = "pk_test_your_public_key_here"
 
 
@@ -111,9 +118,41 @@ s = URLSafeTimedSerializer(app.secret_key)
 
 
 
+csp = {
+    'default-src': ["'self'"],
+    'script-src': [
+        "'self'",
+        "https://cdn.jsdelivr.net",
+        "https://code.jquery.com",
+        "https://cdn.tailwindcss.com",
+        "'unsafe-inline'"
+    ],
+    'style-src': [
+        "'self'",
+        "https://fonts.googleapis.com",
+        "https://cdn.jsdelivr.net",
+        "'unsafe-inline'"
+    ],
+    'font-src': [
+        "'self'",
+        "https://fonts.gstatic.com"
+    ]
+}
 
+Talisman(app, content_security_policy=csp)
 
 # ----------------------------- اللغة -----------------------------
+@app.after_request
+def set_csp_headers(response):
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' https://cdn.jsdelivr.net https://code.jquery.com https://cdn.tailwindcss.com 'unsafe-inline'; "
+        "style-src 'self' https://fonts.googleapis.com https://cdn.jsdelivr.net 'unsafe-inline'; "
+        "font-src 'self' https://fonts.gstatic.com"
+    )
+    return response
+
+    
 @app.cli.command("archive_stories")
 def archive_stories():
     expiration_time = datetime.utcnow() - timedelta(hours=24)
@@ -126,11 +165,7 @@ def archive_stories():
 
 
 
-babel = Babel(app)
-
-@babel.localeselector
-def get_locale():
-    return request.accept_languages.best_match(['ar', 'en'])
+babel = Babel(app, locale_selector=lambda: session.get("lang", "ar"))
 
 # ----------------------------- SocketIO -----------------------------
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
@@ -351,17 +386,20 @@ from flask_mail import Mail, Message as MailMessage  # ✅ استيراد بدو
 
 @app.route('/forgot_password', methods=['GET', 'POST'])
 def forgot_password():
+    form = ForgotPasswordForm()
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
+        # نستعمل بيانات الفورم
+        email = form.email.data.strip() if form.email.data else ''
+
         if not email:
             flash("⚠️ يرجى إدخال بريد إلكتروني.", 'warning')
-            return render_template('forgot_password.html')
+            return render_template('forgot_password.html', form=form)
 
         # 🔍 التحقق من وجود المستخدم
         user = User.query.filter_by(email=email).first()
         if not user:
             flash("❌ البريد غير مسجل.", 'danger')
-            return render_template('forgot_password.html')
+            return render_template('forgot_password.html', form=form)
 
         # ✅ إنشاء التوكن
         token = s.dumps(email, salt='password-reset-salt')
@@ -381,7 +419,6 @@ def forgot_password():
 {reset_url}
 """
 
-
             mail.send(msg)  # إرسال البريد
             flash("📧 تم إرسال الرابط لبريدك.", 'success')
 
@@ -389,7 +426,8 @@ def forgot_password():
             print("🚨 خطأ عند الإرسال:", e)
             flash("❌ لم يتم إرسال البريد. تحقق من الإعدادات.", 'danger')
 
-    return render_template('forgot_password.html')
+    return render_template('forgot_password.html', form=form)
+
 
 # 🔑 إعادة التعيين
 @app.route('/reset_password/<token>', methods=['GET', 'POST'])
@@ -588,18 +626,19 @@ def home():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '')
+    form = LoginForm()
+
+    if form.validate_on_submit():  # ✅ يتحقق من CSRF + الفالديشن
+        username = form.username.data.strip()
+        password = form.password.data
 
         if not username or not password:
             flash("❗ يرجى ملء جميع الحقول.", "warning")
-            return render_template("login.html")
+            return render_template("login.html", form=form)
 
         user = User.query.filter_by(username=username).first()
 
         if user and check_password_hash(user.password, password):
-            # التحقق من وجود حظر نشط
             now = datetime.now()
             active_ban = Ban.query.filter(
                 Ban.username == username,
@@ -612,7 +651,6 @@ def login():
                 flash(f"🚫 حسابك محظور حتى {ends_at_str}.", "danger")
                 return redirect(url_for('login'))
 
-            # تسجيل الدخول باستخدام كائن SimpleUser
             login_user(SimpleUser(user))
             session["username"] = username
             flash("✅ تم تسجيل الدخول بنجاح", "success")
@@ -620,34 +658,25 @@ def login():
 
         flash("❌ اسم المستخدم أو كلمة المرور غير صحيحة", "danger")
 
-    return render_template("login.html")
+    # ✅ مهم جدًا: نمرر form للـ template
+    return render_template("login.html", form=form)
+
+
 
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "").strip()
+    form = SignupForm()
+
+    if form.validate_on_submit():
+        username = form.username.data.strip()
+        email = form.email.data.strip()
+        password = form.password.data.strip()
         first_name = request.form.get("first_name", "").strip()
         last_name = request.form.get("last_name", "").strip()
 
         # --- ⚠️ تحديد إذا هو بريميوم (افتراضيًا False)
         is_premium = False  
-
-        # --- ✅ التحقق من اسم المستخدم
-        if not re.match("^[A-Za-z0-9_]+$", username):
-            flash("⚠️ اسم المستخدم يجب أن يحتوي فقط على أحرف إنجليزية أو أرقام أو شرطة سفلية.")
-            return render_template("signup.html")
-
-        if len(username) < 4 and not is_premium:
-            flash("⚠️ اسم المستخدم يجب أن يكون 4 أحرف على الأقل، أو اشترك بريميوم لاستخدام اسم أقصر.")
-            return render_template("signup.html")
-
-        # --- كلمة المرور
-        if len(password) < 8:
-            flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
-            return render_template("signup.html")
 
         # --- هل الاسم أو البريد مستخدم مسبقًا؟
         existing_user = User.query.filter(
@@ -655,7 +684,12 @@ def signup():
         ).first()
         if existing_user:
             flash("⚠️ اسم المستخدم أو البريد الإلكتروني مستخدم مسبقًا.")
-            return render_template("signup.html")
+            return render_template("signup.html", form=form)
+
+        # --- كلمة المرور
+        if len(password) < 8:
+            flash("⚠️ كلمة المرور يجب أن تكون 8 أحرف على الأقل.")
+            return render_template("signup.html", form=form)
 
         # --- إنشاء الحساب
         hashed_password = generate_password_hash(password)
@@ -683,8 +717,8 @@ def signup():
         flash("✅ تم إنشاء الحساب وتسجيل دخولك بنجاح! مرحبًا بك 🌟")
         return redirect(url_for("home"))
 
-    # 🔹 مهم: لو كانت GET أو ما انطبق أي شرط، نرجع القالب
-    return render_template("signup.html")
+    # 🔹 مهم: مرّر الفورم في GET أو لو في خطأ
+    return render_template("signup.html", form=form)
 
 
 # 📌 تسجيل الخروج
@@ -2249,12 +2283,7 @@ def ban_user_action(user_id):
     return redirect(url_for('memo_users'))
 
 
-@app.route("/terms", methods=["GET", "POST"])
-def accept_terms():
-    if request.method == "POST":
-        session['accepted_terms'] = True
-        return redirect(url_for("home"))
-    return render_template("terms.html")
+
 
 
 
@@ -3034,7 +3063,13 @@ def capture_paypal_order(order_id):
 
     return jsonify(result), 400
 
-
+@app.route("/terms", methods=["GET", "POST"])
+def accept_terms():
+    form = TermsForm()
+    if form.validate_on_submit():  # ✅ يتحقق من POST + CSRF token
+        session['accepted_terms'] = True
+        return redirect(url_for("home"))
+    return render_template("terms.html", form=form)
 
 if __name__ == "__main__":
  with app.app_context():

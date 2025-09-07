@@ -133,6 +133,7 @@
           </div>
 
           <form onsubmit="followUser(event, this)" method="post" action="{{ url_for('follow') }}">
+            
             <input type="hidden" name="target_user" value="{{ user.username }}">
             <button type="submit"
                     class="px-4 py-1.5 text-sm rounded-full border transition

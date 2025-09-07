@@ -64,6 +64,7 @@
 
   <!-- رفع ستوري -->
   <form id="storyForm" action="{{ url_for('upload_story') }}" method="POST" enctype="multipart/form-data" class="hidden">  
+    
     <input type="file" name="story_media" id="storyUpload" accept="image/*,video/*" onchange="document.getElementById('storyForm').submit()">  
   </form>    
 
@@ -137,6 +138,7 @@
       <textarea name="text" rows="4" required  
                 class="w-full p-4 rounded-xl border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500 dark:bg-gray-900 dark:text-white"  
                 placeholder="اكتب بيتك الشعري هنا..."></textarea>  
+                
       <button type="submit"  
               class="mt-4 w-full bg-gradient-to-r from-green-500 to-green-700 hover:from-green-600 hover:to-green-800 text-white py-3 px-4 rounded-xl shadow-md transition transform hover:scale-105 font-bold">🚀 نشر</button>  
     </form>    

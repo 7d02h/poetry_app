@@ -18,29 +18,16 @@
 
     <!-- النموذج -->
     <form method="POST" class="space-y-5">
-      
+      {{ form.hidden_tag() }} <!-- ✅ CSRF token + hidden fields -->
+
       <div>
-        <label for="username" class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 اسم المستخدم</label>
-        <input
-          type="text"
-          id="username"
-          name="username"
-          required
-          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition"
-          placeholder="أدخل اسم المستخدم"
-        />
+        {{ form.username.label(class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300") }}
+        {{ form.username(class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition") }}
       </div>
 
       <div>
-        <label for="password" class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">🔒 كلمة المرور</label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          required
-          class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition"
-          placeholder="****"
-        />
+        {{ form.password.label(class="block mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300") }}
+        {{ form.password(class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-yellow-500 transition") }}
       </div>
 
       <!-- رابط نسيت كلمة المرور -->
@@ -51,12 +38,7 @@
       </div>
 
       <!-- زر الدخول -->
-      <button
-        type="submit"
-        class="w-full py-3 bg-gradient-to-r from-yellow-400 to-green-500 hover:from-yellow-500 hover:to-green-600 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.02] transition-all duration-300"
-      >
-        دخول
-      </button>
+      {{ form.submit(class="w-full py-3 bg-gradient-to-r from-yellow-400 to-green-500 hover:from-yellow-500 hover:to-green-600 text-white font-bold rounded-xl shadow-lg transform hover:scale-[1.02] transition-all duration-300") }}
     </form>
 
     <!-- رابط إنشاء حساب -->

@@ -96,6 +96,7 @@
 
   <!-- ✅ زر الموافقة -->
   <form method="POST" action="{{ url_for('accept_terms') }}" class="mt-12">
+    {{ form.hidden_tag() }}
     <div class="text-center">
       <button class="bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-gray-900 
                      text-white font-semibold text-sm px-8 py-2 rounded-lg shadow-md transform hover:scale-105 transition">
