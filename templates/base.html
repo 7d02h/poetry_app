@@ -88,7 +88,7 @@
 
     <nav class="space-y-4 text-lg font-medium">
       <!-- روابط (بدون تعديل المنطق، بس تحسين الشكل) -->
-      <a href="{{ url_for('public_profile', username=session['username']) }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
+      <a href="{{ url_for('profile.public_profile', username=session['username']) }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 15c2.486 0 4.797.676 6.879 1.804M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
@@ -118,14 +118,14 @@
 
       <!-- (باقي الروابط نفس الكود لكن بنفس تحسين الستايل أعلاه) -->
       {% if current_user.is_authenticated %}
-      <a href="{{ url_for('logout') }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
+      <a href="{{ url_for('profile.logout') }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1m0-10V5m0 14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2h4a2 2 0 012 2v1" />
         </svg>
         تسجيل الخروج
       </a>
       {% else %}
-      <a href="{{ url_for('login') }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
+      <a href="{{ url_for('profile.login') }}" class="flex items-center gap-3 p-2 rounded-xl hover:bg-gray-700/40 transition-all">
         <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0-1.105.895-2 2-2h6V7l4 4-4 4v-2h-6a2 2 0 01-2-2z" />
         </svg>

@@ -63,6 +63,16 @@
       </svg>
     </a>
 
+    <!-- زر المنشورات المحفوظة -->
+    <a href="{{ url_for('poems.saved_poems') }}"
+       class="flex items-center justify-between px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+      <div class="text-gray-800 dark:text-gray-200"> المنشورات المحفوظة</div>
+      <svg class="w-5 h-5 text-gray-400 rtl:rotate-180" fill="none" stroke="currentColor"
+           stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+
   </div>
 </div>
 {% endblock %}

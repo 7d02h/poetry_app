@@ -1,0 +1,147 @@
+<div class="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 p-6 rounded-3xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 hover:scale-[1.02] duration-300" id="poem-{{ poem.id }}">  
+  <!-- النص -->
+  <p class="text-lg leading-relaxed whitespace-pre-wrap text-gray-900 dark:text-gray-100 font-medium">{{ poem.text }}</p>  
+  <p class="text-xs text-gray-500 mt-3">🕒 {{ poem.created_at }}</p>  
+
+  <!-- الكاتب -->
+  <div class="flex items-center gap-3 mt-5">  
+    <img src="{{ url_for('static', filename='profile_pics/' + (poem.profile_image if poem.profile_image else 'default.jpg')) }}"  
+         alt="صورة المستخدم"  
+         class="rounded-full w-11 h-11 shadow-md border-2 border-white hover:scale-110 transition">  
+    <a href="{{ url_for('profile.public_profile', username=poem.username) }}" 
+       class="hover:underline flex items-center gap-1 font-semibold text-gray-800 dark:text-gray-200 transition">  
+      {{ poem.username }}  
+      {% if poem.verified %}  
+        <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">  
+          <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>  
+        </svg>  
+      {% endif %}  
+    </a>  
+
+    <!-- القائمة المنسدلة -->
+    <div class="relative ml-auto">
+      <button onclick="toggleMenu('{{ poem.id }}')" 
+              class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+        <!-- أيقونة ثلاث نقاط -->
+        <svg xmlns="http://www.w3.org/2000/svg" 
+             fill="none" viewBox="0 0 24 24" 
+             stroke="currentColor" class="w-6 h-6 text-gray-600 dark:text-gray-300">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M12 6.75a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm0 7.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
+        </svg>
+      </button>
+
+      <!-- القائمة نفسها -->
+      <div id="menu-{{ poem.id }}" 
+           class="hidden absolute right-0 mt-2 w-44 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-20 overflow-hidden animate-fade-in">
+        
+        {% if poem.username == username %}
+          <a href="{{ url_for('delete', poem_id=poem.id) }}#poem-{{ poem.id }}" 
+             class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/40 transition">
+            🗑 حذف
+          </a>
+        {% endif %}
+
+        <a href="{{ url_for('report_poem', poem_id=poem.id) }}" 
+           class="flex items-center gap-2 px-4 py-2 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 transition">
+          ⚠️ إبلاغ
+        </a>
+
+        {% if poem.username != username %}
+          <a href="{{ url_for('block_user', username=poem.username) }}" 
+             class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
+            🚫 حظر
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>  
+
+  <!-- التفاعلات -->
+  <div class="mt-6 flex flex-wrap items-center gap-3 text-sm">  
+    <span class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-1 rounded-full shadow-sm">👁 {{ poem.views or 0 }}</span>  
+
+    <!-- زر الإعجاب -->
+    <button class="px-4 py-1 border rounded-full hover:bg-red-50 text-red-600 transition transform hover:scale-110 shadow-sm font-medium {% if poem.id in user_liked %}bg-red-100{% endif %}"  
+            onclick="likePoem('{{ poem.id }}', this)">❤️ <span class="like-count">{{ poem.likes|format_number }}</span></button>  
+
+    <!-- زر الحفظ -->
+    <button class="p-2 rounded-full hover:bg-yellow-50 dark:hover:bg-yellow-900/30 transition"
+            onclick="savePoem('{{ poem.id }}', this)"
+            aria-label="حفظ">
+      {% if poem.id in user_saved %}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" 
+             viewBox="0 0 24 24" class="w-6 h-6 text-yellow-500 save-icon">
+          <path d="M6 2a2 2 0 0 0-2 2v18l8-4 8 4V4a2 2 0 0 0-2-2H6z"/>
+        </svg>
+      {% else %}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" 
+             viewBox="0 0 24 24" stroke="currentColor" 
+             stroke-width="2" class="w-6 h-6 text-gray-600 save-icon">
+          <path stroke-linecap="round" stroke-linejoin="round" 
+                d="M5 3a2 2 0 0 0-2 2v16l9-4 9 4V5a2 2 0 0 0-2-2H5z"/>
+        </svg>
+      {% endif %}
+    </button>
+
+    <!-- زر المشاركة -->
+    <a href="#" onclick="sharePoem(`{{ poem.text | escape }}`); return false;"
+       class="border border-blue-500 text-blue-500 px-4 py-1 rounded-full text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 transition flex items-center gap-2 font-medium">
+       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">
+        <path d="M21.426 2.574a2 2 0 0 0-2.063-.472L3.555 7.85a2 2 0 0 0-.164 3.747l6.37 2.91 2.91 6.37a2 2 0 0 0 3.747-.164l5.748-15.808a2 2 0 0 0-.74-2.331ZM11.48 13.08l-.193.516-.36-.165-5.458-2.493 14.717-5.346-5.346 14.717-2.493-5.458Z"/>
+      </svg>
+      <span>مشاركة</span>
+    </a>  
+  </div>  
+</div>
+
+<!-- أنيميشن صغيرة -->
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+</style>
+
+<script>
+  function toggleMenu(id) {
+    const menu = document.getElementById("menu-" + id);
+    menu.classList.toggle("hidden");
+  }
+
+  // إغلاق القائمة إذا ضغطت خارجها
+  document.addEventListener("click", function(e) {
+    document.querySelectorAll("[id^='menu-']").forEach(menu => {
+      if (!menu.contains(e.target) && !menu.previousElementSibling.contains(e.target)) {
+        menu.classList.add("hidden");
+      }
+    });
+  });
+
+  // حفظ/إلغاء الحفظ
+  function savePoem(poemId, btn) {
+    fetch(`/save_poem/${poemId}`, { method: "POST" })
+      .then(response => response.json())
+      .then(data => {
+        const icon = btn.querySelector(".save-icon");
+        if (data.status === "saved") {
+          icon.outerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor"
+                 viewBox="0 0 24 24" class="w-6 h-6 text-yellow-500 save-icon">
+              <path d="M6 2a2 2 0 0 0-2 2v18l8-4 8 4V4a2 2 0 0 0-2-2H6z"/>
+            </svg>`;
+        } else if (data.status === "unsaved") {
+          icon.outerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke="currentColor"
+                 stroke-width="2" class="w-6 h-6 text-gray-600 save-icon">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M5 3a2 2 0 0 0-2 2v16l9-4 9 4V5a2 2 0 0 0-2-2H5z"/>
+            </svg>`;
+        }
+      });
+  }
+</script>

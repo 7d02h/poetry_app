@@ -51,7 +51,7 @@
     .overlay-zone {
       position: absolute;
       top: 0;
-      bottom: 0;
+      bottom: 80px;
       width: 50%;
       z-index: 10;
     }
@@ -100,7 +100,7 @@
       overflow: hidden;
     }
 
-    /* ✅ شريط علوي مُحسّن */
+
     .top-chrome {
       padding-top: env(safe-area-inset-top, 12px);
     }
@@ -160,7 +160,7 @@
                class="w-9 h-9 rounded-full border-2 border-yellow-400 shadow-md object-cover" alt="avatar">
           <div class="leading-tight">
             <p class="font-semibold text-sm tracking-wide">{{ item.story.user.username }}</p>
-            <p class="text-[11px] text-gray-300">{{ time_since(item.story.created_at) }}</p>
+            <p class="text-[11px] text-gray-300">{{ time_ago_format(item.story.created_at) }}</p>
           </div>
         </div>
         <button onclick="window.location.href='/'" class="text-white text-2xl hover:scale-110 transition" aria-label="close">&times;</button>
@@ -213,25 +213,7 @@
       </div>
 
       <!-- ✅ الأزرار السفلية -->
-      <div class="absolute bottom-2 left-0 right-0 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-gray-300 text-sm z-40 px-2">
-        <button class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 transition border border-white/10"
-                onclick="alert('🚀 سيتم إضافة مزيد من الخيارات قريبًا')">المزيد</button>
-        <button class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 transition border border-white/10"
-                onclick="alert('👤 تم ذكر صديق')">ذكر</button>
-        <button class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 transition border border-white/10"
-                onclick="alert('📨 إرسال الستوري')">إرسال</button>
-        <button class="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/15 transition border border-white/10"
-                onclick="alert('⭐ تمت إضافته إلى أبرز القصص')">أبرز القصص</button>
-
-        <!-- زر الأرشفة -->
-        {% if not item.story.is_archived %}
-          <form method="POST" action="{{ url_for('archive_story', story_id=item.story.id) }}" onsubmit="archiveAndRemoveStory(event, this)">
-            <button type="submit" class="magic-btn cursor-pointer mt-1">📦 أرشفة</button>
-          </form>
-        {% else %}
-          <p class="mt-1 text-sm text-green-400">✅ مؤرشف بتاريخ {{ item.story.archived_at.strftime('%Y-%m-%d %H:%M') }}</p>
-        {% endif %}
-      </div>
+      {% include "story_buttons.html" %}
 
       <!-- ✅ تلميح النقر/التقسيم -->
       <div class="tap-hint"></div>
@@ -246,7 +228,7 @@
     <div id="right-zone" class="overlay-zone" aria-label="next"></div>
   </div>
 
-  <script>
+ <script>
     let slides = document.querySelectorAll(".story-slide");
     let progresses = document.querySelectorAll(".progress-bar");
     let currentIndex = 0;

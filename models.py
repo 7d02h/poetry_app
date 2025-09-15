@@ -1,13 +1,15 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime, timedelta
+from flask_login import UserMixin
+from datetime import datetime
 
 db = SQLAlchemy()
 
-class User(db.Model):
-    __tablename__ = 'users'
+class User(UserMixin, db.Model):  # ✅ يرث من UserMixin
+    __tablename__ = 'users'       # ✅ لازم شرطتين
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
-    password = db.Column(db.String(128), nullable=False)
+    password = db.Column(db.Text, nullable=False)
     first_name = db.Column(db.String(64))
     last_name = db.Column(db.String(64))
     email = db.Column(db.String(120))
@@ -18,30 +20,37 @@ class User(db.Model):
     verified = db.Column(db.Boolean, default=False)
     allow_anonymous_messages = db.Column(db.Boolean, default=False)
     is_moderator = db.Column(db.Boolean, default=False)
-    premium_until = db.Column(db.DateTime, nullable=True)  
+    premium_until = db.Column(db.DateTime, nullable=True)
+    birthdate = db.Column(db.Date, nullable=True)
+    def is_premium(self):
+        return self.premium_until is not None and self.premium_until > datetime.utcnow()
 
-    def is_premium(self):  
-        return self.premium_until is not None and self.premium_until > datetime.utcnow()  
-
-    followers = db.relationship(  
-        'Follower',  
-        foreign_keys='Follower.followed_username',  
-        primaryjoin='User.username == Follower.followed_username',  
-        lazy='dynamic'  
+    followers = db.relationship(
+        'Follower',
+        foreign_keys='Follower.followed_username',
+        primaryjoin='User.username == Follower.followed_username',
+        lazy='dynamic'
     )
 
 
 class Poem(db.Model):
-    __tablename__ = 'poems'
+    __tablename__ = 'poems'   # ⚠️ خليها شرطتين مو وحدة
+    
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
     likes = db.Column(db.Integer, default=0)
     views = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)
     timestamp = db.Column(db.DateTime, default=datetime.now)
+
     username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
-    is_archived = db.Column(db.Boolean, default=False)  # ✅ جديد
+    is_archived = db.Column(db.Boolean, default=False)
     archived_at = db.Column(db.DateTime)
+
+    # 🔹 علاقة مع المستخدم
+    user = db.relationship("User", backref="poems", lazy=True)
+
+    # 🔹 حذفنا likes_rel من هنا (عشان ما يتعارض مع Like)
 
 class Follower(db.Model):
     __tablename__ = 'followers'
@@ -64,9 +73,39 @@ class StoryLike(db.Model):
 
 class Like(db.Model):
     __tablename__ = 'likes'
+
     id = db.Column(db.Integer, primary_key=True)
-    poem_id = db.Column(db.Integer, db.ForeignKey('poems.id'))
-    username = db.Column(db.String(64), db.ForeignKey('users.username'), nullable=False)
+
+    # 🔹 مفتاح أجنبي للقصيدة مع ON DELETE CASCADE
+    poem_id = db.Column(
+        db.Integer,
+        db.ForeignKey('poems.id', ondelete="CASCADE"),
+        nullable=False
+    )
+
+    # 🔹 مفتاح أجنبي للمستخدم مع ON DELETE CASCADE
+    username = db.Column(
+        db.String(64),
+        db.ForeignKey('users.username', ondelete="CASCADE"),
+        nullable=False
+    )
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # 🔹 علاقات ORM
+    poem = db.relationship(
+        "Poem",
+        backref=db.backref("likes_rel", cascade="all, delete-orphan", passive_deletes=True)
+    )
+    user = db.relationship(
+        "User",
+        backref=db.backref("likes", cascade="all, delete-orphan", passive_deletes=True)
+    )
+
+    # 🔹 منع تكرار اللايك لنفس المستخدم على نفس القصيدة
+    table_args = (
+        db.UniqueConstraint("poem_id", "username", name="unique_user_poem_like"),
+    )
 
     
 

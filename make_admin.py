@@ -1,22 +1,29 @@
-# make_admin.py
+from app import app, db
+from models import User
+from werkzeug.security import generate_password_hash
 
-import smtplib
+username = "admin"
+email = "admin@example.com"
+password = "12345678"
 
-sender = "hzft92925@gmail.com"   # بريدك
-password = "yssr eyrj pefb sefq"     # كلمة مرور التطبيق (16 خانة)
-receiver = "mohamadiaui@gmail.com"   # بريد للتجربة
+with app.app_context():  # ✅ فتح الـ context
+    existing = User.query.filter_by(username=username).first()
+    if existing:
+        print("⚠️ المستخدم موجود مسبقاً - جاري حذفه...")
+        db.session.delete(existing)
+        db.session.commit()
 
-try:
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-        server.starttls()  # تفعيل التشفير
-        server.login(sender, password)  # تسجيل الدخول
-        subject = "Test"
-        body = "Hello, this is a test email."
-        msg = f"Subject: {subject}\n\n{body}"
-        server.sendmail(sender, receiver, msg)
+    hashed_pw = generate_password_hash(password)
+    user = User(
+        username=username,
+        email=email,
+        password=hashed_pw,
+        verified=True,
+        is_admin=True  # ✅ تعيينه كأدمن
+    )
+    db.session.add(user)
+    db.session.commit()
 
-    print("✅ تم إرسال البريد بنجاح!")
-
-except Exception as e:
-    print("❌ خطأ:", e)
-
+    print("✅ تم إنشاء المستخدم الأدمن بنجاح:")
+    print(f"   Username: {username}")
+    print(f"   Password: {password}")

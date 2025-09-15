@@ -6,6 +6,9 @@
   <!-- العنوان -->
   <h2 class="text-xl font-bold text-center mb-6 text-gray-800 dark:text-white">🔔 الإشعارات</h2>  
 
+  <!-- ✅ DEBUG: عرض اسم المستخدم الحالي -->
+  <p class="text-xs text-center text-gray-500 mb-3">المستخدم الحالي: {{ current_user.username }}</p>
+
   {% if notifications %}  
     <div class="space-y-3">  
       {% for n in notifications %}  
@@ -83,6 +86,9 @@
                 </span>
               </p>  
               <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ n.time_ago }}</p>  
+
+              <!-- ✅ DEBUG: عرض recipient الحقيقي للإشعار -->
+              <p class="text-[10px] text-gray-400">📩 المرسل إليه: {{ n.recipient }}</p>
             </div>  
           </a>  
 

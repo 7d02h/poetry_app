@@ -80,9 +80,7 @@ def increase_followers_by_id(user_id, amount=1):
         db.session.commit()
 
 
-
-
-        
-
 def valid_username(username):
     return re.match("^[A-Za-z0-9_أ-ي]+$", username)
+
+        

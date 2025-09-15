@@ -5,19 +5,10 @@ from flask_wtf.file import FileAllowed
 from wtforms import StringField, PasswordField, SubmitField, SelectField
 from flask_wtf import FlaskForm
 from wtforms import SubmitField
-
-class TermsForm(FlaskForm):
-    submit = SubmitField("أوافق")
-
-
-# 🟢 فورم تسجيل الدخول
-class LoginForm(FlaskForm):
-    username = StringField('اسم المستخدم', validators=[DataRequired(), Length(min=3, max=25)])
-    password = PasswordField('كلمة المرور', validators=[DataRequired(), Length(min=8)])
-    submit = SubmitField('تسجيل الدخول')
-
-
-# 🟢 فورم إنشاء حساب
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField, SelectField, BooleanField
+from wtforms.validators import DataRequired, Length, Email, EqualTo
+from datetime import datetime
 
 class SignupForm(FlaskForm):
     first_name = StringField("الاسم الأول", validators=[DataRequired(), Length(min=2, max=30)])
@@ -31,14 +22,35 @@ class SignupForm(FlaskForm):
         ("5", "مايو"), ("6", "يونيو"), ("7", "يوليو"), ("8", "أغسطس"),
         ("9", "سبتمبر"), ("10", "أكتوبر"), ("11", "نوفمبر"), ("12", "ديسمبر")
     ], validators=[DataRequired()])
-    birth_year = SelectField("السنة", choices=[(str(y), str(y)) for y in range(1950, 2024)], validators=[DataRequired()])
+    birth_year = SelectField(
+        "السنة", 
+        choices=[(str(y), str(y)) for y in range(1950, datetime.now().year - 12)], 
+        validators=[DataRequired()]
+    )
 
     password = PasswordField("كلمة المرور", validators=[DataRequired(), Length(min=8)])
     confirm = PasswordField("تأكيد كلمة المرور", validators=[
         DataRequired(), EqualTo('password', message="كلمتا المرور غير متطابقتين")
     ])
 
+    accept_terms = BooleanField("الموافقة على الشروط", validators=[DataRequired()])
+
     submit = SubmitField("✨ إنشاء الحساب")
+
+    
+class TermsForm(FlaskForm):
+    submit = SubmitField("أوافق")
+
+
+# 🟢 فورم تسجيل الدخول
+class LoginForm(FlaskForm):
+    username = StringField('اسم المستخدم', validators=[DataRequired(), Length(min=3, max=25)])
+    password = PasswordField('كلمة المرور', validators=[DataRequired(), Length(min=8)])
+    submit = SubmitField('تسجيل الدخول')
+
+
+# 🟢 فورم إنشاء حساب
+
 
 
 # 🟢 فورم تعديل الملف الشخصي
@@ -58,3 +70,8 @@ class EditProfileForm(FlaskForm):
 class ForgotPasswordForm(FlaskForm):
     email = StringField("البريد الإلكتروني", validators=[DataRequired(), Email()])
     submit = SubmitField("📩 إرسال رابط إعادة التعيين") 
+
+
+# 🟢 فورم فاضي (لأزرار مثل متابعة/إلغاء متابعة مع حماية CSRF)
+class EmptyForm(FlaskForm):
+    submit = SubmitField("إرسال")

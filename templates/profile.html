@@ -3,185 +3,149 @@
 
 {% block content %}
 {% set is_my_profile = current_user == user.username %}
-<div class="max-w-2xl mx-auto mt-10 px-4">
-  <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-lg p-6 relative">
+<div class="max-w-2xl mx-auto mt-6 px-3">
+  <div class="bg-black text-white rounded-none shadow-none p-4 relative">
 
     {% if not is_my_profile and not blocked %}
-      <!-- قائمة الإجراءات -->
+      <!-- قائمة الإجراءات (⋯) -->
       <div class="absolute top-4 left-4">
         <div class="relative inline-block text-left">
-          <button class="bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full w-10 h-10 flex items-center justify-center shadow">
-            ⋯
-          </button>
-          <div class="dropdown-menu hidden absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+          <button class="bg-transparent text-2xl">⋯</button>
+          <div class="dropdown-menu hidden absolute z-10 mt-2 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-lg text-sm">
             <div class="relative group">
-              <button class="block w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <button class="block w-full text-left px-4 py-2 hover:bg-gray-800">
                 📩 إرسال رسالة
               </button>
-              <div class="hidden group-hover:block absolute right-full top-0 mt-0 mr-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
+              <div class="hidden group-hover:block absolute right-full top-0 mr-2 w-48 bg-gray-900 border border-gray-700 rounded-xl shadow-lg">
                 <a href="{{ url_for('view_messages', username=user.username, type='private') }}" 
-                   class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🔒 رسالة خاصة</a>
+                   class="block px-4 py-2 hover:bg-gray-800">🔒 رسالة خاصة</a>
                 <a href="{{ url_for('view_messages', username=user.username, type='anonymous') }}" 
-                   class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">🕵️ رسالة مجهولة</a>
+                   class="block px-4 py-2 hover:bg-gray-800">🕵️ رسالة مجهولة</a>
               </div>
             </div>
-            <form method="POST" action="{{ url_for('public_profile', username=user.username) }}">
+            <form method="POST" action="{{ url_for('profile.public_profile', username=user.username) }}">
               <input type="hidden" name="action" value="block">
-              <button type="submit" class="block w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-gray-700">🚫 حظر</button>
+              <button type="submit" class="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-800">🚫 حظر</button>
             </form>
-            <a href="{{ url_for('report_user', username=user.username) }}" class="block px-4 py-2 text-yellow-500 hover:bg-yellow-50 dark:hover:bg-gray-700">🧨 إبلاغ</a>
+            <a href="{{ url_for('report_user', username=user.username) }}" class="block px-4 py-2 text-yellow-500 hover:bg-gray-800">🧨 إبلاغ</a>
           </div>
         </div>
       </div>
     {% endif %}
 
-    <!-- صورة المستخدم + الستوري -->
-    <div class="flex justify-center">
+    <!-- صورة البروفايل -->
+    <div class="flex justify-center mt-6">
       <div class="relative">
         {% if has_story %}
           {% if is_my_profile %}
-            <!-- ✅ لو على ملفي الشخصي يفتح ماي ستوريز -->
-            <a href="{{ url_for('my_stories') }}">
-              <div class="w-28 h-28 rounded-full p-1"
-                   style="background: linear-gradient(45deg, gold, goldenrod);">
+            <a href="{{ url_for('stories.my_stories') }}">
+              <div class="w-24 h-24 rounded-full p-1 border-2 border-yellow-500">
                 <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user.profile_image else 'default.jpg')) }}"
-                     class="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
+                     class="w-full h-full rounded-full object-cover shadow"
                      alt="الصورة الشخصية">
               </div>
             </a>
           {% else %}
-            <!-- ✅ لو على ملف شخص ثاني يفتح فيو ستوري -->
-            <a href="{{ url_for('view_story', story_id=profile_story.id) }}">
-              <div class="w-28 h-28 rounded-full p-1"
-                   style="background: linear-gradient(45deg, gold, goldenrod);">
+            <a href="{{ url_for('stories.view_story', story_id=profile_story.id) }}">
+              <div class="w-24 h-24 rounded-full p-1 border-2 border-yellow-500">
                 <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user.profile_image else 'default.jpg')) }}"
-                     class="w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
+                     class="w-full h-full rounded-full object-cover shadow"
                      alt="الصورة الشخصية">
               </div>
             </a>
           {% endif %}
         {% else %}
-          <!-- ما عنده ستوري -->
-          {% if user.profile_image %}
-            <img src="{{ url_for('static', filename='profile_pics/' + user.profile_image) }}"
-                 class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
-                 alt="الصورة الشخصية">
-          {% else %}
-            <img src="{{ url_for('static', filename='profile_pics/default.jpg') }}"
-                 class="w-28 h-28 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow"
-                 alt="الصورة الافتراضية">
-          {% endif %}
+          <img src="{{ url_for('static', filename='profile_pics/' + (user.profile_image if user.profile_image else 'default.jpg')) }}"
+               class="w-24 h-24 rounded-full object-cover border-2 border-gray-700 shadow"
+               alt="الصورة الافتراضية">
         {% endif %}
 
         {% if is_my_profile %}
-          <!-- زر إضافة ستوري -->
           <button onclick="document.getElementById('storyUpload').click()"
-                  class="absolute bottom-0 right-0 bg-green-600 text-white rounded-full w-7 h-7 flex items-center justify-center text-sm border-2 border-white">+</button>
+                  class="absolute bottom-0 right-0 bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm border-2 border-black">+</button>
         {% endif %}
       </div>
     </div>
+
     {% if is_my_profile %}
-      <!-- رفع ستوري (مخفي) -->
-      <form id="storyForm" action="{{ url_for('upload_story') }}" method="POST" enctype="multipart/form-data" class="hidden">
+      <form id="storyForm" action="{{ url_for('stories.upload_story') }}" method="POST" enctype="multipart/form-data" class="hidden">
         <input type="file" name="story_media" id="storyUpload" accept="image/*,video/*"
                onchange="document.getElementById('storyForm').submit()">
       </form>
     {% endif %}
 
-    <!-- الاسم و التوثيق -->
-    <div class="text-center mt-4">
-      <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex justify-center items-center gap-2">
+    <!-- الاسم -->
+    <div class="text-center mt-3">
+      <h2 class="text-lg font-semibold flex justify-center items-center gap-1">
         {{ user.username }}
         {% if user.verified %}
-          <svg viewBox="0 0 24 24" fill="#1D9BF0" width="22" height="22">
+          <svg viewBox="0 0 24 24" fill="#1D9BF0" width="18" height="18">
             <path d="M22.5 12l-2.7-2.1.4-3.4-3.3-.7-1.7-3-2.8 1.8-2.8-1.8-1.7 3-3.3.7.4 3.4L1.5 12l2.7 2.1-.4 3.4 3.3.7 1.7 3 2.8-1.8 2.8 1.8 1.7-3 3.3-.7-.4-3.4L22.5 12zm-13 2.8l-2.3-2.3 1.2-1.2 1.1 1.1 4.2-4.2 1.2 1.2-5.4 5.4z"/>
           </svg>
         {% endif %}
       </h2>
       {% if user.first_name or user.last_name %}
-        <p class="text-gray-500 dark:text-gray-400">{{ user.first_name }} {{ user.last_name }}</p>
+        <p class="text-sm text-gray-400">{{ user.first_name }} {{ user.last_name }}</p>
       {% endif %}
     </div>
 
-    <!-- الإحصائيات -->
-    <div class="flex justify-center gap-8 mt-6">
-      <div class="text-center">
-        <h4 class="text-xl font-semibold text-gray-700 dark:text-white">
-          {% if is_my_profile or is_following %}
-            <a href="{{ url_for('followers_page', username=user.username) }}" class="hover:underline">
-              {{ followers_count | format_number }}
-            </a>
-          {% else %}
-            {{ followers_count | format_number }}
-          {% endif %}
-        </h4>
-        <p class="text-sm text-gray-500">المتابعين</p>
+    <!-- الاحصائيات -->
+    <div class="flex justify-around text-center mt-5">
+      <div>
+        <h4 class="text-lg font-semibold">{{ followers_count | format_number }}</h4>
+        <p class="text-xs text-gray-400">المتابعين</p>
       </div>
-      <div class="text-center">
-        <h4 class="text-xl font-semibold text-gray-700 dark:text-white">{{ user_poems|length }}</h4>
-        <p class="text-sm text-gray-500">القصائد</p>
+      <div>
+        <h4 class="text-lg font-semibold">{{ user_poems|length }}</h4>
+        <p class="text-xs text-gray-400">القصائد</p>
       </div>
     </div>
 
-    <!-- الزر أو التنبيهات -->
-    <div class="text-center mt-6">
+    <!-- الأزرار -->
+    <div class="text-center mt-5">
       {% if user.private and not is_following and not is_my_profile %}
-        <div class="text-yellow-600 font-medium">🔒 هذا الحساب خاص</div>
-        
+        <div class="text-yellow-500 font-medium">🔒 هذا الحساب خاص</div>
         {% if not follow_request_sent %}
           <form method="POST">
-            <button type="submit" name="action" value="follow" class="mt-3 bg-yellow-500 text-white px-5 py-2 rounded-full hover:bg-yellow-600 transition">
-              طلب متابعة
-            </button>
+            {{ form.hidden_tag() }}
+            <button type="submit" name="action" value="follow" class="mt-3 bg-yellow-500 text-black px-4 py-1 rounded-lg">طلب متابعة</button>
           </form>
         {% else %}
-          <div class="mt-3 text-blue-500 font-medium">⏳ تم إرسال طلب المتابعة</div>
+          <div class="mt-3 text-blue-500">⏳ تم إرسال طلب المتابعة</div>
         {% endif %}
-
       {% else %}
         {% if is_my_profile %}
-          <a href="/edit_profile" class="mt-3 inline-block bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-5 py-2 rounded-full hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-            ✏️ تعديل الملف الشخصي
-          </a>
+          <a href="/edit_profile" class="mt-3 inline-block bg-gray-800 text-white px-4 py-1 rounded-lg">✏️ تعديل الملف الشخصي</a>
         {% elif current_user and not blocked %}
           <form method="POST" class="inline-block">
+            {{ form.hidden_tag() }}
             {% if is_following %}
-              <button type="submit" name="action" value="unfollow" class="bg-red-500 text-white px-5 py-2 rounded-full hover:bg-red-600 transition">🚫 إلغاء المتابعة</button>
+              <button type="submit" name="action" value="unfollow" class="bg-red-600 px-4 py-1 rounded-lg">🚫 إلغاء المتابعة</button>
             {% else %}
-              <button type="submit" name="action" value="follow" class="bg-green-500 text-white px-5 py-2 rounded-full hover:bg-green-600 transition">➕ متابعة</button>
+              <button type="submit" name="action" value="follow" class="bg-green-600 px-4 py-1 rounded-lg">➕ متابعة</button>
             {% endif %}
           </form>
-<!-- زر إرسال رسالة مع خيارات -->
-<div class="relative inline-block ml-2">
-  <button onclick="document.getElementById('msgMenu').classList.toggle('hidden')" 
-          class="bg-blue-500 text-white px-5 py-2 rounded-full hover:bg-blue-600 transition">
-    ✉️ إرسال رسالة
-  </button>
-  <div id="msgMenu" class="hidden absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg">
-    <!-- 🔒 رسالة خاصة -->
-    <a href="{{ url_for('view_messages', username=user.username) }}"  
-       class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-       🔒 رسالة خاصة
-    </a>
-
-    <!-- 🕵️ رسالة مجهولة -->
-    <a href="{{ url_for('view_messages_anonymous', username=user.username) }}"  
-       class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
-       🕵️ رسالة مجهولة
-    </a>
-  </div>
-</div>
+          <!-- زر إرسال رسالة -->
+          <div class="relative inline-block ml-2">
+            <button onclick="document.getElementById('msgMenu').classList.toggle('hidden')" 
+                    class="bg-blue-600 px-4 py-1 rounded-lg">✉️ رسالة</button>
+            <div id="msgMenu" class="hidden absolute left-0 mt-2 w-40 bg-gray-900 border border-gray-700 rounded-xl shadow-lg text-sm">
+              <a href="{{ url_for('view_messages', username=user.username) }}" class="block px-4 py-2 hover:bg-gray-800">🔒 رسالة خاصة</a>
+              <a href="{{ url_for('view_messages_anonymous', username=user.username) }}" class="block px-4 py-2 hover:bg-gray-800">🕵️ رسالة مجهولة</a>
+            </div>
+          </div>
         {% endif %}
       {% endif %}
     </div>
 
-    <!-- النبذة -->
+    <!-- البايو -->
     {% if user.bio %}
-      <hr class="my-6 border-gray-300 dark:border-gray-600">
+      <hr class="my-5 border-gray-700">
       <div>
-        <h4 class="text-lg font-semibold text-gray-700 dark:text-white mb-2">نبذة عني:</h4>
-        <p class="text-gray-600 dark:text-gray-300">{{ user.bio }}</p>
+        <h4 class="text-md font-semibold mb-1">نبذة عني:</h4>
+        <p class="text-gray-300 text-sm">{{ user.bio }}</p>
       </div>
     {% endif %}
-
+  </div>
+</div>
 {% endblock %}

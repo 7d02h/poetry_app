@@ -32,7 +32,7 @@
                   </div>
                 {% endif %}
 
-                <a href="{{ url_for('public_profile', username=f.username) }}"
+                <a href="{{ url_for('profile.public_profile', username=f.username) }}"
                    class="font-semibold text-gray-800 dark:text-white hover:text-blue-600 transition text-lg">
                   {{ f.username }}
                 </a>
@@ -57,7 +57,7 @@
       </ul>
     {% else %}
       <div class="text-center text-gray-500 mt-10">
-        <p class="text-6xl mb-3">😔</p>
+        <p class="text-6xl mb-3"></p>
         <p class="text-lg font-medium">لا يوجد متابعين حتى الآن.</p>
       </div>
     {% endif %}

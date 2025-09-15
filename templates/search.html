@@ -5,17 +5,19 @@
 <div class="max-w-4xl mx-auto py-12 px-6">
   <!-- 🔎 عنوان البحث -->
   <div class="text-center mb-10">  
-    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">البحث عن المستخدمين</h2>  
+    <h2 class="text-3xl font-extrabold text-gray-900 dark:text-white">البحث</h2>  
     
+    <!-- ✅ البحث الرئيسي -->
     <form method="POST" 
           class="mt-6 flex flex-col sm:flex-row justify-center items-center gap-3 bg-white/70 dark:bg-gray-900/60 
                  p-5 rounded-2xl shadow-lg backdrop-blur-md">
       
       <input type="text" 
              name="keyword" 
+             value="{{ keyword or '' }}"
              class="w-full sm:w-2/3 px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl shadow-sm 
                     focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white transition" 
-             placeholder="اكتب اسم المستخدم أو الاسم" required>  
+             placeholder="اكتب كلمة البحث" required>  
       
       <button type="submit" 
               class="flex items-center gap-2 bg-blue-600 text-white px-6 py-2.5 rounded-xl shadow 
@@ -27,16 +29,35 @@
         بحث
       </button>  
     </form>  
+
+    <!-- 🔽 اختيار نوع البحث + الفلترة -->
+    <form method="GET" class="mt-4 flex flex-col sm:flex-row justify-center gap-3">
+      <select name="type" onchange="this.form.submit()" 
+              class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white shadow-sm">
+        <option value="users" {% if search_type == 'users' %}selected{% endif %}>👤 المستخدمين</option>
+        <option value="poems" {% if search_type == 'poems' %}selected{% endif %}>📝 الأبيات</option>
+        <option value="all" {% if search_type == 'all' %}selected{% endif %}>🔍 الكل</option>
+      </select>
+
+      <select name="sort" onchange="this.form.submit()" 
+              class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 dark:text-white shadow-sm">
+        <option value="recent" {% if sort_by == 'recent' %}selected{% endif %}>الأحدث</option>
+        <option value="oldest" {% if sort_by == 'oldest' %}selected{% endif %}>الأقدم</option>
+        <option value="verified" {% if sort_by == 'verified' %}selected{% endif %}>الموثقين</option>
+        <option value="followers" {% if sort_by == 'followers' %}selected{% endif %}>الأكثر متابعين</option>
+        <option value="likes" {% if sort_by == 'likes' %}selected{% endif %}>الأكثر إعجابًا</option>
+      </select>
+    </form>
   </div>    
 
-  <!-- 📝 نتائج البحث -->
-  {% if results %}
-  <h3 class="text-center text-xl font-semibold text-gray-700 mb-8 dark:text-gray-200">نتائج البحث:</h3>
+  <!-- 📝 نتائج البحث للمستخدمين -->
+  {% if results_users %}
+  <h3 class="text-center text-xl font-semibold text-gray-700 mb-8 dark:text-gray-200">👤 المستخدمين</h3>
   
   <div class="space-y-5">
-    {% for user in results %}
+    {% for user in results_users %}
     {% if user['username'] not in blocked_users_sidebar %}
-    <div class="flex items-center justify-between bg-white/90 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 
+       <div class="flex items-center justify-between bg-white/90 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 
                 shadow-md hover:shadow-xl rounded-2xl px-6 py-4 transition transform hover:-translate-y-1 duration-200">
       
       <!-- 👤 صورة + اسم -->
@@ -51,10 +72,9 @@
           {{ user['username'][0]|upper }}
         </div>
         {% endif %}
-
-        <div>
+<div>
           <!-- اسم المستخدم -->
-          <a href="{{ url_for('public_profile', username=user['username']) }}"  
+          <a href="{{ url_for('profile.public_profile', username=user['username']) }}"  
              class="text-lg font-bold text-gray-800 hover:text-blue-600 dark:text-white flex items-center gap-1 transition">
             {{ user['username'] }}
             {% if user['verified'] %}
@@ -66,28 +86,51 @@
           <p class="text-sm text-gray-500 dark:text-gray-400">
             {{ user['first_name'] or '' }} {{ user['last_name'] or '' }}
           </p>
+          {% if user['bio'] %}
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ user['bio'] }}</p>
+          {% endif %}
         </div>
       </div>
 
-      <!-- زر المتابعة -->
+      <!-- زر المتابعة / طلب متابعة -->
       <div>
         {% if current_user != user['username'] %}
-        <form action="{{ url_for('follow') }}" method="POST" onsubmit="followUser(event, this)">
-          <input type="hidden" name="target_user" value="{{ user['username'] }}">
-          <button type="submit"  
-                  class="flex items-center gap-2 text-sm px-5 py-2 rounded-xl shadow-sm font-medium transition   
-                  {% if user['is_following'] %}  
-                  bg-gray-300 text-gray-800 hover:bg-gray-400  
-                  {% else %}  
-                  bg-green-500 text-white hover:bg-green-600  
-                  {% endif %}">
-            {% if user['is_following'] %}
-            ✔️ متابع
+          {% if user['is_following'] %}
+            <form action="{{ url_for('follow') }}" method="POST" onsubmit="followUser(event, this)">
+              <input type="hidden" name="target_user" value="{{ user['username'] }}">
+              <button type="submit"  
+                      class="flex items-center gap-2 text-sm px-5 py-2 rounded-xl shadow-sm font-medium transition   
+                      bg-gray-300 text-gray-800 hover:bg-gray-400">
+                ✔️ متابع
+              </button>
+            </form>
+          {% elif user['private'] %}
+            {% if user['follow_request_sent'] %}
+              <button disabled
+                      class="flex items-center gap-2 text-sm px-5 py-2 rounded-xl shadow-sm font-medium   
+                      bg-yellow-400 text-gray-900 cursor-not-allowed">
+                ⏳ طلب متابعة مُرسل
+              </button>
             {% else %}
-            ➕ متابعة
+              <form action="{{ url_for('send_follow_request') }}" method="POST" onsubmit="followUser(event, this)">
+                <input type="hidden" name="target_user" value="{{ user['username'] }}">
+                <button type="submit"  
+                        class="flex items-center gap-2 text-sm px-5 py-2 rounded-xl shadow-sm font-medium transition   
+                        bg-blue-500 text-white hover:bg-blue-600">
+                  🔒 طلب متابعة
+                </button>
+              </form>
             {% endif %}
-          </button>
-        </form>
+          {% else %}
+            <form action="{{ url_for('follow') }}" method="POST" onsubmit="followUser(event, this)">
+              <input type="hidden" name="target_user" value="{{ user['username'] }}">
+              <button type="submit"  
+                      class="flex items-center gap-2 text-sm px-5 py-2 rounded-xl shadow-sm font-medium transition   
+                      bg-green-500 text-white hover:bg-green-600">
+                ➕ متابعة
+              </button>
+            </form>
+          {% endif %}
         {% else %}
         <span class="text-sm text-gray-500 dark:text-gray-300 italic">أنت</span>
         {% endif %}
@@ -96,11 +139,22 @@
     {% endif %}
     {% endfor %}
   </div>
-
-  {% elif results is not none %}
-  <p class="text-center text-red-500 mt-12 text-lg font-medium">🚫 لا توجد نتائج مطابقة.</p>
   {% endif %}
 
+  <!-- 📝 نتائج البحث للأبيات -->
+  {% if results_poems %}
+  <h3 class="text-center text-xl font-semibold text-gray-700 mt-12 mb-8 dark:text-gray-200">📝 الأبيات</h3>
+
+  <div class="space-y-6">
+    {% for poem in results_poems %}
+      {% include "poem_card.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not results_users and not results_poems and keyword %}
+  <p class="text-center text-red-500 mt-12 text-lg font-medium">🚫 لا توجد نتائج مطابقة.</p>
+  {% endif %}
 </div>  
 
 <script>  
@@ -116,16 +170,7 @@
       });  
   
       if (response.ok) {  
-        // ✅ تبديل النص والستايل  
-        if (button.textContent.includes("متابعة")) {  
-          button.textContent = "✔️ متابع";  
-          button.classList.remove("bg-green-500", "hover:bg-green-600", "text-white");  
-          button.classList.add("bg-gray-300", "hover:bg-gray-400", "text-gray-800");  
-        } else {  
-          button.textContent = "➕ متابعة";  
-          button.classList.remove("bg-gray-300", "hover:bg-gray-400", "text-gray-800");  
-          button.classList.add("bg-green-500", "hover:bg-green-600", "text-white");  
-        }  
+        location.reload(); // ✅ نعيد تحميل الصفحة لتحديث الحالة
       }  
     } catch (err) {  
       console.error("Error:", err);  
