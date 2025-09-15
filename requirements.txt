@@ -15,5 +15,5 @@ flask_cors
 stripe
 flask-Mail
 flask_talisman
-
+psycopg2-binary
 Flask-Babel
