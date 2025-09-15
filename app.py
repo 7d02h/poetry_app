@@ -65,12 +65,13 @@ CORS(app)
 db.init_app(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
+from flask_babel import Babel
+
 babel = Babel(app)
 
 @babel.localeselector
 def get_locale():
     return session.get("lang", "ar")
-
 
 # تسجيل البلوبيرنتات
 app.register_blueprint(profile_bp)
@@ -2532,24 +2533,7 @@ def accept_terms():
 
     return render_template("terms.html", form=form)
 
-from flask import jsonify
 
-@app.route("/debug/notifications")
-def debug_notifications():
-    notifs = Notification.query.order_by(Notification.timestamp.desc()).all()
-    data = []
-    for n in notifs:
-        data.append({
-            "id": n.id,
-            "recipient": n.recipient,
-            "sender": n.sender,
-            "type": n.type,
-            "content": n.content,
-            "poem_id": n.poem_id,
-            "is_read": n.is_read,
-            "timestamp": n.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        })
-    return jsonify(data)
 
 
 
