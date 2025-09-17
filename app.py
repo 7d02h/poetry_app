@@ -65,13 +65,9 @@ CORS(app)
 db.init_app(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
-from flask_babel import Babel
 
-babel = Babel(app)
+babel = Babel(app, locale_selector=lambda: session.get("lang", "ar"))
 
-@babel.localeselector
-def get_locale():
-    return session.get("lang", "ar")
 
 # تسجيل البلوبيرنتات
 app.register_blueprint(profile_bp)
