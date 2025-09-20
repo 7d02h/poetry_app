@@ -65,13 +65,7 @@ CORS(app)
 db.init_app(app)
 migrate = Migrate(app, db)
 mail = Mail(app)
-babel = Babel(app)
 
-
-def get_locale():
-    return request.accept_languages.best_match(['ar', 'en'])
-
-babel = Babel(app, locale_selector=get_locale)
 
 # تسجيل البلوبيرنتات
 app.register_blueprint(profile_bp)
